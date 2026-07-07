@@ -2,7 +2,7 @@
 
 ## Project Status
 
-Application code has been scaffolded with Laravel 12, Laravel Breeze, Blade, Tailwind CSS, Vite, and MariaDB/MySQL configuration. Project planning documents exist for MVP scope, technology stack, database design, screen flow, and implementation roadmap.
+Application code has been scaffolded with Laravel 12, Laravel Breeze, Blade, Tailwind CSS, Vite, Laravel Sail, and MariaDB/MySQL configuration. Project planning documents exist for MVP scope, technology stack, database design, screen flow, Docker workflow, and implementation roadmap.
 
 ## Planning Documents
 
@@ -10,8 +10,9 @@ Application code has been scaffolded with Laravel 12, Laravel Breeze, Blade, Tai
 - Tech stack: `docs/TECH_STACK.md`
 - Database design: `docs/DATABASE_DESIGN.md`
 - Screen flow: `docs/SCREEN_FLOW.md`
+- Docker workflow: `docs/DOCKER_WORKFLOW.md`
 - Implementation roadmap: `docs/IMPLEMENTATION_ROADMAP.md`
-- Use the MVP scope, tech stack, database design, screen flow, and implementation roadmap as the first-build source of truth before API design, routes, controllers, views, migrations, models, or implementation.
+- Use the MVP scope, tech stack, database design, screen flow, Docker workflow, and implementation roadmap as the first-build source of truth before API design, routes, controllers, views, migrations, models, or implementation.
 
 ## Project Objectives
 
@@ -29,17 +30,19 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 ## Working Directory
 
 - Root: `C:\xampp\htdocs\casa_paraiso`
-- Expected local server context: XAMPP / Apache
+- Primary local server context: Docker with Laravel Sail services managed through direct `docker compose` commands
+- Fallback local server context: XAMPP / Apache
 - Git repository is initialized.
 
 ## Deployment Target
 
 - Planned production host: Hostinger.
 - Default hosting assumption: Hostinger shared/web hosting unless the project later moves to VPS.
-- Local development environment: XAMPP / Apache.
-- Prefer PHP-compatible backend decisions while the project remains XAMPP-based.
+- Primary local development environment: Docker with Laravel Sail services managed through direct `docker compose` commands.
+- Fallback local development environment: XAMPP / Apache.
+- Prefer PHP-compatible backend decisions while the project remains Hostinger shared-hosting compatible.
 - Use MariaDB/MySQL-compatible database design for Hostinger Web/Cloud hosting compatibility.
-- Avoid requiring persistent Node.js services, custom daemons, server-level packages, or long-running background workers unless the deployment target changes to VPS.
+- Avoid requiring Docker, persistent Node.js services, custom daemons, server-level packages, or long-running background workers in production unless the deployment target changes to VPS.
 
 ## Database Deployment Notes
 
@@ -67,22 +70,24 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 - Prefer small, focused changes that are easy to inspect.
 - Keep project-specific setup notes in this file as the application takes shape.
 - Use Laravel 12, PHP 8.2+, Blade, Tailwind CSS through Vite, and MariaDB/MySQL unless a later planning decision changes the stack.
-- Keep Apache/XAMPP and Hostinger shared/web hosting compatibility in mind.
+- Use Laravel Sail as the primary local development runtime, but prefer direct `docker compose` commands on this Windows machine because `vendor\bin\sail.bat` depends on a working Bash/WSL shim.
+- Keep Hostinger shared/web hosting compatibility in mind; Docker is not the production target.
+- Keep Apache/XAMPP compatibility as a fallback local workflow only.
 - Use Node/npm for frontend asset builds only; do not require a production Node.js runtime for the MVP.
 - Use Laravel migrations and seeders as the primary database workflow.
 - Document setup, build, migration, seed, and deployment commands as the application is scaffolded.
 - Keep usability, security, and effectiveness visible in design and implementation decisions to support the ISO/IEC 25010 quality target.
-- XAMPP CLI PHP has `zip` enabled for Composer package extraction.
+- XAMPP CLI PHP has `zip` enabled for Composer package extraction when using host PHP fallback.
 - Global Composer may still report version 2.9.7 because self-update is blocked by Windows permissions on `C:\ProgramData\ComposerSetup\bin\composer.phar`; Phase 1 scaffolding used a temporary Composer 2.10.2 PHAR instead.
 
 ## Verification
 
 Current scaffold verification:
 
-- Laravel app: verify through the local XAMPP URL or Laravel development server.
-- Frontend assets: `npm run build`
-- Database: `php artisan migrate:fresh`
-- Tests: `php artisan test`
+- Laravel app: `docker compose up -d`, then open `http://localhost:8001`
+- Frontend assets: `docker compose exec -T laravel.test npm run build`
+- Database: `docker compose exec -T laravel.test php artisan migrate:fresh --seed`
+- Tests: `docker compose exec -T laravel.test php artisan test`
 
 ## Notes For Future Agents
 

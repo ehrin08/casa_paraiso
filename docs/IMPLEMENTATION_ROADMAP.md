@@ -14,20 +14,23 @@ Use these documents as implementation sources of truth:
 - `docs/TECH_STACK.md`
 - `docs/DATABASE_DESIGN.md`
 - `docs/SCREEN_FLOW.md`
+- `docs/DOCKER_WORKFLOW.md`
+
+## Current Environment Direction
+
+Docker Compose with Laravel Sail services is the primary local development workflow. XAMPP remains a fallback local workflow. Hostinger shared/web hosting remains the production target, so Docker must not become a production requirement unless the deployment target changes to VPS.
 
 ## Phase 0: Pre-Scaffold Preparation
 
-Goal: confirm the local environment is ready before creating the Laravel application.
+Goal: confirm the local environment is ready before feature development.
 
 Tasks:
 
-- Update Composer to the latest stable version because the current local Composer version was previously detected as outdated/vulnerable.
-- Confirm PHP is 8.2 or higher.
-- Confirm required PHP extensions are enabled.
-- Confirm Node and npm are available for Vite and Tailwind asset builds.
-- Confirm XAMPP MySQL/MariaDB is available locally.
-- Decide whether to initialize Git before scaffolding.
-- Create a local database for the app, such as `casa_paraiso`.
+- Confirm Docker and Docker Compose are available.
+- Use Sail-generated Docker Compose services as the primary local runtime.
+- Confirm Docker Compose services start.
+- Confirm the MariaDB service is available.
+- Keep XAMPP available only as fallback.
 
 Verification:
 
@@ -37,41 +40,42 @@ composer --version
 composer diagnose
 node --version
 npm --version
+docker --version
+docker compose version
+docker compose up -d
 ```
 
 Acceptance:
 
-- Composer no longer reports the known vulnerable/outdated installed version.
-- PHP, Composer, Node, npm, and MySQL/MariaDB are ready for Laravel scaffolding.
+- Docker, Compose, Sail services, and MariaDB are ready for local development.
+- Host PHP/Composer/npm remain usable as fallback only.
 
 ## Phase 1: Laravel And Auth Scaffold
 
-Goal: create the Laravel application foundation.
+Goal: keep the Laravel application foundation reproducible under Docker Compose.
 
 Tasks:
 
-- Scaffold Laravel 12 in the project root.
-- Install Laravel Breeze with Blade templates.
-- Install frontend dependencies.
-- Configure Tailwind CSS through Vite.
-- Configure `.env` for the local database.
+- Maintain Laravel 12 and Breeze Blade templates.
+- Maintain Tailwind CSS through Vite.
+- Configure `.env` for the Docker MariaDB service.
 - Set `APP_TIMEZONE=Asia/Manila`.
 - Confirm `.env` is not committed.
-- Build frontend assets.
-- Run the default Laravel test suite.
+- Build frontend assets through the app container.
+- Run the Laravel test suite through the app container.
 
 Verification:
 
 ```bash
-composer install
-npm install
-npm run build
-php artisan test
+docker compose exec -T laravel.test composer install
+docker compose exec -T laravel.test npm install
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
 
-- Laravel loads locally.
+- Laravel loads locally through Docker Compose.
 - Breeze login and registration pages render.
 - Tailwind styles compile successfully.
 - Default tests pass.
@@ -95,8 +99,8 @@ Tasks:
 Verification:
 
 ```bash
-php artisan migrate:fresh --seed
-php artisan test
+docker compose exec -T laravel.test php artisan migrate:fresh --seed
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -128,8 +132,8 @@ Tasks:
 Verification:
 
 ```bash
-php artisan migrate:fresh --seed
-php artisan test
+docker compose exec -T laravel.test php artisan migrate:fresh --seed
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -156,8 +160,8 @@ Tasks:
 Verification:
 
 ```bash
-npm run build
-php artisan test
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -184,8 +188,8 @@ Tasks:
 Verification:
 
 ```bash
-npm run build
-php artisan test
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -218,8 +222,8 @@ Tasks:
 Verification:
 
 ```bash
-npm run build
-php artisan test
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -254,8 +258,8 @@ Tasks:
 Verification:
 
 ```bash
-npm run build
-php artisan test
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -284,8 +288,8 @@ Tasks:
 Verification:
 
 ```bash
-npm run build
-php artisan test
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -317,8 +321,8 @@ Tasks:
 Verification:
 
 ```bash
-npm run build
-php artisan test
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -346,8 +350,8 @@ Tasks:
 Verification:
 
 ```bash
-npm run build
-php artisan test
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:
@@ -374,11 +378,11 @@ Tasks:
 Verification:
 
 ```bash
-composer install
-npm install
-npm run build
-php artisan migrate:fresh --seed
-php artisan test
+docker compose exec -T laravel.test composer install
+docker compose exec -T laravel.test npm install
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan migrate:fresh --seed
+docker compose exec -T laravel.test php artisan test
 ```
 
 Acceptance:

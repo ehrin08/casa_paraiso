@@ -74,7 +74,7 @@ The MVP should support appointment scheduling, customer records, manual transact
 ## Operational Constraints
 
 - Target Hostinger shared/web hosting by default.
-- Keep the application compatible with local XAMPP / Apache development.
+- Keep the application compatible with Docker/Sail local development, with XAMPP / Apache as fallback.
 - Use MariaDB/MySQL-compatible database design.
 - Keep production credentials outside committed source files.
 - Design recovery paths around Hostinger backups, database exports, and documented restore steps.

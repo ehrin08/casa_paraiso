@@ -2,7 +2,7 @@
 
 ## Approved Stack
 
-Casa Paraiso should be built as a production-ready Laravel monolith that stays compatible with Hostinger shared/web hosting and local XAMPP development.
+Casa Paraiso should be built as a production-ready Laravel monolith that stays compatible with Hostinger shared/web hosting and Docker/Sail local development.
 
 - Backend: Laravel 12
 - Runtime: PHP 8.2 or higher
@@ -11,6 +11,8 @@ Casa Paraiso should be built as a production-ready Laravel monolith that stays c
 - Database: MariaDB/MySQL
 - Database workflow: Laravel migrations and seeders
 - Package management: Composer for PHP dependencies, npm for frontend build dependencies
+- Primary local development: Docker with Laravel Sail services managed through direct Docker Compose commands
+- Fallback local development: XAMPP / Apache
 - Production hosting: Hostinger shared/web hosting by default
 
 ## Frontend Decision
@@ -50,18 +52,27 @@ Use targeted JavaScript only where it directly improves a workflow, such as appo
 
 - Compile production frontend assets with `npm run build`.
 - Deploy compiled assets from Laravel's public build output.
+- Use Docker/Sail for local development only.
+- Do not deploy Sail containers to Hostinger shared/web hosting.
 - Do not require Node.js to run on Hostinger production for the MVP.
 - Keep `.env` credentials out of committed source files.
 - Hostinger must point web requests to Laravel's `public/index.php` entrypoint or an equivalent safe shared-hosting configuration.
 - Run Laravel production optimization commands during deployment when supported by the hosting environment.
 
-## Pre-Scaffold Checks
+## Local Development Checks
 
-Before scaffolding Laravel:
+For primary Docker/Sail development:
 
-- Update Composer to the latest stable version.
+- Confirm Docker and Docker Compose are available.
+- Start services with `docker compose up -d`.
+- Use the Sail MariaDB service for local database work.
+- Use `docker compose exec laravel.test ...` for Composer, npm, Artisan, migrations, and tests.
+- Avoid `.\vendor\bin\sail.bat` on this machine unless Bash/WSL is repaired.
+
+For XAMPP fallback:
+
 - Confirm PHP is 8.2 or higher.
-- Confirm required PHP extensions are enabled for Laravel, including `ctype`, `curl`, `dom`, `fileinfo`, `filter`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `session`, `tokenizer`, and `xml`.
+- Confirm required PHP extensions are enabled for Laravel.
 - Confirm Node and npm are available for Vite and Tailwind asset builds.
 - Confirm MySQL/MariaDB is available locally through XAMPP.
 
@@ -71,17 +82,20 @@ Current local environment observed during planning:
 - Composer: 2.9.7
 - Node: 24.15.0
 - npm: 11.12.1
+- Docker: 29.4.2
+- Docker Compose: 5.1.3
 
 ## Verification Commands After Scaffolding
 
 Use these commands once the Laravel project exists:
 
 ```bash
-composer install
-npm install
-npm run build
-php artisan migrate --seed
-php artisan test
+docker compose up -d
+docker compose exec -T laravel.test composer install
+docker compose exec -T laravel.test npm install
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan migrate --seed
+docker compose exec -T laravel.test php artisan test
 ```
 
 ## References
