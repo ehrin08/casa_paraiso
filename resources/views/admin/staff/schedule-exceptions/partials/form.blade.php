@@ -46,6 +46,16 @@
                 </div>
             </div>
 
+            <label class="flex items-start gap-3 rounded-2xl border border-casa-border bg-casa-sand/45 p-4">
+                <input type="hidden" name="ends_next_day" value="0">
+                <input type="checkbox" name="ends_next_day" value="1" @checked(old('ends_next_day', $scheduleException->ends_next_day ?? false)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
+                <span>
+                    <span class="block text-sm font-bold text-casa-text">{{ __('Ends at midnight') }}</span>
+                    <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Use with a 12:00 AM end time for a partial-day override that reaches closing.') }}</span>
+                </span>
+            </label>
+            <x-input-error class="mt-2" :messages="$errors->get('ends_next_day')" />
+
             <div>
                 <x-input-label for="reason" :value="__('Reason')" />
                 <textarea id="reason" name="reason" rows="5" class="casa-input mt-2">{{ old('reason', $scheduleException->reason) }}</textarea>

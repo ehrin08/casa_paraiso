@@ -29,11 +29,11 @@ class PhaseFiveToTenWorkflowTest extends TestCase
         $service = Service::factory()->create(['duration_minutes' => 60, 'is_active' => true]);
         $staffProfile->services()->attach($service);
 
-        $slotDate = now()->addWeek()->setTime(10, 0, 0);
+        $slotDate = now()->addWeek()->setTime(14, 0, 0);
         StaffWeeklySchedule::factory()->for($staffProfile)->create([
             'day_of_week' => $slotDate->dayOfWeek,
-            'start_time' => '10:00:00',
-            'end_time' => '12:00:00',
+            'start_time' => '14:00:00',
+            'end_time' => '16:00:00',
         ]);
 
         $response = $this->actingAs($customer)
@@ -46,9 +46,10 @@ class PhaseFiveToTenWorkflowTest extends TestCase
 
         $slots = collect($response->json('dates.'.$slotDate->toDateString()));
 
-        $this->assertTrue($slots->contains('time', '10:00'));
-        $this->assertTrue($slots->contains('time', '11:00'));
-        $this->assertFalse($slots->contains('time', '12:00'));
+        $this->assertTrue($slots->contains('time', '14:00'));
+        $this->assertTrue($slots->contains('time', '15:00'));
+        $this->assertFalse($slots->contains('time', '16:00'));
+        $this->assertNotNull($slots->firstWhere('time', '14:00')['ends_at'] ?? null);
     }
 
     public function test_customer_request_calendar_includes_time_preview_hooks(): void
@@ -61,8 +62,8 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             ->assertSee('slotPreviewLimit: 2', false)
             ->assertSee('previewSlots', false)
             ->assertSee('moreSlotsLabel(day)', false)
-            ->assertSee('slot.time', false)
-            ->assertSee('slot.label', false);
+            ->assertSee('slot.label', false)
+            ->assertSee('eligibleStaff', false);
     }
 
     public function test_customer_availability_excludes_confirmed_overlap_and_honors_preferred_staff(): void
@@ -75,13 +76,13 @@ class PhaseFiveToTenWorkflowTest extends TestCase
         $firstStaff->services()->attach($service);
         $secondStaff->services()->attach($service);
 
-        $slotDate = now()->addWeek()->setTime(10, 0, 0);
+        $slotDate = now()->addWeek()->setTime(14, 0, 0);
 
         foreach ([$firstStaff, $secondStaff] as $staffProfile) {
             StaffWeeklySchedule::factory()->for($staffProfile)->create([
                 'day_of_week' => $slotDate->dayOfWeek,
-                'start_time' => '10:00:00',
-                'end_time' => '12:00:00',
+                'start_time' => '14:00:00',
+                'end_time' => '16:00:00',
             ]);
         }
 
@@ -109,8 +110,8 @@ class PhaseFiveToTenWorkflowTest extends TestCase
                 'month' => $slotDate->format('Y-m'),
             ], false));
 
-        $this->assertTrue(collect($generalResponse->json('dates.'.$slotDate->toDateString()))->contains('time', '10:00'));
-        $this->assertFalse(collect($preferredResponse->json('dates.'.$slotDate->toDateString()))->contains('time', '10:00'));
+        $this->assertTrue(collect($generalResponse->json('dates.'.$slotDate->toDateString()))->contains('time', '14:00'));
+        $this->assertFalse(collect($preferredResponse->json('dates.'.$slotDate->toDateString()))->contains('time', '14:00'));
     }
 
     public function test_customer_request_can_be_confirmed_by_staff_and_overlap_is_blocked(): void
@@ -122,10 +123,10 @@ class PhaseFiveToTenWorkflowTest extends TestCase
         $service = Service::factory()->create(['duration_minutes' => 60, 'is_active' => true]);
         $staffProfile->services()->attach($service);
 
-        $start = now()->addWeek()->setTime(10, 0, 0);
+        $start = now()->addWeek()->setTime(14, 0, 0);
         StaffWeeklySchedule::factory()->for($staffProfile)->create([
             'day_of_week' => $start->dayOfWeek,
-            'start_time' => '09:00:00',
+            'start_time' => '13:00:00',
             'end_time' => '17:00:00',
         ]);
 
@@ -141,7 +142,8 @@ class PhaseFiveToTenWorkflowTest extends TestCase
         $appointment = Appointment::query()->firstOrFail();
 
         $this->assertSame(Appointment::STATUS_PENDING, $appointment->status);
-        $this->assertStringContainsString('Preferred staff: '.$staffUser->name, (string) $appointment->customer_notes);
+        $this->assertSame($staffProfile->id, $appointment->preferred_staff_profile_id);
+        $this->assertSame('Quiet room please.', $appointment->customer_notes);
 
         $this->actingAs($staffUser)
             ->patch(route('staff.appointments.update', $appointment, false), [
@@ -187,11 +189,11 @@ class PhaseFiveToTenWorkflowTest extends TestCase
         $service = Service::factory()->create(['duration_minutes' => 60, 'is_active' => true]);
         $staffProfile = StaffProfile::factory()->create();
         $staffProfile->services()->attach($service);
-        $start = now()->addWeek()->setTime(10, 0, 0);
+        $start = now()->addWeek()->setTime(14, 0, 0);
 
         StaffWeeklySchedule::factory()->for($staffProfile)->create([
             'day_of_week' => $start->dayOfWeek,
-            'start_time' => '13:00:00',
+            'start_time' => '15:00:00',
             'end_time' => '17:00:00',
         ]);
 

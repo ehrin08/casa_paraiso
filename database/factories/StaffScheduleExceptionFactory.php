@@ -20,6 +20,7 @@ class StaffScheduleExceptionFactory extends Factory
             'exception_type' => StaffScheduleException::TYPE_UNAVAILABLE,
             'start_time' => null,
             'end_time' => null,
+            'ends_next_day' => false,
             'reason' => fake()->optional()->sentence(),
             'created_by' => User::factory()->admin(),
         ];

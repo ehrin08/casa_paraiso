@@ -24,6 +24,21 @@
             $newScheduleException = new \App\Models\StaffScheduleException(['exception_type' => \App\Models\StaffScheduleException::TYPE_UNAVAILABLE]);
         @endphp
 
+        <x-input-error :messages="$errors->all()" />
+
+        @if (session('schedule_conflicts'))
+            <div class="rounded-2xl border border-red-200 bg-red-50 p-5" role="alert">
+                <p class="text-sm font-extrabold text-red-800">{{ __('Resolve these confirmed appointments first') }}</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    @foreach (session('schedule_conflicts') as $conflict)
+                        <a href="{{ $conflict['url'] }}" class="rounded-full border border-red-200 bg-white px-3 py-2 text-xs font-extrabold text-red-800 hover:border-red-400">
+                            {{ $conflict['number'] }} · {{ \Illuminate\Support\Carbon::parse($conflict['starts_at'])->format('M d, g:i A') }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <section class="grid gap-4 md:grid-cols-4">
             <x-metric-card label="Services" :value="$staffProfile->services_count" meta="Assigned treatments" tone="green" />
             <x-metric-card label="Schedules" :value="$staffProfile->weekly_schedules_count" meta="Phase 5C entries" tone="gold" />
@@ -111,7 +126,7 @@
                                         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                                             <div>
                                                 <p class="font-bold text-casa-text">
-                                                    {{ $formatTime($weeklySchedule->start_time) }} - {{ $formatTime($weeklySchedule->end_time) }}
+                                                    {{ $formatTime($weeklySchedule->start_time) }} - {{ $weeklySchedule->ends_next_day ? __('12:00 midnight') : $formatTime($weeklySchedule->end_time) }}
                                                 </p>
                                                 <x-status-badge class="mt-2" :tone="$weeklySchedule->is_available ? 'success' : 'dark'">
                                                     {{ $weeklySchedule->is_available ? __('Available') : __('Unavailable') }}
@@ -161,7 +176,7 @@
                                         </x-status-badge>
                                         <x-status-badge>
                                             @if ($scheduleException->start_time && $scheduleException->end_time)
-                                                {{ $formatTime($scheduleException->start_time) }} - {{ $formatTime($scheduleException->end_time) }}
+                                                {{ $formatTime($scheduleException->start_time) }} - {{ $scheduleException->ends_next_day ? __('12:00 midnight') : $formatTime($scheduleException->end_time) }}
                                             @else
                                                 {{ __('Full day') }}
                                             @endif

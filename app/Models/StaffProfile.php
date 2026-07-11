@@ -58,4 +58,9 @@ class StaffProfile extends Model
     {
         return $this->hasMany(Appointment::class);
     }
+
+    public function preferredAppointments()
+    {
+        return $this->hasMany(Appointment::class, 'preferred_staff_profile_id');
+    }
 }

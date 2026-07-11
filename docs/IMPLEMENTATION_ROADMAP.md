@@ -182,6 +182,8 @@ Tasks:
 - Build staff-service assignment screens.
 - Build weekly staff schedule management.
 - Build schedule exception management.
+- Present recurring schedules and date exceptions through the admin Availability calendar while retaining normal Laravel form submissions.
+- Block schedule changes that would invalidate future confirmed appointments.
 - Build admin customer list/detail screens.
 - Build staff customer lookup with limited operational access.
 - Build customer profile screen.
@@ -206,9 +208,9 @@ Goal: implement the core appointment request, confirmation, and completion workf
 Tasks:
 
 - Build customer appointment request form.
-- Build customer appointment list/detail views.
-- Build admin appointment list/detail/create screens.
-- Build staff pending and assigned appointment screens.
+- Build a customer month calendar for requests, confirmed visits, and history plus the appointment detail view.
+- Build an admin weekly resource calendar with Bookings and Availability modes plus detail/create screens.
+- Build a staff personal weekly calendar with assigned appointments, read-only availability, and eligible demand.
 - Implement status transitions:
   - `pending`
   - `confirmed`
@@ -218,6 +220,9 @@ Tasks:
 - Generate unique appointment numbers.
 - Calculate scheduled end time from service duration.
 - Prevent overlapping confirmed appointments for the same staff member.
+- Store optional therapist preference separately from final assignment.
+- Resolve every calendar from the same recurring schedule, exception, business-hour, and confirmed-overlap rules.
+- Support services ending exactly at the 12:00 midnight boundary.
 - Record appointment status logs.
 
 Verification:
@@ -232,7 +237,8 @@ Acceptance:
 - Customer can request an appointment.
 - Staff/admin can confirm, reschedule, cancel, complete, or mark no-show.
 - The system blocks overlapping confirmed appointments for the same staff member.
-- Customer can view their own appointment status.
+- Customer, staff, and admin calendars expose only role-authorized events.
+- Customer can view their own appointment status from the monthly calendar.
 
 ## Phase 7: Manual Transactions
 

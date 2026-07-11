@@ -401,6 +401,62 @@
         text-transform: uppercase;
     }
 
+    .casa-calendar-event-request {
+        border-color: color-mix(in srgb, var(--color-casa-brass) 58%, var(--color-casa-border));
+        background: color-mix(in srgb, var(--color-casa-sand) 84%, white);
+        color: var(--color-casa-cacao-dark);
+    }
+
+    .casa-calendar-event-confirmed {
+        border-color: color-mix(in srgb, var(--color-casa-palm) 64%, var(--color-casa-border));
+        background: linear-gradient(145deg, var(--color-casa-palm), var(--color-casa-palm-dark));
+        color: #fff;
+    }
+
+    .casa-calendar-event-completed {
+        border-color: color-mix(in srgb, var(--color-casa-palm) 32%, var(--color-casa-border));
+        background: color-mix(in srgb, var(--color-casa-palm) 12%, white);
+        color: var(--color-casa-palm-dark);
+    }
+
+    .casa-calendar-event-cancelled {
+        border-color: #E2B7B2;
+        background: #FFF5F3;
+        color: #842018;
+    }
+
+    .casa-calendar-event-blocker {
+        border-color: color-mix(in srgb, var(--color-casa-cacao) 58%, var(--color-casa-border));
+        background: color-mix(in srgb, var(--color-casa-cacao) 84%, black);
+        color: #fff;
+    }
+
+    .casa-calendar-availability,
+    .casa-calendar-availability-exception {
+        border-color: color-mix(in srgb, var(--color-casa-palm) 28%, var(--color-casa-border));
+        background: color-mix(in srgb, var(--color-casa-palm) 10%, transparent);
+        color: var(--color-casa-palm-dark);
+    }
+
+    .casa-calendar-availability-exception {
+        border-color: color-mix(in srgb, var(--color-casa-brass) 42%, var(--color-casa-border));
+        background: color-mix(in srgb, var(--color-casa-brass) 14%, white);
+        color: var(--color-casa-cacao);
+    }
+
+    .casa-calendar-unavailable {
+        border-color: color-mix(in srgb, var(--color-casa-cacao) 34%, var(--color-casa-border));
+        background:
+            repeating-linear-gradient(-45deg, rgba(122, 62, 20, 0.12) 0 7px, rgba(122, 62, 20, 0.035) 7px 14px),
+            color-mix(in srgb, var(--color-casa-sand) 78%, white);
+        color: var(--color-casa-cacao-dark);
+    }
+
+    [data-calendar-scroll] {
+        scrollbar-width: thin;
+        scrollbar-color: var(--color-casa-taupe) transparent;
+    }
+
     .casa-table-row {
         transition: background-color 160ms ease;
     }

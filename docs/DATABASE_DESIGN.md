@@ -15,6 +15,7 @@ This design supports customer login, staff scheduling, appointment requests, man
 - Store money as `decimal(10,2)`.
 - Store dates and times in server time for MVP; use Asia/Manila as the business timezone in application config.
 - Use MariaDB/MySQL-compatible column types and indexes.
+- Treat 1:00 PM to 12:00 midnight as the hard booking boundary and generate appointment starts at 30-minute intervals.
 
 ## Status Values
 
@@ -183,6 +184,7 @@ Key columns:
 - `day_of_week` tiny integer, 0 for Sunday through 6 for Saturday
 - `start_time`
 - `end_time`
+- `ends_next_day` boolean default false
 - `is_available` boolean default true
 - `created_at`, `updated_at`
 
@@ -193,7 +195,8 @@ Indexes:
 Rules:
 
 - Allow multiple rows per staff and day for split shifts.
-- Validate `end_time` is later than `start_time`.
+- Use `ends_next_day = true` with `end_time = 00:00:00` for a shift that reaches midnight.
+- Validate the resolved end datetime is later than the start and remains inside business hours.
 
 Relationships:
 
@@ -211,6 +214,7 @@ Key columns:
 - `exception_type`
 - `start_time` nullable
 - `end_time` nullable
+- `ends_next_day` boolean default false
 - `reason` nullable
 - `created_by` nullable foreign key to `users.id`
 - `created_at`, `updated_at`
@@ -225,6 +229,8 @@ Rules:
 - Use `exception_type = unavailable` with null times for a full-day block.
 - Use `exception_type = unavailable` with start/end times for a partial-day block.
 - Use `exception_type = available` to add a one-off available time range outside the weekly schedule.
+- Date-specific unavailable exceptions take precedence over available and recurring windows.
+- Reject changes that would leave a future confirmed appointment outside the therapist's effective schedule.
 
 Relationships:
 
@@ -244,6 +250,7 @@ Key columns:
 - `customer_profile_id` foreign key to `customer_profiles.id`
 - `service_id` foreign key to `services.id`
 - `staff_profile_id` nullable foreign key to `staff_profiles.id`
+- `preferred_staff_profile_id` nullable foreign key to `staff_profiles.id`
 - `requested_start_at`
 - `scheduled_start_at` nullable
 - `scheduled_end_at` nullable
@@ -263,6 +270,7 @@ Indexes:
 - Unique index on `appointment_number`
 - Index on `customer_profile_id`, `status`
 - Index on `staff_profile_id`, `scheduled_start_at`, `scheduled_end_at`
+- Index on `preferred_staff_profile_id`
 - Index on `service_id`
 - Index on `status`
 - Index on `requested_start_at`
@@ -270,6 +278,8 @@ Indexes:
 Rules:
 
 - New customer requests start as `pending`.
+- A preferred therapist is a customer preference only; final assignment remains in `staff_profile_id`.
+- Pending requests do not reserve therapist capacity and remain visible as operational demand.
 - `confirmed` appointments must have `staff_profile_id`, `scheduled_start_at`, and `scheduled_end_at`.
 - `scheduled_end_at` should be calculated from service duration unless manually adjusted by admin/staff.
 - Prevent overlapping `confirmed` appointments for the same staff member.

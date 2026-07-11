@@ -25,6 +25,7 @@ class StaffScheduleExceptionRequest extends FormRequest
             'exception_type' => ['required', Rule::in(StaffScheduleException::TYPES)],
             'start_time' => ['nullable', 'date_format:H:i'],
             'end_time' => ['nullable', 'date_format:H:i'],
+            'ends_next_day' => ['sometimes', 'boolean'],
             'reason' => ['nullable', 'string', 'max:5000'],
         ];
     }
@@ -40,6 +41,7 @@ class StaffScheduleExceptionRequest extends FormRequest
                 $type = $this->input('exception_type');
                 $startTime = $this->input('start_time');
                 $endTime = $this->input('end_time');
+                $endsNextDay = $this->boolean('ends_next_day');
 
                 if ($type === StaffScheduleException::TYPE_AVAILABLE && (empty($startTime) || empty($endTime))) {
                     $validator->errors()->add('start_time', 'Available exceptions require start and end times.');
@@ -51,10 +53,39 @@ class StaffScheduleExceptionRequest extends FormRequest
                     return;
                 }
 
-                if (! empty($startTime) && ! empty($endTime) && $endTime <= $startTime) {
+                if (empty($startTime) && empty($endTime)) {
+                    if ($endsNextDay) {
+                        $validator->errors()->add('ends_next_day', 'Full-day exceptions do not need a next-day ending.');
+                    }
+
+                    return;
+                }
+
+                $startMinutes = $this->minutes((string) $startTime);
+                $endMinutes = $endsNextDay ? 1440 : $this->minutes((string) $endTime);
+                $openingMinutes = $this->minutes((string) config('casa.business_hours.opens_at', '13:00'));
+
+                if ($startMinutes < $openingMinutes) {
+                    $validator->errors()->add('start_time', 'Schedule exceptions must begin within business hours at 1:00 PM or later.');
+                    return;
+                }
+
+                if ($endsNextDay && $endTime !== '00:00') {
+                    $validator->errors()->add('end_time', 'A next-day exception must end at 12:00 midnight.');
+                    return;
+                }
+
+                if ($endMinutes <= $startMinutes) {
                     $validator->errors()->add('end_time', 'The end time must be after the start time.');
                 }
             },
         ];
+    }
+
+    private function minutes(string $time): int
+    {
+        [$hour, $minute] = array_map('intval', explode(':', substr($time, 0, 5)));
+
+        return ($hour * 60) + $minute;
     }
 }

@@ -34,6 +34,7 @@ class Appointment extends Model
         'customer_profile_id',
         'service_id',
         'staff_profile_id',
+        'preferred_staff_profile_id',
         'requested_start_at',
         'scheduled_start_at',
         'scheduled_end_at',
@@ -73,6 +74,11 @@ class Appointment extends Model
     public function staffProfile()
     {
         return $this->belongsTo(StaffProfile::class);
+    }
+
+    public function preferredStaffProfile()
+    {
+        return $this->belongsTo(StaffProfile::class, 'preferred_staff_profile_id');
     }
 
     public function transactions()

@@ -53,8 +53,9 @@ class AdminStaffScheduleManagementTest extends TestCase
 
         $this->actingAs($admin)->post(route('admin.staff.weekly-schedules.store', $staffProfile, false), [
             'day_of_week' => StaffWeeklySchedule::MONDAY,
-            'start_time' => '10:00',
-            'end_time' => '14:00',
+            'start_time' => '13:00',
+            'end_time' => '00:00',
+            'ends_next_day' => '1',
             'is_available' => '1',
         ])->assertRedirect(route('admin.staff.show', $staffProfile, false));
 
@@ -65,23 +66,26 @@ class AdminStaffScheduleManagementTest extends TestCase
 
         $this->assertDatabaseHas('staff_weekly_schedules', [
             'id' => $weeklySchedule->id,
-            'start_time' => '10:00:00',
-            'end_time' => '14:00:00',
+            'start_time' => '13:00:00',
+            'end_time' => '00:00:00',
+            'ends_next_day' => true,
             'is_available' => true,
         ]);
 
         $this->actingAs($admin)->patch(route('admin.staff.weekly-schedules.update', [$staffProfile, $weeklySchedule], false), [
             'day_of_week' => StaffWeeklySchedule::TUESDAY,
-            'start_time' => '09:00',
-            'end_time' => '13:00',
+            'start_time' => '14:00',
+            'end_time' => '18:00',
+            'ends_next_day' => '0',
             'is_available' => '0',
         ])->assertRedirect(route('admin.staff.show', $staffProfile, false));
 
         $this->assertDatabaseHas('staff_weekly_schedules', [
             'id' => $weeklySchedule->id,
             'day_of_week' => StaffWeeklySchedule::TUESDAY,
-            'start_time' => '09:00:00',
-            'end_time' => '13:00:00',
+            'start_time' => '14:00:00',
+            'end_time' => '18:00:00',
+            'ends_next_day' => false,
             'is_available' => false,
         ]);
 
@@ -101,16 +105,16 @@ class AdminStaffScheduleManagementTest extends TestCase
 
         StaffWeeklySchedule::factory()->for($staffProfile)->create([
             'day_of_week' => StaffWeeklySchedule::WEDNESDAY,
-            'start_time' => '10:00',
-            'end_time' => '14:00',
+            'start_time' => '13:00',
+            'end_time' => '16:00',
         ]);
 
         $this->actingAs($admin)
             ->from(route('admin.staff.weekly-schedules.create', $staffProfile, false))
             ->post(route('admin.staff.weekly-schedules.store', $staffProfile, false), [
                 'day_of_week' => StaffWeeklySchedule::WEDNESDAY,
-                'start_time' => '13:00',
-                'end_time' => '16:00',
+                'start_time' => '15:00',
+                'end_time' => '18:00',
                 'is_available' => '1',
             ])
             ->assertRedirect(route('admin.staff.weekly-schedules.create', $staffProfile, false))
@@ -143,16 +147,16 @@ class AdminStaffScheduleManagementTest extends TestCase
         $this->actingAs($admin)->patch(route('admin.staff.schedule-exceptions.update', [$staffProfile, $scheduleException], false), [
             'exception_date' => now()->addWeeks(2)->toDateString(),
             'exception_type' => StaffScheduleException::TYPE_AVAILABLE,
-            'start_time' => '12:00',
-            'end_time' => '16:00',
+            'start_time' => '13:00',
+            'end_time' => '17:00',
             'reason' => 'Special opening',
         ])->assertRedirect(route('admin.staff.show', $staffProfile, false));
 
         $this->assertDatabaseHas('staff_schedule_exceptions', [
             'id' => $scheduleException->id,
             'exception_type' => StaffScheduleException::TYPE_AVAILABLE,
-            'start_time' => '12:00:00',
-            'end_time' => '16:00:00',
+            'start_time' => '13:00:00',
+            'end_time' => '17:00:00',
             'reason' => 'Special opening',
         ]);
 
@@ -201,8 +205,8 @@ class AdminStaffScheduleManagementTest extends TestCase
 
         StaffWeeklySchedule::factory()->for($staffProfile)->create([
             'day_of_week' => StaffWeeklySchedule::FRIDAY,
-            'start_time' => '10:00',
-            'end_time' => '18:00',
+            'start_time' => '13:00',
+            'end_time' => '21:00',
         ]);
 
         StaffScheduleException::factory()->for($staffProfile)->for($admin, 'creator')->create([
@@ -216,7 +220,7 @@ class AdminStaffScheduleManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Schedule Staff')
             ->assertSee('Friday')
-            ->assertSee('10:00 - 18:00')
+            ->assertSee('13:00 - 21:00')
             ->assertSee('Workshop day')
             ->assertSee('Full day');
     }

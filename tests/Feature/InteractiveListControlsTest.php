@@ -16,7 +16,7 @@ class InteractiveListControlsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_appointment_list_filters_searches_and_sorts(): void
+    public function test_admin_appointment_calendar_filters_the_event_feed(): void
     {
         $admin = User::factory()->admin()->create();
         $customerA = CustomerProfile::factory()->create();
@@ -43,17 +43,24 @@ class InteractiveListControlsTest extends TestCase
             ]);
 
         $this->actingAs($admin)
-            ->get(route('admin.appointments.index', [
-                'q' => 'Hilot',
-                'status' => Appointment::STATUS_PENDING,
-                'sort' => 'number',
-                'direction' => 'asc',
-            ], false))
+            ->get(route('admin.appointments.index', absolute: false))
             ->assertOk()
-            ->assertSee('APT-200')
-            ->assertDontSee('APT-100')
-            ->assertSee('sort=number', false)
-            ->assertSee('direction=desc', false);
+            ->assertSee('data-operational-calendar', false)
+            ->assertDontSee('casa-table-wrap', false);
+
+        $weekStart = now()->startOfDay();
+        $response = $this->actingAs($admin)
+            ->getJson(route('admin.appointments.calendar', [
+                'mode' => 'bookings',
+                'start' => $weekStart->toDateString(),
+                'end' => $weekStart->copy()->addDays(7)->toDateString(),
+                'status' => Appointment::STATUS_PENDING,
+            ], false));
+
+        $response->assertOk()->assertJsonPath('mode', 'bookings');
+        $numbers = collect($response->json('events'))->pluck('appointment_number');
+        $this->assertTrue($numbers->contains('APT-200'));
+        $this->assertFalse($numbers->contains('APT-100'));
     }
 
     public function test_admin_transaction_list_filters_searches_and_sorts(): void
@@ -127,7 +134,7 @@ class InteractiveListControlsTest extends TestCase
             ->assertSee('sort=price', false);
     }
 
-    public function test_staff_appointment_list_filters_and_sorts_queue(): void
+    public function test_staff_appointment_calendar_filters_its_queue_feed(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staffProfile = StaffProfile::factory()->for($staffUser)->create();
@@ -161,44 +168,55 @@ class InteractiveListControlsTest extends TestCase
             ]);
 
         $this->actingAs($staffUser)
-            ->get(route('staff.appointments.index', [
-                'status' => Appointment::STATUS_PENDING,
-                'sort' => 'number',
-                'direction' => 'asc',
-            ], false))
+            ->get(route('staff.appointments.index', absolute: false))
             ->assertOk()
-            ->assertSee('APT-PENDING-QUEUE')
-            ->assertDontSee('APT-COMPLETE-QUEUE')
-            ->assertSee('sort=number', false);
+            ->assertSee('data-operational-calendar', false)
+            ->assertDontSee('casa-table-wrap', false);
+
+        $weekStart = now()->addWeek()->startOfDay();
+        $response = $this->actingAs($staffUser)
+            ->getJson(route('staff.appointments.calendar', [
+                'start' => $weekStart->toDateString(),
+                'end' => $weekStart->copy()->addDay()->toDateString(),
+                'status' => Appointment::STATUS_PENDING,
+            ], false));
+
+        $response->assertOk();
+        $numbers = collect($response->json('events'))->pluck('appointment_number')->filter();
+        $this->assertTrue($numbers->contains('APT-PENDING-QUEUE'));
+        $this->assertFalse($numbers->contains('APT-COMPLETE-QUEUE'));
     }
 
-    public function test_customer_appointment_pagination_preserves_query_controls(): void
+    public function test_customer_appointment_calendar_replaces_pagination_controls(): void
     {
         $customerUser = User::factory()->customer()->create();
         $customerProfile = CustomerProfile::factory()->for($customerUser)->create();
         $service = Service::factory()->create(['name' => 'Wellness Massage']);
 
         Appointment::factory()
-            ->count(11)
+            ->count(3)
             ->for($customerProfile)
             ->for($service)
             ->sequence(fn ($sequence) => [
                 'appointment_number' => 'APT-CUSTOMER-'.str_pad((string) $sequence->index, 2, '0', STR_PAD_LEFT),
                 'status' => Appointment::STATUS_COMPLETED,
-                'requested_start_at' => now()->subDays($sequence->index + 1),
+                'requested_start_at' => now()->startOfMonth()->addDays($sequence->index + 1)->setTime(14, 0),
             ])
             ->create();
 
         $this->actingAs($customerUser)
-            ->get(route('customer.appointments.index', [
-                'status' => Appointment::STATUS_COMPLETED,
-                'sort' => 'number',
-                'direction' => 'asc',
-            ], false))
+            ->get(route('customer.appointments.index', absolute: false))
             ->assertOk()
-            ->assertSee('status=completed', false)
-            ->assertSee('sort=number', false)
-            ->assertSee('page=2', false);
+            ->assertSee('data-customer-appointment-calendar', false)
+            ->assertDontSee('page=2', false);
+
+        $response = $this->actingAs($customerUser)
+            ->getJson(route('customer.appointments.calendar', [
+                'month' => now()->format('Y-m'),
+                'status' => Appointment::STATUS_COMPLETED,
+            ], false));
+
+        $response->assertOk()->assertJsonCount(3, 'events');
     }
 
     public function test_global_toast_renders_session_status(): void

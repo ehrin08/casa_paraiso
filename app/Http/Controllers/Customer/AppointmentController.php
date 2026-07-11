@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Customer;
 
-use App\Http\Controllers\Concerns\HandlesIndexSorting;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AppointmentRequest;
 use App\Models\Appointment;
@@ -18,22 +17,10 @@ use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
-    use HandlesIndexSorting;
-
     public function index(Request $request): View
     {
         $customerProfile = $request->user()->customerProfile;
         $customerProfileId = $customerProfile?->id ?? 0;
-        $status = (string) $request->query('status');
-        $search = trim((string) $request->query('q'));
-        $sorts = [
-            'number' => 'appointments.appointment_number',
-            'service' => 'appointment_services.name',
-            'schedule' => 'appointments.requested_start_at',
-            'status' => 'appointments.status',
-        ];
-        $sort = $this->indexSort($request, $sorts, 'schedule');
-        $direction = $this->indexDirection($request, 'desc');
 
         $summary = [
             'upcoming' => Appointment::query()
@@ -51,30 +38,9 @@ class AppointmentController extends Controller
                 ->count(),
         ];
 
-        $appointments = Appointment::query()
-            ->with(['service', 'staffProfile.user', 'feedback'])
-            ->leftJoin('services as appointment_services', 'appointment_services.id', '=', 'appointments.service_id')
-            ->select('appointments.*')
-            ->where('customer_profile_id', $customerProfileId)
-            ->when(in_array($status, Appointment::STATUSES, true), fn ($query) => $query->where('appointments.status', $status))
-            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
-                $query->where('appointments.appointment_number', 'like', "%{$search}%")
-                    ->orWhere('appointment_services.name', 'like', "%{$search}%");
-            }))
-            ->orderBy($sorts[$sort], $direction)
-            ->orderByDesc('appointments.requested_start_at')
-            ->paginate(10)
-            ->withQueryString();
-
         return view('customer.appointments.index', [
             'summary' => $summary,
-            'appointments' => $appointments,
-            'status' => $status,
-            'search' => $search,
-            'sort' => $sort,
-            'direction' => $direction,
-            'services' => Service::query()->with('staffProfiles.user')->where('is_active', true)->orderBy('name')->get(),
-            'staffProfiles' => StaffProfile::query()->with(['user', 'services'])->where('is_bookable', true)->get()->sortBy('user.name'),
+            'initialMonth' => now()->format('Y-m'),
         ]);
     }
 
@@ -82,7 +48,12 @@ class AppointmentController extends Controller
     {
         return view('customer.appointments.create', [
             'services' => Service::query()->with('staffProfiles.user')->where('is_active', true)->orderBy('name')->get(),
-            'staffProfiles' => StaffProfile::query()->with(['user', 'services'])->where('is_bookable', true)->get()->sortBy('user.name'),
+            'staffProfiles' => StaffProfile::query()
+                ->with(['user', 'services'])
+                ->where('is_bookable', true)
+                ->whereHas('user', fn ($query) => $query->where('is_active', true))
+                ->get()
+                ->sortBy('user.name'),
         ]);
     }
 
@@ -114,7 +85,6 @@ class AppointmentController extends Controller
         $data = $request->validated();
         $service = Service::query()->findOrFail($data['service_id']);
         $requestedStart = Carbon::parse($data['requested_start_at']);
-        $notes = trim((string) ($data['customer_notes'] ?? ''));
         $preferredStaffProfileId = ! empty($data['preferred_staff_profile_id']) ? (int) $data['preferred_staff_profile_id'] : null;
 
         if (! $availability->hasAvailableSlot($service, $requestedStart, $preferredStaffProfileId)) {
@@ -130,16 +100,16 @@ class AppointmentController extends Controller
                 return back()->withInput()->withErrors(['preferred_staff_profile_id' => __('Preferred staff must be eligible for the selected service.')]);
             }
 
-            $notes = trim('Preferred staff: '.$preferredStaff->user->name."\n".$notes);
         }
 
         $appointment = Appointment::query()->create([
             'appointment_number' => $workflow->nextAppointmentNumber(),
             'customer_profile_id' => $customerProfile->id,
             'service_id' => $service->id,
+            'preferred_staff_profile_id' => $preferredStaffProfileId,
             'requested_start_at' => $requestedStart,
             'status' => Appointment::STATUS_PENDING,
-            'customer_notes' => $notes !== '' ? $notes : null,
+            'customer_notes' => filled($data['customer_notes'] ?? null) ? trim((string) $data['customer_notes']) : null,
             'created_by' => $request->user()->id,
         ]);
 
@@ -152,7 +122,7 @@ class AppointmentController extends Controller
     {
         $this->authorizeOwnAppointment($request, $appointment);
 
-        $appointment->load(['service', 'staffProfile.user', 'feedback', 'transactions']);
+        $appointment->load(['service', 'staffProfile.user', 'preferredStaffProfile.user', 'feedback', 'transactions']);
 
         return view('customer.appointments.show', [
             'appointment' => $appointment,

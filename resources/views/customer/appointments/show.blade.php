@@ -30,12 +30,17 @@
                         <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->scheduled_start_at?->format('M d, Y g:i A') ?: __('Waiting for confirmation') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
-                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Staff') }}</dt>
+                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Assigned therapist') }}</dt>
                         <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->staffProfile?->user?->name ?: __('Pending') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Status') }}</dt>
                         <dd class="mt-2"><x-status-badge>{{ ucfirst(str_replace('_', ' ', $appointment->status)) }}</x-status-badge></dd>
+                    </div>
+                    <div class="rounded-2xl bg-casa-bg p-4 sm:col-span-2">
+                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Therapist preference') }}</dt>
+                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->preferredStaffProfile?->user?->name ?: __('No preference') }}</dd>
+                        <p class="mt-1 text-xs leading-5 text-casa-muted">{{ __('Preferences are considered during review but are not a final assignment.') }}</p>
                     </div>
                 </dl>
             </x-app-card>

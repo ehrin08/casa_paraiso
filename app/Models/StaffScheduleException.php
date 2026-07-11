@@ -26,6 +26,7 @@ class StaffScheduleException extends Model
         'exception_type',
         'start_time',
         'end_time',
+        'ends_next_day',
         'reason',
         'created_by',
     ];
@@ -34,6 +35,7 @@ class StaffScheduleException extends Model
     {
         return [
             'exception_date' => 'date',
+            'ends_next_day' => 'boolean',
         ];
     }
 

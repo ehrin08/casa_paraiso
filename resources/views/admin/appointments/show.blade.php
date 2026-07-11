@@ -32,12 +32,19 @@
                         <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->scheduled_start_at?->format('M d, Y g:i A') ?: __('Not confirmed') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
-                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Staff') }}</dt>
+                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Assigned therapist') }}</dt>
                         <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->staffProfile?->user?->name ?: __('Pending') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Status') }}</dt>
                         <dd class="mt-2"><x-status-badge>{{ ucfirst(str_replace('_', ' ', $appointment->status)) }}</x-status-badge></dd>
+                    </div>
+                    <div class="rounded-2xl bg-casa-bg p-4 sm:col-span-2">
+                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Customer preference') }}</dt>
+                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->preferredStaffProfile?->user?->name ?: __('No preference') }}</dd>
+                        @if ($appointment->preferred_staff_profile_id && $appointment->staff_profile_id && $appointment->preferred_staff_profile_id !== $appointment->staff_profile_id)
+                            <p class="mt-2 text-xs font-bold text-casa-cacao">{{ __('The confirmed therapist differs from the customer preference.') }}</p>
+                        @endif
                     </div>
                 </dl>
             </x-app-card>

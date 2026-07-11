@@ -2,9 +2,9 @@
     <x-slot name="header">
         <div>
             <p class="casa-eyebrow">{{ __('Customer lounge') }}</p>
-            <h1 class="mt-3 font-editorial text-4xl font-semibold text-casa-text">{{ __('My appointments') }}</h1>
+            <h1 class="mt-3 font-editorial text-4xl font-semibold text-casa-text">{{ __('My appointment calendar') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">
-                {{ __('Your requests, confirmed visits, and wellness history—kept together in one calm place.') }}
+                {{ __('Follow requested, confirmed, and completed visits in one calm monthly view.') }}
             </p>
         </div>
 
@@ -14,8 +14,13 @@
         </a>
     </x-slot>
 
-    <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <section class="space-y-6">
+    <div
+        x-data="customerAppointmentCalendar({ feedUrl: @js(route('customer.appointments.calendar')), initialMonth: @js($initialMonth) })"
+        x-init="init()"
+        class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]"
+        data-customer-appointment-calendar
+    >
+        <section class="space-y-5">
             <div class="casa-editorial-card overflow-hidden">
                 <div class="casa-dark-panel relative overflow-hidden p-6 sm:p-8">
                     <svg class="absolute -end-5 -top-8 size-36 text-casa-brass/20" viewBox="0 0 120 120" fill="none" aria-hidden="true">
@@ -23,112 +28,125 @@
                         <path d="M45 76C27 75 20 62 20 49c18 0 31 10 25 27Zm23-23C55 39 57 24 67 13c13 13 14 28 1 40Zm18-16c1-17 13-27 26-30 3 17-6 29-26 30Z" fill="currentColor"/>
                     </svg>
                     <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-casa-brass-light">{{ __('Your wellness rhythm') }}</p>
-                    <h2 class="mt-3 max-w-xl font-editorial text-4xl font-semibold leading-none text-white">{{ __('Your next pause starts with a request.') }}</h2>
-                    <p class="mt-4 max-w-xl text-sm leading-7 text-white/68">{{ __('Choose a service and preferred time. The Casa Paraiso team will confirm the final schedule with care.') }}</p>
+                    <h2 class="mt-3 max-w-xl font-editorial text-4xl font-semibold leading-none text-white">{{ __('Every visit, held in one place.') }}</h2>
+                    <p class="mt-4 max-w-xl text-sm leading-7 text-white/68">{{ __('Choose a day to see its request or confirmed schedule. A pending request is not final until the spa team confirms it.') }}</p>
                 </div>
-
                 <dl class="grid grid-cols-3 divide-x divide-casa-border bg-casa-paper p-1">
-                    <div class="p-4 text-center sm:p-5">
-                        <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Upcoming') }}</dt>
-                        <dd class="mt-2 text-2xl font-extrabold text-casa-palm sm:text-3xl">{{ $summary['upcoming'] ?? 0 }}</dd>
-                    </div>
-                    <div class="p-4 text-center sm:p-5">
-                        <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Pending') }}</dt>
-                        <dd class="mt-2 text-2xl font-extrabold text-casa-cacao sm:text-3xl">{{ $summary['pending'] ?? 0 }}</dd>
-                    </div>
-                    <div class="p-4 text-center sm:p-5">
-                        <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Completed') }}</dt>
-                        <dd class="mt-2 text-2xl font-extrabold text-casa-text sm:text-3xl">{{ $summary['completed'] ?? 0 }}</dd>
-                    </div>
+                    <div class="p-4 text-center sm:p-5"><dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Upcoming') }}</dt><dd class="mt-2 text-2xl font-extrabold text-casa-palm sm:text-3xl">{{ $summary['upcoming'] }}</dd></div>
+                    <div class="p-4 text-center sm:p-5"><dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Pending') }}</dt><dd class="mt-2 text-2xl font-extrabold text-casa-cacao sm:text-3xl">{{ $summary['pending'] }}</dd></div>
+                    <div class="p-4 text-center sm:p-5"><dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Completed') }}</dt><dd class="mt-2 text-2xl font-extrabold text-casa-text sm:text-3xl">{{ $summary['completed'] }}</dd></div>
                 </dl>
             </div>
 
-            @if ($appointments->isEmpty() && ! request()->hasAny(['q', 'status']))
-                <x-empty-state
-                    title="{{ __('No appointment requests yet') }}"
-                    description="{{ __('Begin with a treatment and preferred time. Our team will review availability before confirming your visit.') }}"
-                >
-                    <x-slot name="action">
-                        <a href="{{ route('customer.appointments.create') }}" class="casa-button-primary">{{ __('Request your first visit') }}</a>
-                    </x-slot>
-                </x-empty-state>
-            @else
-                <x-app-card>
-                    <x-list-toolbar eyebrow="{{ __('Appointment history') }}" title="{{ __('Your visits') }}" :count="$appointments->total()" :reset-url="route('customer.appointments.index')">
-                        <form method="GET" action="{{ route('customer.appointments.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(10rem,1fr)_auto_auto]">
-                            <input type="hidden" name="sort" value="{{ $sort }}">
-                            <input type="hidden" name="direction" value="{{ $direction }}">
-                            <input type="search" name="q" value="{{ $search }}" class="casa-input" placeholder="{{ __('Search service or number') }}" aria-label="{{ __('Search appointments') }}">
-                            <select name="status" class="casa-input" aria-label="{{ __('Filter by status') }}">
-                                <option value="">{{ __('All statuses') }}</option>
-                                @foreach (\App\Models\Appointment::STATUSES as $option)
-                                    <option value="{{ $option }}" @selected($status === $option)>{{ ucfirst(str_replace('_', ' ', $option)) }}</option>
-                                @endforeach
-                            </select>
-                            <button type="submit" class="casa-button-secondary">{{ __('Filter') }}</button>
-                        </form>
-                    </x-list-toolbar>
-
-                    <div class="mt-5 space-y-3">
-                        @forelse ($appointments as $appointment)
-                            @php
-                                $statusTone = match ($appointment->status) {
-                                    \App\Models\Appointment::STATUS_CONFIRMED,
-                                    \App\Models\Appointment::STATUS_COMPLETED => 'success',
-                                    \App\Models\Appointment::STATUS_CANCELLED,
-                                    \App\Models\Appointment::STATUS_NO_SHOW => 'danger',
-                                    default => 'warning',
-                                };
-                                $visitAt = $appointment->scheduled_start_at ?? $appointment->requested_start_at;
-                            @endphp
-                            <article class="group rounded-2xl border border-casa-border bg-casa-paper p-4 transition hover:border-casa-brass/55 hover:shadow-casa-card sm:p-5">
-                                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                    <div class="min-w-0">
-                                        <div class="flex flex-wrap items-center gap-2">
-                                            <x-status-badge :tone="$statusTone">{{ __(ucfirst(str_replace('_', ' ', $appointment->status))) }}</x-status-badge>
-                                            <span class="text-xs font-bold text-casa-muted">{{ $appointment->appointment_number }}</span>
-                                        </div>
-                                        <h3 class="mt-3 text-lg font-extrabold text-casa-text">{{ $appointment->service?->name ?? __('Spa service') }}</h3>
-                                        <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-casa-muted">
-                                            <span>{{ $visitAt?->format('M d, Y · g:i A') ?? __('Schedule pending') }}</span>
-                                            <span>{{ $appointment->staffProfile?->user?->name ?? __('Therapist to be confirmed') }}</span>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('customer.appointments.show', $appointment) }}" class="casa-button-secondary shrink-0">{{ __('View details') }}</a>
-                                </div>
-                            </article>
-                        @empty
-                            <x-empty-state title="{{ __('No appointments found') }}" description="{{ __('Try clearing your filters to see the rest of your visit history.') }}" />
-                        @endforelse
+            <section class="casa-editorial-card p-4 sm:p-6" x-bind:aria-busy="loading">
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div class="flex items-center gap-2">
+                        <button type="button" class="casa-icon-button" x-on:click="previousMonth()" aria-label="{{ __('Previous month') }}">
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <h2 class="min-w-48 text-center font-editorial text-3xl font-semibold text-casa-text" x-text="monthLabel"></h2>
+                        <button type="button" class="casa-icon-button" x-on:click="nextMonth()" aria-label="{{ __('Next month') }}">
+                            <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
                     </div>
+                    <label class="block sm:min-w-44">
+                        <span class="sr-only">{{ __('Filter appointment status') }}</span>
+                        <select class="casa-input" x-model="statusFilter" x-on:change="load()">
+                            <option value="">{{ __('All appointment statuses') }}</option>
+                            @foreach (\App\Models\Appointment::STATUSES as $status)
+                                <option value="{{ $status }}">{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
+                            @endforeach
+                        </select>
+                    </label>
+                </div>
 
-                    @if ($appointments->hasPages())
-                        <div class="mt-5">{{ $appointments->links() }}</div>
-                    @endif
-                </x-app-card>
-            @endif
+                <p class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" x-show="error" x-text="error" role="alert"></p>
+
+                <div class="mt-5 grid grid-cols-7 gap-1 text-center text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-casa-muted sm:gap-2 sm:text-xs">
+                    <template x-for="dayName in weekDays" x-bind:key="dayName"><span x-text="dayName"></span></template>
+                </div>
+                <div class="mt-2 grid grid-cols-7 gap-1 sm:gap-2" role="grid" aria-label="{{ __('Appointment month') }}">
+                    <template x-for="day in calendarDays" x-bind:key="day.date">
+                        <button
+                            type="button"
+                            class="min-h-14 rounded-xl border p-1.5 text-left transition sm:min-h-24 sm:rounded-2xl sm:p-2.5"
+                            x-on:click="selectDate(day.date)"
+                            x-on:keydown.right.prevent="moveDate(day.date, 1)"
+                            x-on:keydown.left.prevent="moveDate(day.date, -1)"
+                            x-on:keydown.down.prevent="moveDate(day.date, 7)"
+                            x-on:keydown.up.prevent="moveDate(day.date, -7)"
+                            x-bind:aria-label="`${day.date}, ${day.events.length} appointments`"
+                            x-bind:tabindex="selectedDate === day.date ? 0 : -1"
+                            x-bind:data-customer-calendar-day="day.date"
+                            x-bind:class="selectedDate === day.date
+                                ? 'border-casa-palm bg-casa-palm text-white shadow-md'
+                                : day.inMonth
+                                    ? 'border-casa-border bg-casa-paper text-casa-text hover:border-casa-brass'
+                                    : 'border-casa-border/50 bg-casa-sand/30 text-casa-muted/45'"
+                            role="gridcell"
+                        >
+                            <span class="text-xs font-extrabold sm:text-sm" x-text="day.label"></span>
+                            <span class="mt-2 flex flex-wrap gap-1" x-show="day.statuses.length">
+                                <template x-for="status in day.statuses" x-bind:key="status">
+                                    <span
+                                        class="size-2 rounded-full ring-1 ring-white/70"
+                                        x-bind:class="{
+                                            'bg-casa-brass': status === 'pending',
+                                            'bg-casa-palm': status === 'confirmed',
+                                            'bg-casa-cacao': status === 'completed',
+                                            'bg-red-500': status === 'cancelled' || status === 'no_show'
+                                        }"
+                                        x-bind:title="status.replaceAll('_', ' ')"
+                                    ></span>
+                                </template>
+                            </span>
+                            <span class="mt-2 hidden text-[0.62rem] font-extrabold uppercase tracking-[0.06em] sm:block" x-show="day.events.length" x-text="`${day.events.length} visit${day.events.length === 1 ? '' : 's'}`"></span>
+                        </button>
+                    </template>
+                </div>
+            </section>
         </section>
 
-        <aside class="space-y-4">
-            <x-app-card class="lg:sticky lg:top-6">
-                <p class="casa-eyebrow">{{ __('How it works') }}</p>
-                <h2 class="mt-4 font-editorial text-3xl font-semibold text-casa-text">{{ __('From request to rest.') }}</h2>
-                <ol class="mt-6 space-y-5">
-                    <li class="flex gap-3">
-                        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-casa-cacao text-xs font-extrabold text-white">1</span>
-                        <span class="text-sm leading-6 text-casa-muted"><strong class="block text-casa-text">Choose</strong>{{ __('Select a treatment and preferred time.') }}</span>
-                    </li>
-                    <li class="flex gap-3">
-                        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-casa-palm text-xs font-extrabold text-white">2</span>
-                        <span class="text-sm leading-6 text-casa-muted"><strong class="block text-casa-text">Review</strong>{{ __('Staff checks therapist availability.') }}</span>
-                    </li>
-                    <li class="flex gap-3">
-                        <span class="grid size-9 shrink-0 place-items-center rounded-full bg-casa-brass text-xs font-extrabold text-casa-charcoal">3</span>
-                        <span class="text-sm leading-6 text-casa-muted"><strong class="block text-casa-text">Confirm</strong>{{ __('Your final schedule appears here.') }}</span>
-                    </li>
-                </ol>
-                <div class="casa-divider my-6"></div>
-                <p class="text-sm leading-6 text-casa-muted">{{ __('Open every day, 1:00 PM to 12:00 MN.') }}</p>
+        <aside class="space-y-4 xl:sticky xl:top-6 xl:self-start">
+            <x-app-card>
+                <div class="flex items-start justify-between gap-3 border-b border-casa-border pb-4">
+                    <div>
+                        <p class="casa-eyebrow">{{ __('Selected day') }}</p>
+                        <h2 class="mt-2 font-editorial text-2xl font-semibold text-casa-text" x-text="selectedDateLabel"></h2>
+                    </div>
+                    <x-status-badge x-show="loading">{{ __('Loading') }}</x-status-badge>
+                </div>
+
+                <div class="mt-4 space-y-3" x-show="selectedEvents.length">
+                    <template x-for="event in selectedEvents" x-bind:key="event.id">
+                        <a x-bind:href="event.detail_url" class="block rounded-2xl border border-casa-border bg-casa-sand/40 p-4 transition hover:border-casa-brass hover:bg-casa-paper">
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs font-extrabold uppercase tracking-[0.08em] text-casa-cacao" x-text="event.status.replaceAll('_', ' ')"></span>
+                                <span class="text-xs font-bold text-casa-muted" x-text="eventTime(event)"></span>
+                            </div>
+                            <strong class="mt-2 block text-sm text-casa-text" x-text="event.title"></strong>
+                            <span class="mt-1 block text-xs leading-5 text-casa-muted" x-text="event.subtitle"></span>
+                        </a>
+                    </template>
+                </div>
+
+                <div class="mt-4 rounded-2xl border border-dashed border-casa-border bg-casa-sand/35 p-5 text-center" x-show="!loading && !selectedEvents.length">
+                    <p class="text-sm font-extrabold text-casa-text">{{ __('No visit on this day') }}</p>
+                    <p class="mt-2 text-xs leading-5 text-casa-muted">{{ __('Choose another date or start a new appointment request.') }}</p>
+                </div>
+
+                <a href="{{ route('customer.appointments.create') }}" class="casa-button-primary mt-5 w-full">{{ __('Request a visit') }}</a>
+            </x-app-card>
+
+            <x-app-card>
+                <p class="casa-section-label">{{ __('Calendar key') }}</p>
+                <div class="mt-4 space-y-3 text-sm text-casa-muted">
+                    <p class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-casa-brass"></span>{{ __('Requested · awaiting review') }}</p>
+                    <p class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-casa-palm"></span>{{ __('Confirmed · final schedule') }}</p>
+                    <p class="flex items-center gap-2"><span class="size-2.5 rounded-full bg-casa-cacao"></span>{{ __('Completed · visit finished') }}</p>
+                </div>
+                <div class="casa-divider my-5"></div>
+                <p class="text-sm leading-6 text-casa-muted">{{ __('Open every day, 1:00 PM to 12:00 midnight.') }}</p>
             </x-app-card>
         </aside>
     </div>

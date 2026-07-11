@@ -36,6 +36,10 @@
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Customer phone') }}</dt>
                         <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->customerProfile?->user?->phone ?: __('Not set') }}</dd>
                     </div>
+                    <div class="rounded-2xl bg-casa-bg p-4 sm:col-span-2">
+                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Therapist preference') }}</dt>
+                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->preferredStaffProfile?->user?->name ?: __('No preference') }}</dd>
+                    </div>
                 </dl>
             </x-app-card>
 

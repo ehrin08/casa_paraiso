@@ -122,8 +122,521 @@ window.addEventListener('close-modal', (event) => {
     modalStore().close(event.detail);
 });
 
+const dateFromIso = (value) => value?.slice(0, 10) || '';
+
+const localDate = (value) => new Date(`${value}T00:00:00`);
+
+const dateKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const addCalendarDays = (value, amount) => {
+    const date = localDate(value);
+    date.setDate(date.getDate() + amount);
+
+    return dateKey(date);
+};
+
+const calendarMinutes = (value, selectedDate) => {
+    if (!value) {
+        return 0;
+    }
+
+    const [hour, minute] = value.slice(11, 16).split(':').map(Number);
+    const dayOffset = dateFromIso(value) > selectedDate ? 1440 : 0;
+
+    return (hour * 60) + minute + dayOffset;
+};
+
+window.operationalCalendar = (config) => ({
+    feedUrl: config.feedUrl,
+    createUrl: config.createUrl || '',
+    weeklyCreatePattern: config.weeklyCreatePattern || '',
+    exceptionCreatePattern: config.exceptionCreatePattern || '',
+    role: config.role,
+    mode: config.initialMode || 'bookings',
+    weekStart: config.initialWeek,
+    selectedDate: config.initialDate || config.initialWeek,
+    staffFilter: '',
+    serviceFilter: '',
+    statusFilter: '',
+    resources: [],
+    events: [],
+    loading: false,
+    error: '',
+    availabilitySelection: null,
+    slotHeight: 44,
+    openingMinutes: 13 * 60,
+    closingMinutes: 24 * 60,
+
+    init() {
+        const today = dateKey(new Date());
+        const weekEnd = addCalendarDays(this.weekStart, 7);
+
+        if (today >= this.weekStart && today < weekEnd) {
+            this.selectedDate = today;
+        }
+
+        this.load();
+    },
+
+    get weekEnd() {
+        return addCalendarDays(this.weekStart, 7);
+    },
+
+    get weekLabel() {
+        const start = localDate(this.weekStart);
+        const end = localDate(addCalendarDays(this.weekStart, 6));
+        const startLabel = start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const endLabel = end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+        return `${startLabel} – ${endLabel}`;
+    },
+
+    get dayOptions() {
+        return Array.from({ length: 7 }, (_, index) => {
+            const date = addCalendarDays(this.weekStart, index);
+            const parsed = localDate(date);
+
+            return {
+                date,
+                weekday: parsed.toLocaleDateString(undefined, { weekday: 'short' }),
+                label: parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                isToday: date === dateKey(new Date()),
+            };
+        });
+    },
+
+    get timeSlots() {
+        const slots = [];
+
+        for (let minutes = this.openingMinutes; minutes < this.closingMinutes; minutes += 30) {
+            const hour = Math.floor(minutes / 60) % 24;
+            const minute = minutes % 60;
+            const date = new Date(2000, 0, 1, hour, minute);
+
+            slots.push({
+                minutes,
+                time: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+                label: date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }),
+            });
+        }
+
+        return slots;
+    },
+
+    get timelineHeight() {
+        return this.timeSlots.length * this.slotHeight;
+    },
+
+    get selectedDateLabel() {
+        return localDate(this.selectedDate).toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    },
+
+    get selectedAgendaEvents() {
+        return this.events
+            .filter((event) => dateFromIso(event.starts_at) === this.selectedDate
+                && (this.mode === 'availability'
+                    ? event.kind !== 'availability'
+                    : !['availability', 'weekly_availability', 'available_exception', 'unavailable_exception'].includes(event.kind)))
+            .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    },
+
+    resourceName(resourceId) {
+        return this.resources.find((resource) => String(resource.id) === String(resourceId))?.name || 'Schedule';
+    },
+
+    statusLabel(status) {
+        return String(status || '').replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+    },
+
+    eventTimeRange(event) {
+        const options = { hour: 'numeric', minute: '2-digit' };
+        return `${new Date(event.starts_at).toLocaleTimeString(undefined, options)} – ${new Date(event.ends_at).toLocaleTimeString(undefined, options)}`;
+    },
+
+    setMode(mode) {
+        if (this.mode === mode) {
+            return;
+        }
+
+        this.mode = mode;
+        this.load();
+    },
+
+    previousWeek() {
+        this.weekStart = addCalendarDays(this.weekStart, -7);
+        this.selectedDate = this.weekStart;
+        this.load();
+    },
+
+    nextWeek() {
+        this.weekStart = addCalendarDays(this.weekStart, 7);
+        this.selectedDate = this.weekStart;
+        this.load();
+    },
+
+    today() {
+        const now = new Date();
+        const sunday = new Date(now);
+        sunday.setDate(now.getDate() - now.getDay());
+        this.weekStart = dateKey(sunday);
+        this.selectedDate = dateKey(now);
+        this.load();
+    },
+
+    moveSelectedDay(date, amount) {
+        const nextDate = addCalendarDays(date, amount);
+
+        if (nextDate < this.weekStart) {
+            this.weekStart = addCalendarDays(this.weekStart, -7);
+            this.load();
+        } else if (nextDate >= this.weekEnd) {
+            this.weekStart = addCalendarDays(this.weekStart, 7);
+            this.load();
+        }
+
+        this.selectedDate = nextDate;
+        window.requestAnimationFrame(() => document.querySelector(`[data-operational-day="${nextDate}"]`)?.focus());
+    },
+
+    focusWeekBoundary(useEnd) {
+        const date = addCalendarDays(this.weekStart, useEnd ? 6 : 0);
+        this.selectedDate = date;
+        window.requestAnimationFrame(() => document.querySelector(`[data-operational-day="${date}"]`)?.focus());
+    },
+
+    load() {
+        this.loading = true;
+        this.error = '';
+
+        return window.axios.get(this.feedUrl, {
+            params: {
+                mode: this.mode,
+                start: this.weekStart,
+                end: this.weekEnd,
+                staff_profile_id: this.staffFilter || null,
+                service_id: this.serviceFilter || null,
+                status: this.statusFilter || null,
+            },
+        }).then((response) => {
+            this.resources = response.data.resources || [];
+            this.events = response.data.events || [];
+        }).catch(() => {
+            this.error = 'The schedule could not be loaded. Try refreshing this week.';
+            this.resources = [];
+            this.events = [];
+        }).finally(() => {
+            this.loading = false;
+        });
+    },
+
+    backgroundEvents(resourceId) {
+        const backgroundKinds = ['availability', 'weekly_availability', 'available_exception', 'unavailable_exception'];
+
+        return this.events.filter((event) => String(event.resource_id) === String(resourceId)
+            && dateFromIso(event.starts_at) === this.selectedDate
+            && backgroundKinds.includes(event.kind));
+    },
+
+    positionedEvents(resourceId) {
+        const foreground = this.events
+            .filter((event) => String(event.resource_id) === String(resourceId)
+                && dateFromIso(event.starts_at) === this.selectedDate
+                && !['availability', 'weekly_availability', 'available_exception', 'unavailable_exception'].includes(event.kind))
+            .map((event) => ({
+                ...event,
+                startMinutes: calendarMinutes(event.starts_at, this.selectedDate),
+                endMinutes: calendarMinutes(event.ends_at, this.selectedDate),
+            }))
+            .sort((a, b) => a.startMinutes - b.startMinutes || a.endMinutes - b.endMinutes);
+        const laneEnds = [];
+
+        foreground.forEach((event) => {
+            let lane = laneEnds.findIndex((end) => end <= event.startMinutes);
+
+            if (lane === -1) {
+                lane = laneEnds.length;
+                laneEnds.push(event.endMinutes);
+            } else {
+                laneEnds[lane] = event.endMinutes;
+            }
+
+            event.lane = lane;
+        });
+
+        const laneCount = Math.max(laneEnds.length, 1);
+
+        return foreground.map((event) => ({ ...event, laneCount }));
+    },
+
+    eventStyle(event) {
+        const top = ((event.startMinutes - this.openingMinutes) / 30) * this.slotHeight;
+        const height = Math.max(((event.endMinutes - event.startMinutes) / 30) * this.slotHeight, 40);
+        const width = 100 / event.laneCount;
+
+        return `top:${top}px;height:${height}px;left:calc(${event.lane * width}% + 3px);width:calc(${width}% - 6px)`;
+    },
+
+    backgroundStyle(event) {
+        const start = calendarMinutes(event.starts_at, this.selectedDate);
+        const end = calendarMinutes(event.ends_at, this.selectedDate);
+        const top = ((start - this.openingMinutes) / 30) * this.slotHeight;
+        const height = Math.max(((end - start) / 30) * this.slotHeight, this.slotHeight);
+
+        return `top:${top}px;height:${height}px`;
+    },
+
+    eventClass(event) {
+        return {
+            request: 'casa-calendar-event-request',
+            pending: 'casa-calendar-event-request',
+            confirmed: 'casa-calendar-event-confirmed',
+            completed: 'casa-calendar-event-completed',
+            cancelled: 'casa-calendar-event-cancelled',
+            no_show: 'casa-calendar-event-cancelled',
+            booking_blocker: 'casa-calendar-event-blocker',
+        }[event.kind === 'booking_blocker' ? event.kind : event.status] || 'casa-calendar-event-request';
+    },
+
+    backgroundClass(event) {
+        return {
+            availability: 'casa-calendar-availability',
+            weekly_availability: 'casa-calendar-availability',
+            available_exception: 'casa-calendar-availability-exception',
+            unavailable_exception: 'casa-calendar-unavailable',
+        }[event.kind] || 'casa-calendar-availability';
+    },
+
+    emptySlotUrl(resourceId, slot) {
+        if (!this.createUrl || resourceId === 'requests' || this.mode !== 'bookings') {
+            return '';
+        }
+
+        const startsAt = `${this.selectedDate} ${slot.time}:00`;
+        const url = new URL(this.createUrl, window.location.origin);
+        url.searchParams.set('staff_profile_id', resourceId);
+        url.searchParams.set('requested_start_at', startsAt);
+        url.searchParams.set('scheduled_start_at', startsAt);
+        url.searchParams.set('status', 'confirmed');
+
+        return url.toString();
+    },
+
+    chooseAvailability(resource, slot) {
+        if (this.mode !== 'availability' || resource.id === 'requests') {
+            return;
+        }
+
+        this.availabilitySelection = {
+            staffId: resource.id,
+            staffName: resource.name,
+            date: this.selectedDate,
+            time: slot.time,
+            label: slot.label,
+        };
+        modalStore().open('calendar-availability-create');
+    },
+
+    availabilityUrl(type) {
+        if (!this.availabilitySelection) {
+            return '#';
+        }
+
+        const selection = this.availabilitySelection;
+        const startMinutes = calendarMinutes(`${selection.date}T${selection.time}:00`, selection.date);
+        const endMinutes = Math.min(startMinutes + 60, 1440);
+        const endsNextDay = endMinutes >= 1440;
+        const endHour = Math.floor(endMinutes / 60) % 24;
+        const endMinute = endMinutes % 60;
+        const endTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+        const pattern = type === 'weekly' ? this.weeklyCreatePattern : this.exceptionCreatePattern;
+        const url = new URL(pattern.replace('__STAFF__', selection.staffId), window.location.origin);
+
+        url.searchParams.set('start_time', selection.time);
+        url.searchParams.set('end_time', endTime);
+        url.searchParams.set('ends_next_day', endsNextDay ? '1' : '0');
+
+        if (type === 'weekly') {
+            url.searchParams.set('day_of_week', localDate(selection.date).getDay());
+        } else {
+            url.searchParams.set('exception_date', selection.date);
+            url.searchParams.set('exception_type', 'unavailable');
+        }
+
+        return url.toString();
+    },
+});
+
+window.customerAppointmentCalendar = (config) => ({
+    feedUrl: config.feedUrl,
+    month: config.initialMonth,
+    selectedDate: '',
+    statusFilter: '',
+    events: [],
+    loading: false,
+    error: '',
+    weekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+
+    init() {
+        const today = dateKey(new Date());
+        this.selectedDate = today.slice(0, 7) === this.month ? today : `${this.month}-01`;
+        this.load();
+    },
+
+    get monthLabel() {
+        const [year, month] = this.month.split('-').map(Number);
+        return new Date(year, month - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    },
+
+    get calendarDays() {
+        const [year, month] = this.month.split('-').map(Number);
+        const first = new Date(year, month - 1, 1);
+        const gridStart = new Date(first);
+        gridStart.setDate(first.getDate() - first.getDay());
+
+        return Array.from({ length: 42 }, (_, index) => {
+            const date = new Date(gridStart);
+            date.setDate(gridStart.getDate() + index);
+            const key = dateKey(date);
+            const events = this.events.filter((event) => dateFromIso(event.starts_at) === key);
+
+            return {
+                date: key,
+                label: date.getDate(),
+                inMonth: date.getMonth() === month - 1,
+                events,
+                statuses: [...new Set(events.map((event) => event.status))].slice(0, 3),
+            };
+        });
+    },
+
+    get selectedEvents() {
+        return this.events
+            .filter((event) => dateFromIso(event.starts_at) === this.selectedDate)
+            .sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    },
+
+    get selectedDateLabel() {
+        return localDate(this.selectedDate).toLocaleDateString(undefined, {
+            weekday: 'long',
+            month: 'long',
+            day: 'numeric',
+        });
+    },
+
+    previousMonth() {
+        const [year, month] = this.month.split('-').map(Number);
+        const date = new Date(year, month - 2, 1);
+        this.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        this.selectedDate = `${this.month}-01`;
+        this.load();
+    },
+
+    nextMonth() {
+        const [year, month] = this.month.split('-').map(Number);
+        const date = new Date(year, month, 1);
+        this.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        this.selectedDate = `${this.month}-01`;
+        this.load();
+    },
+
+    selectDate(date) {
+        this.selectedDate = date;
+    },
+
+    moveDate(date, amount) {
+        const nextDate = addCalendarDays(date, amount);
+        const nextMonth = nextDate.slice(0, 7);
+
+        this.selectedDate = nextDate;
+
+        if (nextMonth !== this.month) {
+            this.month = nextMonth;
+            this.load();
+        }
+
+        window.requestAnimationFrame(() => document.querySelector(`[data-customer-calendar-day="${nextDate}"]`)?.focus());
+    },
+
+    load() {
+        this.loading = true;
+        this.error = '';
+
+        return window.axios.get(this.feedUrl, { params: { month: this.month, status: this.statusFilter || null } })
+            .then((response) => {
+                this.events = response.data.events || [];
+            }).catch(() => {
+                this.error = 'Your appointment calendar could not be loaded. Try again.';
+                this.events = [];
+            }).finally(() => {
+                this.loading = false;
+            });
+    },
+
+    eventTime(event) {
+        return new Date(event.starts_at).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    },
+});
+
+window.adminAppointmentForm = (config) => ({
+    availableUrl: config.availableUrl,
+    appointmentId: config.appointmentId || '',
+    serviceId: config.initialServiceId || '',
+    scheduledStart: config.initialScheduledStart || '',
+    staffId: config.initialStaffId || '',
+    availableStaffIds: null,
+    loadingTherapists: false,
+    therapistError: '',
+
+    init() {
+        if (this.serviceId && this.scheduledStart) {
+            this.refreshTherapists();
+        }
+    },
+
+    refreshTherapists() {
+        this.therapistError = '';
+
+        if (!this.serviceId || !this.scheduledStart) {
+            this.availableStaffIds = null;
+            return Promise.resolve();
+        }
+
+        this.loadingTherapists = true;
+
+        return window.axios.get(this.availableUrl, {
+            params: {
+                service_id: this.serviceId,
+                starts_at: this.scheduledStart,
+                appointment_id: this.appointmentId || null,
+            },
+        }).then((response) => {
+            this.availableStaffIds = (response.data.therapists || []).map((staff) => String(staff.id));
+
+            if (this.staffId && !this.availableStaffIds.includes(String(this.staffId))) {
+                this.staffId = '';
+            }
+        }).catch(() => {
+            this.availableStaffIds = null;
+            this.therapistError = 'Available therapists could not be checked. The schedule will still be validated when saved.';
+        }).finally(() => {
+            this.loadingTherapists = false;
+        });
+    },
+
+    staffIsAvailable(id) {
+        return this.availableStaffIds === null || this.availableStaffIds.includes(String(id));
+    },
+});
+
 window.customerCalendarBooking = (config) => ({
     availabilityUrl: config.availabilityUrl,
+    services: config.services || [],
+    staffOptions: config.staffOptions || [],
     serviceId: config.initialServiceId || '',
     staffId: config.initialStaffId || '',
     month: config.initialMonth,
@@ -181,6 +694,18 @@ window.customerCalendarBooking = (config) => ({
         return this.selectedDate ? (this.slotsByDate[this.selectedDate] || []) : [];
     },
 
+    get selectedService() {
+        return this.services.find((service) => String(service.id) === String(this.serviceId)) || null;
+    },
+
+    get eligibleStaff() {
+        return this.staffOptions.filter((staff) => staff.service_ids.map(String).includes(String(this.serviceId)));
+    },
+
+    get selectedStaff() {
+        return this.staffOptions.find((staff) => String(staff.id) === String(this.staffId)) || null;
+    },
+
     get selectedDateLabel() {
         if (!this.selectedDate) {
             return 'Choose a highlighted date.';
@@ -207,9 +732,18 @@ window.customerCalendarBooking = (config) => ({
     },
 
     serviceChanged() {
+        if (this.staffId && !this.eligibleStaff.some((staff) => String(staff.id) === String(this.staffId))) {
+            this.staffId = '';
+        }
+
         this.selectedDate = '';
         this.selectedSlot = '';
         this.fetchAvailability();
+    },
+
+    selectService(id) {
+        this.serviceId = String(id);
+        this.serviceChanged();
     },
 
     staffChanged() {
@@ -239,6 +773,30 @@ window.customerCalendarBooking = (config) => ({
     selectDate(date) {
         this.selectedDate = date;
         this.selectedSlot = '';
+    },
+
+    moveAvailableDate(date, amount) {
+        const nextDate = addCalendarDays(date, amount);
+        const nextMonth = nextDate.slice(0, 7);
+        const focusDate = () => {
+            if (!(this.slotsByDate[nextDate] || []).length) {
+                return;
+            }
+
+            this.selectDate(nextDate);
+            window.requestAnimationFrame(() => document.querySelector(`[data-booking-calendar-day="${nextDate}"]`)?.focus());
+        };
+
+        if (nextMonth !== this.month) {
+            this.month = nextMonth;
+            this.selectedDate = '';
+            this.selectedSlot = '';
+            this.fetchAvailability().then(focusDate);
+
+            return;
+        }
+
+        focusDate();
     },
 
     chooseSlot(slot) {

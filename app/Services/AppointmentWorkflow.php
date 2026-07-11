@@ -6,12 +6,16 @@ use App\Models\Appointment;
 use App\Models\AppointmentStatusLog;
 use App\Models\Service;
 use App\Models\StaffProfile;
-use App\Models\StaffScheduleException;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class AppointmentWorkflow
 {
+    public function __construct(private readonly ScheduleWindowResolver $scheduleWindows)
+    {
+    }
+
     public function nextAppointmentNumber(): string
     {
         $prefix = 'APT-'.now()->format('Ymd').'-';
@@ -32,9 +36,13 @@ class AppointmentWorkflow
 
     public function isStaffEligibleForService(StaffProfile $staffProfile, Service $service): bool
     {
+        $performsService = $staffProfile->relationLoaded('services')
+            ? $staffProfile->services->contains('id', $service->id)
+            : $staffProfile->services()->whereKey($service->id)->exists();
+
         return $staffProfile->is_bookable
             && $staffProfile->user?->is_active
-            && $staffProfile->services()->whereKey($service->id)->exists();
+            && $performsService;
     }
 
     public function isStaffAvailable(
@@ -50,7 +58,7 @@ class AppointmentWorkflow
             return false;
         }
 
-        if (! $this->coversWorkingWindow($staffProfile, $start, $end)) {
+        if (! $this->scheduleWindows->covers($staffProfile, $start, $end)) {
             return false;
         }
 
@@ -70,6 +78,51 @@ class AppointmentWorkflow
             ->where('scheduled_start_at', '<', $end)
             ->where('scheduled_end_at', '>', $start)
             ->exists();
+    }
+
+    public function schedule(
+        Appointment $appointment,
+        StaffProfile $staffProfile,
+        Service $service,
+        CarbonInterface $start,
+        ?int $changedBy = null,
+        ?string $reason = null,
+    ): Appointment {
+        $dirtyAttributes = $appointment->getDirty();
+
+        return DB::transaction(function () use ($appointment, $staffProfile, $service, $start, $changedBy, $reason, $dirtyAttributes): Appointment {
+            $lockedStaff = StaffProfile::query()
+                ->with(['user', 'services', 'weeklySchedules', 'scheduleExceptions'])
+                ->lockForUpdate()
+                ->findOrFail($staffProfile->id);
+
+            $target = $appointment->exists
+                ? Appointment::query()->lockForUpdate()->findOrFail($appointment->id)
+                : $appointment;
+
+            if ($appointment->exists) {
+                $target->fill($dirtyAttributes);
+            }
+
+            $end = $this->scheduledEnd($start, $service);
+
+            if (! $this->isStaffAvailable($lockedStaff, $service, $start, $end, $target->exists ? $target : null)) {
+                throw ValidationException::withMessages([
+                    'scheduled_start_at' => __('Selected therapist is not available for this schedule.'),
+                ]);
+            }
+
+            $target->fill([
+                'service_id' => $service->id,
+                'staff_profile_id' => $lockedStaff->id,
+                'scheduled_start_at' => $start,
+                'scheduled_end_at' => $end,
+                'updated_by' => $changedBy,
+            ]);
+            $target->save();
+
+            return $this->changeStatus($target, Appointment::STATUS_CONFIRMED, $changedBy, $reason);
+        });
     }
 
     public function changeStatus(Appointment $appointment, string $status, ?int $changedBy = null, ?string $reason = null): Appointment
@@ -109,47 +162,4 @@ class AppointmentWorkflow
         return $appointment;
     }
 
-    private function coversWorkingWindow(StaffProfile $staffProfile, CarbonInterface $start, CarbonInterface $end): bool
-    {
-        $date = $start->toDateString();
-        $startTime = $start->format('H:i:s');
-        $endTime = $end->format('H:i:s');
-
-        $exceptions = $staffProfile->scheduleExceptions()
-            ->whereDate('exception_date', $date)
-            ->get();
-
-        foreach ($exceptions->where('exception_type', StaffScheduleException::TYPE_UNAVAILABLE) as $exception) {
-            if ($exception->start_time === null || $exception->end_time === null) {
-                return false;
-            }
-
-            if ($this->timeRangesOverlap($startTime, $endTime, (string) $exception->start_time, (string) $exception->end_time)) {
-                return false;
-            }
-        }
-
-        $oneOffAvailable = $exceptions
-            ->where('exception_type', StaffScheduleException::TYPE_AVAILABLE)
-            ->contains(fn (StaffScheduleException $exception) => $exception->start_time
-                && $exception->end_time
-                && $startTime >= (string) $exception->start_time
-                && $endTime <= (string) $exception->end_time);
-
-        if ($oneOffAvailable) {
-            return true;
-        }
-
-        return $staffProfile->weeklySchedules()
-            ->where('day_of_week', Carbon::parse($start)->dayOfWeek)
-            ->where('is_available', true)
-            ->where('start_time', '<=', $startTime)
-            ->where('end_time', '>=', $endTime)
-            ->exists();
-    }
-
-    private function timeRangesOverlap(string $startA, string $endA, string $startB, string $endB): bool
-    {
-        return $startA < $endB && $endA > $startB;
-    }
 }

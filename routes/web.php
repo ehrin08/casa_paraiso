@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\AppointmentController as AdminAppointmentController;
+use App\Http\Controllers\Admin\AppointmentCalendarController as AdminAppointmentCalendarController;
 use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Admin\FeedbackController as AdminFeedbackController;
 use App\Http\Controllers\Admin\PromotionController as AdminPromotionController;
@@ -12,9 +13,11 @@ use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Admin\StaffWeeklyScheduleController as AdminStaffWeeklyScheduleController;
 use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
 use App\Http\Controllers\Customer\AppointmentController as CustomerAppointmentController;
+use App\Http\Controllers\Customer\AppointmentCalendarController as CustomerAppointmentCalendarController;
 use App\Http\Controllers\Customer\FeedbackController as CustomerFeedbackController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Staff\AppointmentController as StaffAppointmentController;
+use App\Http\Controllers\Staff\AppointmentCalendarController as StaffAppointmentCalendarController;
 use App\Http\Controllers\Staff\CustomerController as StaffCustomerController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Staff\FeedbackController as StaffFeedbackController;
@@ -41,6 +44,8 @@ Route::middleware(['auth', 'active', 'verified', 'role:admin'])
     ->name('admin.')
     ->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
+        Route::get('/appointments/calendar', AdminAppointmentCalendarController::class)->name('appointments.calendar');
+        Route::get('/appointments/available-therapists', [AdminAppointmentController::class, 'availableTherapists'])->name('appointments.available-therapists');
         Route::resource('appointments', AdminAppointmentController::class)->except('destroy');
         Route::resource('customers', AdminCustomerController::class)->only(['index', 'show', 'update']);
         Route::get('/staff/{staff}/weekly-schedules/create', [AdminStaffWeeklyScheduleController::class, 'create'])->name('staff.weekly-schedules.create');
@@ -82,6 +87,7 @@ Route::middleware(['auth', 'active', 'verified', 'role:staff'])
     ->name('staff.')
     ->group(function () {
         Route::get('/dashboard', StaffDashboardController::class)->name('dashboard');
+        Route::get('/appointments/calendar', StaffAppointmentCalendarController::class)->name('appointments.calendar');
         Route::resource('appointments', StaffAppointmentController::class)->only(['index', 'show', 'update']);
         Route::resource('customers', StaffCustomerController::class)->only(['index', 'show']);
         Route::resource('transactions', StaffTransactionController::class)->except('destroy');
@@ -93,6 +99,7 @@ Route::middleware(['auth', 'active', 'verified', 'role:customer'])
     ->name('customer.')
     ->group(function () {
         Route::get('/appointments/availability', [CustomerAppointmentController::class, 'availability'])->name('appointments.availability');
+        Route::get('/appointments/calendar', CustomerAppointmentCalendarController::class)->name('appointments.calendar');
         Route::patch('/appointments/{appointment}/cancel', [CustomerAppointmentController::class, 'cancel'])->name('appointments.cancel');
         Route::resource('appointments', CustomerAppointmentController::class)->only(['index', 'create', 'store', 'show']);
         Route::resource('feedback', CustomerFeedbackController::class)->only(['index', 'create', 'store']);

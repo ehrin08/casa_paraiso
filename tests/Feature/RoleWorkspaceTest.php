@@ -264,6 +264,7 @@ class RoleWorkspaceTest extends TestCase
             ->create([
                 'appointment_number' => 'APT-CUSTOMER-PENDING',
                 'status' => Appointment::STATUS_PENDING,
+                'requested_start_at' => now()->addDays(2)->setTime(14, 0),
             ]);
 
         Appointment::factory()
@@ -282,18 +283,27 @@ class RoleWorkspaceTest extends TestCase
             ->create([
                 'appointment_number' => 'APT-CUSTOMER-COMPLETE',
                 'status' => Appointment::STATUS_COMPLETED,
+                'requested_start_at' => now()->subDay()->setTime(14, 0),
                 'completed_at' => now()->subDay(),
             ]);
 
         $this->actingAs($customer)
             ->get('/customer/appointments')
             ->assertOk()
-            ->assertSee('APT-CUSTOMER-PENDING')
-            ->assertSee('APT-CUSTOMER-CONFIRMED')
-            ->assertSee('APT-CUSTOMER-COMPLETE')
-            ->assertSee('Tropical Wellness Massage')
+            ->assertSee('data-customer-appointment-calendar', false)
             ->assertSeeInOrder(['Upcoming', '1'])
             ->assertSeeInOrder(['Pending', '1'])
             ->assertSeeInOrder(['Completed', '1']);
+
+        $response = $this->actingAs($customer)->getJson(route('customer.appointments.calendar', [
+            'month' => now()->format('Y-m'),
+        ], false));
+
+        $response->assertOk();
+        $numbers = collect($response->json('events'))->pluck('appointment_number');
+        $this->assertTrue($numbers->contains('APT-CUSTOMER-PENDING'));
+        $this->assertTrue($numbers->contains('APT-CUSTOMER-CONFIRMED'));
+        $this->assertTrue($numbers->contains('APT-CUSTOMER-COMPLETE'));
+        $this->assertTrue(collect($response->json('events'))->pluck('service_name')->contains('Tropical Wellness Massage'));
     }
 }

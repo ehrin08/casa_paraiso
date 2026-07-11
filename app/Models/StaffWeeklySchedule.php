@@ -40,6 +40,7 @@ class StaffWeeklySchedule extends Model
         'day_of_week',
         'start_time',
         'end_time',
+        'ends_next_day',
         'is_available',
     ];
 
@@ -47,6 +48,7 @@ class StaffWeeklySchedule extends Model
     {
         return [
             'day_of_week' => 'integer',
+            'ends_next_day' => 'boolean',
             'is_available' => 'boolean',
         ];
     }

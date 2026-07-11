@@ -148,7 +148,7 @@ Purpose:
 
 Screens:
 
-- Appointment list/calendar.
+- Calendar-only weekly schedule with Bookings and Availability modes.
 - Appointment detail.
 - Create appointment.
 - Confirm/reschedule/cancel appointment.
@@ -162,6 +162,8 @@ Primary actions:
 
 - Confirm pending request.
 - Assign staff.
+- Click an open therapist time to create a confirmed internal appointment.
+- Switch to Availability mode to add recurring shifts or date exceptions.
 - Reschedule.
 - Cancel.
 - Complete.
@@ -402,8 +404,7 @@ Purpose:
 
 Screens:
 
-- Today appointments.
-- Pending requests.
+- Personal weekly calendar with assigned appointments and eligible pending-request demand.
 - Appointment detail.
 - Confirm/reschedule/cancel appointment.
 - Complete appointment.
@@ -411,7 +412,8 @@ Screens:
 Rules:
 
 - Staff can view assigned appointments.
-- Staff can view pending requests for services they can perform.
+- Staff can view no-preference requests for services they can perform and requests that prefer them.
+- Staff availability is read-only and maintained by admin.
 - Staff cannot access admin-only settings.
 
 Primary actions:
@@ -494,10 +496,8 @@ Purpose:
 
 Main data:
 
-- Upcoming appointments.
-- Pending requests.
-- Appointment history.
-- Booking status.
+- Monthly calendar of upcoming appointments, pending requests, and appointment history.
+- Selected-day visit details and booking status.
 
 Primary actions:
 
@@ -526,6 +526,8 @@ Rules:
 
 - Submitted requests start as `pending`.
 - Staff/admin must confirm before the booking is final.
+- Pending requests do not hold therapist capacity; confirmation performs the final availability check.
+- A therapist preference is optional and does not guarantee assignment.
 
 Primary actions:
 

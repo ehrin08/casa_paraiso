@@ -47,6 +47,7 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 
 ## Database Deployment Notes
 
+- Database safety approval gate: do not reset, reseed, migrate, import, truncate, delete, update, insert, or otherwise modify database schema or data unless the user explicitly approves the specific operation first. Read-only database inspection is allowed.
 - Hostinger databases should be managed through hPanel and phpMyAdmin unless a later hosting plan provides a better workflow.
 - Keep production database credentials outside committed source files.
 - Separate local database configuration from production database configuration.
@@ -77,6 +78,9 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 - Keep Apache/XAMPP compatibility as a fallback local workflow only.
 - Use Node/npm for frontend asset builds only; do not require a production Node.js runtime for the MVP.
 - Use Turbo Drive only for safe same-origin GET links and filter forms; keep state-changing forms, exports, and panel links on their existing Laravel request paths.
+- Appointment workspaces are calendar-only: customer month view, admin Bookings/Availability week view, and staff personal week view. Keep mutations on normal Laravel form routes and use the role-scoped JSON feeds only for calendar reads.
+- Treat 1:00 PM to 12:00 midnight in Asia/Manila as the hard booking window with 30-minute start intervals; `ends_next_day` represents midnight-ending staff windows.
+- Pending requests show demand but do not reserve capacity. Final confirmation must use the transactional appointment workflow, and therapist availability changes must remain guarded against future confirmed conflicts.
 - Use Laravel migrations and seeders as the primary database workflow.
 - Document setup, build, migration, seed, and deployment commands as the application is scaffolded.
 - Keep usability, security, and effectiveness visible in design and implementation decisions to support the ISO/IEC 25010 quality target.
@@ -90,7 +94,7 @@ Current scaffold verification:
 - Laravel app: `docker compose up -d`, then open `http://localhost:8001`
 - PHP dependencies after creating the volume: `docker compose exec -T laravel.test composer install`, then `docker compose restart laravel.test`
 - Frontend assets: `docker compose exec -T laravel.test npm run build`
-- Database: `docker compose exec -T laravel.test php artisan migrate:fresh --seed`
+- Database (run only after explicit user approval because this resets and reseeds data): `docker compose exec -T laravel.test php artisan migrate:fresh --seed`
 - Tests: `docker compose exec -T laravel.test php artisan test`
 
 ## Notes For Future Agents

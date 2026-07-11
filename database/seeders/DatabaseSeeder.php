@@ -158,15 +158,18 @@ class DatabaseSeeder extends Seeder
         );
 
         foreach ([$staffProfile, $secondStaffProfile] as $profile) {
-            foreach ([1, 2, 3, 4, 5, 6] as $dayOfWeek) {
-                StaffWeeklySchedule::firstOrCreate(
+            foreach ([0, 1, 2, 3, 4, 5, 6] as $dayOfWeek) {
+                StaffWeeklySchedule::updateOrCreate(
                     [
                         'staff_profile_id' => $profile->id,
                         'day_of_week' => $dayOfWeek,
-                        'start_time' => '10:00:00',
-                        'end_time' => '18:00:00',
                     ],
-                    ['is_available' => true],
+                    [
+                        'start_time' => '13:00:00',
+                        'end_time' => '00:00:00',
+                        'ends_next_day' => true,
+                        'is_available' => true,
+                    ],
                 );
             }
         }
@@ -260,6 +263,7 @@ class DatabaseSeeder extends Seeder
                 'customer_profile_id' => $customerProfile->id,
                 'service_id' => $gaiaTouch->id,
                 'staff_profile_id' => null,
+                'preferred_staff_profile_id' => $staffProfile->id,
                 'requested_start_at' => now()->addDays(2)->setTime(14, 0),
                 'scheduled_start_at' => null,
                 'scheduled_end_at' => null,
@@ -269,7 +273,7 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        $confirmedStart = now()->addDay()->setTime(11, 0);
+        $confirmedStart = now()->addDay()->setTime(15, 0);
         Appointment::updateOrCreate(
             ['appointment_number' => 'APT-DEMO-CONFIRMED'],
             [
@@ -286,7 +290,7 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        $completedStart = now()->subDays(10)->setTime(10, 0);
+        $completedStart = now()->subDays(10)->setTime(14, 0);
         $completedAppointment = Appointment::updateOrCreate(
             ['appointment_number' => 'APT-DEMO-COMPLETED'],
             [

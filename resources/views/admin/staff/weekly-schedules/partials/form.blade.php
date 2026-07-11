@@ -39,6 +39,16 @@
                 </div>
             </div>
 
+            <label class="flex items-start gap-3 rounded-2xl border border-casa-border bg-casa-sand/45 p-4">
+                <input type="hidden" name="ends_next_day" value="0">
+                <input type="checkbox" name="ends_next_day" value="1" @checked(old('ends_next_day', $weeklySchedule->ends_next_day ?? false)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
+                <span>
+                    <span class="block text-sm font-bold text-casa-text">{{ __('Ends at midnight') }}</span>
+                    <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Set the end time to 12:00 AM and enable this for a shift that runs through the end of the business day.') }}</span>
+                </span>
+            </label>
+            <x-input-error class="mt-2" :messages="$errors->get('ends_next_day')" />
+
             <label class="flex items-start gap-3 rounded-2xl border border-casa-border bg-casa-bg p-4">
                 <input type="hidden" name="is_available" value="0">
                 <input type="checkbox" name="is_available" value="1" @checked(old('is_available', $weeklySchedule->is_available ?? true)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
@@ -56,7 +66,7 @@
             <p class="casa-section-label">{{ __('Overlap rule') }}</p>
             <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Split shifts are allowed') }}</h2>
             <p class="mt-3 text-sm leading-6 text-casa-muted">
-                {{ __('Create multiple rows for the same day when shifts do not overlap, such as morning and afternoon windows.') }}
+                {{ __('Create multiple rows for the same day when shifts do not overlap. Bookable shifts stay within 1:00 PM to 12:00 midnight.') }}
             </p>
         </x-app-card>
 

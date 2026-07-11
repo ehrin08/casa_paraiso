@@ -6,6 +6,11 @@ return [
     'business_hours' => [
         'summary' => 'Open every day',
         'window' => '1:00 PM to 12:00 MN',
+        'timezone' => 'Asia/Manila',
+        'opens_at' => '13:00',
+        'closes_at' => '00:00',
+        'closes_next_day' => true,
+        'slot_interval_minutes' => 30,
     ],
     'service_packages' => [
         [

@@ -23,6 +23,7 @@ class AppointmentFactory extends Factory
             'customer_profile_id' => CustomerProfile::factory(),
             'service_id' => Service::factory(),
             'staff_profile_id' => null,
+            'preferred_staff_profile_id' => null,
             'requested_start_at' => $requestedStart,
             'scheduled_start_at' => null,
             'scheduled_end_at' => null,
@@ -41,7 +42,7 @@ class AppointmentFactory extends Factory
     public function confirmed(): static
     {
         return $this->state(function (array $attributes) {
-            $start = now()->addDays(3)->setTime(10, 0);
+            $start = now()->addDays(3)->setTime(14, 0);
 
             return [
                 'staff_profile_id' => StaffProfile::factory(),
