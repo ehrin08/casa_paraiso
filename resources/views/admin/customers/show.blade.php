@@ -14,9 +14,7 @@
         </div>
     </x-slot>
 
-    @php
-        $customerNotesModal = 'admin-customer-notes-'.$customer->id;
-    @endphp
+    @php $customerNotesModal = 'admin-customer-notes-'.$customer->id; @endphp
 
     <div class="space-y-6">
         <section class="grid gap-4 md:grid-cols-4">
@@ -75,20 +73,8 @@
     </div>
 
     <x-modal :name="$customerNotesModal" :show="old('_modal') === $customerNotesModal" maxWidth="2xl" focusable>
-        <form method="POST" action="{{ route('admin.customers.update', $customer) }}" class="casa-modal-form p-6">
-            @csrf
-            @method('PATCH')
-            <input type="hidden" name="_modal" value="{{ $customerNotesModal }}">
-
-            <p class="casa-section-label">{{ __('Care notes') }}</p>
-            <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Update internal note') }}</h2>
-            <textarea name="notes" rows="8" class="casa-input mt-5">{{ old('notes', $customer->notes) }}</textarea>
-            <x-input-error class="mt-2" :messages="$errors->get('notes')" />
-
-            <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end" data-modal-actions>
-                <button type="button" class="casa-button-secondary" x-on:click="$dispatch('close-modal', '{{ $customerNotesModal }}')">{{ __('Cancel') }}</button>
-                <button type="submit" class="casa-button-primary">{{ __('Save notes') }}</button>
-            </div>
+        <form method="POST" action="{{ route('admin.customers.update', $customer) }}" class="casa-modal-form p-6">@csrf @method('PATCH')
+            <input type="hidden" name="_modal" value="{{ $customerNotesModal }}"><p class="casa-section-label">{{ __('Care notes') }}</p><h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Update internal note') }}</h2><textarea name="notes" rows="8" class="casa-input mt-5">{{ old('notes', $customer->notes) }}</textarea><x-input-error class="mt-2" :messages="$errors->get('notes')" /><div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end" data-modal-actions><button type="button" class="casa-button-secondary" x-on:click="$dispatch('close-modal', '{{ $customerNotesModal }}')">{{ __('Cancel') }}</button><button type="submit" class="casa-button-primary">{{ __('Save notes') }}</button></div>
         </form>
     </x-modal>
 </x-app-layout>

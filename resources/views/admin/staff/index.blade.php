@@ -1,9 +1,5 @@
 <x-app-layout>
-    @php
-        $createStaffModal = 'admin-staff-create';
-        $createServiceModal = 'admin-service-create';
-    @endphp
-
+    @php $createStaffModal = 'admin-staff-create'; $createServiceModal = 'admin-service-create'; @endphp
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Admin module') }}</p>
@@ -104,9 +100,7 @@
                                         </div>
                                     </td>
                                     <td class="px-4 py-4">
-                                        <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-staff-edit-{{ $staffProfile->id }}')">
-                                            {{ __('Edit') }}
-                                        </button>
+                                        <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-staff-edit-{{ $staffProfile->id }}')">{{ __('Edit') }}</button>
                                     </td>
                                 </tr>
                             @endforeach
@@ -176,9 +170,7 @@
                                     </td>
                                     <td class="px-4 py-4">
                                         <div class="flex flex-wrap gap-3">
-                                            <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-service-edit-{{ $service->id }}')">
-                                                {{ __('Edit') }}
-                                            </button>
+                                            <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-service-edit-{{ $service->id }}')">{{ __('Edit') }}</button>
                                             <x-confirm-action
                                                 :action="route('admin.services.toggle', $service)"
                                                 method="PATCH"
@@ -197,70 +189,8 @@
             </div>
         </x-app-card>
     </div>
-
-    <x-modal :name="$createStaffModal" :show="old('_modal') === $createStaffModal" maxWidth="5xl" focusable>
-        <div class="p-5">
-            @include('admin.staff.partials.form', [
-                'staffProfile' => $newStaffProfile,
-                'staffUser' => $newStaffUser,
-                'services' => $staffAssignableServices,
-                'assignedServiceIds' => [],
-                'action' => route('admin.staff.store'),
-                'method' => 'POST',
-                'submitLabel' => __('Create staff'),
-                'passwordHelp' => __('Share this temporary password only through a secure handover. Staff can change it after login.'),
-                'modalName' => $createStaffModal,
-            ])
-        </div>
-    </x-modal>
-
-    <x-modal :name="$createServiceModal" :show="old('_modal') === $createServiceModal" maxWidth="4xl" focusable>
-        <div class="p-5">
-            @include('admin.services.partials.form', [
-                'service' => $newService,
-                'action' => route('admin.services.store'),
-                'method' => 'POST',
-                'submitLabel' => __('Create service'),
-                'modalName' => $createServiceModal,
-            ])
-        </div>
-    </x-modal>
-
-    @foreach ($staffProfiles as $staffProfile)
-        @php
-            $editStaffModal = 'admin-staff-edit-'.$staffProfile->id;
-        @endphp
-        <x-modal :name="$editStaffModal" :show="old('_modal') === $editStaffModal" maxWidth="5xl" focusable>
-            <div class="p-5">
-                @include('admin.staff.partials.form', [
-                    'staffProfile' => $staffProfile,
-                    'staffUser' => $staffProfile->user,
-                    'services' => $staffAssignableServices,
-                    'assignedServiceIds' => $staffProfile->services->pluck('id')->all(),
-                    'action' => route('admin.staff.update', $staffProfile),
-                    'method' => 'PATCH',
-                    'submitLabel' => __('Save staff'),
-                    'passwordHelp' => __('Leave blank to keep the current password.'),
-                    'modalName' => $editStaffModal,
-                ])
-            </div>
-        </x-modal>
-    @endforeach
-
-    @foreach ($serviceCatalog as $service)
-        @php
-            $editServiceModal = 'admin-service-edit-'.$service->id;
-        @endphp
-        <x-modal :name="$editServiceModal" :show="old('_modal') === $editServiceModal" maxWidth="4xl" focusable>
-            <div class="p-5">
-                @include('admin.services.partials.form', [
-                    'service' => $service,
-                    'action' => route('admin.services.update', $service),
-                    'method' => 'PATCH',
-                    'submitLabel' => __('Save service'),
-                    'modalName' => $editServiceModal,
-                ])
-            </div>
-        </x-modal>
-    @endforeach
+    <x-modal :name="$createStaffModal" :show="old('_modal') === $createStaffModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.staff.partials.form', ['staffProfile' => $newStaffProfile, 'staffUser' => $newStaffUser, 'services' => $staffAssignableServices, 'assignedServiceIds' => [], 'action' => route('admin.staff.store'), 'method' => 'POST', 'submitLabel' => __('Create staff'), 'passwordHelp' => __('Share this temporary password only through a secure handover. Staff can change it after login.'), 'modalName' => $createStaffModal])</div></x-modal>
+    <x-modal :name="$createServiceModal" :show="old('_modal') === $createServiceModal" maxWidth="4xl" focusable><div class="p-5">@include('admin.services.partials.form', ['service' => $newService, 'action' => route('admin.services.store'), 'method' => 'POST', 'submitLabel' => __('Create service'), 'modalName' => $createServiceModal])</div></x-modal>
+    @foreach ($staffProfiles as $staffProfile) @php $editStaffModal = 'admin-staff-edit-'.$staffProfile->id; @endphp <x-modal :name="$editStaffModal" :show="old('_modal') === $editStaffModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.staff.partials.form', ['staffProfile' => $staffProfile, 'staffUser' => $staffProfile->user, 'services' => $staffAssignableServices, 'assignedServiceIds' => $staffProfile->services->pluck('id')->all(), 'action' => route('admin.staff.update', $staffProfile), 'method' => 'PATCH', 'submitLabel' => __('Save staff'), 'passwordHelp' => __('Leave blank to keep the current password.'), 'modalName' => $editStaffModal])</div></x-modal> @endforeach
+    @foreach ($serviceCatalog as $service) @php $editServiceModal = 'admin-service-edit-'.$service->id; @endphp <x-modal :name="$editServiceModal" :show="old('_modal') === $editServiceModal" maxWidth="4xl" focusable><div class="p-5">@include('admin.services.partials.form', ['service' => $service, 'action' => route('admin.services.update', $service), 'method' => 'PATCH', 'submitLabel' => __('Save service'), 'modalName' => $editServiceModal])</div></x-modal> @endforeach
 </x-app-layout>

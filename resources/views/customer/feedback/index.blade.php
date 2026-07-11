@@ -1,6 +1,5 @@
 <x-app-layout>
     @php $submitFeedbackModal = 'customer-feedback-submit'; @endphp
-
     <x-slot name="header">
         <div>
             <p class="casa-eyebrow">{{ __('Customer lounge') }}</p>
@@ -89,9 +88,5 @@
         </aside>
     </div>
 
-    <x-modal :name="$submitFeedbackModal" :show="old('_modal') === $submitFeedbackModal" maxWidth="4xl" focusable>
-        <div class="p-5 sm:p-6">
-            @include('customer.feedback.partials.form', ['modalName' => $submitFeedbackModal])
-        </div>
-    </x-modal>
+    <x-modal :name="$submitFeedbackModal" :show="old('_modal') === $submitFeedbackModal" maxWidth="4xl" focusable><div class="p-5 sm:p-6">@include('customer.feedback.partials.form', ['modalName' => $submitFeedbackModal])</div></x-modal>
 </x-app-layout>

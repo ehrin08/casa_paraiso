@@ -41,6 +41,8 @@ Do not introduce these unless explicitly approved later:
 
 Use targeted JavaScript only where it directly improves a workflow, such as appointment filters, availability checks, charts, confirmation dialogs, or report filtering.
 
+Turbo Drive 8 is approved as the targeted navigation enhancement for the Blade application. It is bundled into the compiled Vite assets and is enabled only for safe same-origin GET links and filter forms; state-changing forms, exports, and specialized panels retain normal Laravel behavior.
+
 ## Database And Data Workflow
 
 - Use Laravel migrations as the source of truth for schema changes.
@@ -56,8 +58,10 @@ Use targeted JavaScript only where it directly improves a workflow, such as appo
 - Do not deploy Sail containers to Hostinger shared/web hosting.
 - Do not require Node.js to run on Hostinger production for the MVP.
 - Keep `.env` credentials out of committed source files.
+- Set `APP_ENV=production` and `APP_DEBUG=false` in production.
 - Hostinger must point web requests to Laravel's `public/index.php` entrypoint or an equivalent safe shared-hosting configuration.
-- Run Laravel production optimization commands during deployment when supported by the hosting environment.
+- When Hostinger Terminal or SSH is available, run `composer install --no-dev --optimize-autoloader` followed by `php artisan optimize` after the production environment is configured.
+- Do not build or upload Laravel configuration/view caches from Windows; production caches must be generated on the Linux hosting environment.
 
 ## Local Development Checks
 
@@ -92,6 +96,7 @@ Use these commands once the Laravel project exists:
 ```bash
 docker compose up -d
 docker compose exec -T laravel.test composer install
+docker compose restart laravel.test
 docker compose exec -T laravel.test npm install
 docker compose exec -T laravel.test npm run build
 docker compose exec -T laravel.test php artisan migrate --seed

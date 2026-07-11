@@ -1,8 +1,5 @@
 <x-app-layout>
-    @php
-        $createTransactionModal = 'admin-transaction-create';
-    @endphp
-
+    @php $createTransactionModal = 'admin-transaction-create'; @endphp
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Admin module') }}</p>
@@ -18,10 +15,7 @@
         </div>
     </x-slot>
 
-    @php
-        $createTransaction = $transaction;
-    @endphp
-
+    @php $createTransaction = $transaction; @endphp
     <div class="space-y-6">
         <section class="grid gap-4 md:grid-cols-3">
             <x-metric-card label="Paid total" value="PHP {{ number_format((float) $summary['paid'], 2) }}" meta="Paid transactions" tone="green" />
@@ -71,9 +65,7 @@
                                     <td class="px-4 py-4">
                                         <div class="flex flex-wrap gap-3">
                                             <a href="{{ route('admin.transactions.show', $transaction) }}" class="font-bold text-casa-primary hover:text-casa-primary-dark">{{ __('Open') }}</a>
-                                            <button type="button" class="font-bold text-casa-muted hover:text-casa-primary" x-data="" x-on:click="$dispatch('open-modal', 'admin-transaction-edit-{{ $transaction->id }}')">
-                                                {{ __('Edit') }}
-                                            </button>
+                                            <button type="button" class="font-bold text-casa-muted hover:text-casa-primary" x-data="" x-on:click="$dispatch('open-modal', 'admin-transaction-edit-{{ $transaction->id }}')">{{ __('Edit') }}</button>
                                         </div>
                                     </td>
                                 </tr>
@@ -90,7 +82,7 @@
                 <p class="casa-section-label">{{ __('Exports') }}</p>
                 <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Download payment records') }}</h2>
                 <p class="mt-3 text-sm leading-6 text-casa-muted">{{ __('Use the filtered revenue report when management needs CSV records without database access.') }}</p>
-                <a href="{{ route('admin.reports.export', ['type' => 'transactions']) }}" class="mt-5 casa-button-secondary w-full">{{ __('Export transactions CSV') }}</a>
+                <a href="{{ route('admin.reports.export', ['type' => 'transactions']) }}" class="mt-5 casa-button-secondary w-full" data-turbo="false">{{ __('Export transactions CSV') }}</a>
             </x-app-card>
 
             <x-app-card>
@@ -105,32 +97,9 @@
         </section>
     </div>
 
-    <x-modal :name="$createTransactionModal" :show="old('_modal') === $createTransactionModal" maxWidth="5xl" focusable>
-        <div class="p-5">
-            @include('admin.transactions.partials.form', [
-                'transaction' => $createTransaction,
-                'action' => route('admin.transactions.store'),
-                'method' => 'POST',
-                'submitLabel' => __('Create transaction'),
-                'modalName' => $createTransactionModal,
-            ])
-        </div>
-    </x-modal>
-
+    <x-modal :name="$createTransactionModal" :show="old('_modal') === $createTransactionModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.transactions.partials.form', ['transaction' => $createTransaction, 'action' => route('admin.transactions.store'), 'method' => 'POST', 'submitLabel' => __('Create transaction'), 'modalName' => $createTransactionModal])</div></x-modal>
     @foreach ($transactions as $transaction)
-        @php
-            $editTransactionModal = 'admin-transaction-edit-'.$transaction->id;
-        @endphp
-        <x-modal :name="$editTransactionModal" :show="old('_modal') === $editTransactionModal" maxWidth="5xl" focusable>
-            <div class="p-5">
-                @include('admin.transactions.partials.form', [
-                    'transaction' => $transaction,
-                    'action' => route('admin.transactions.update', $transaction),
-                    'method' => 'PATCH',
-                    'submitLabel' => __('Save transaction'),
-                    'modalName' => $editTransactionModal,
-                ])
-            </div>
-        </x-modal>
+        @php $editTransactionModal = 'admin-transaction-edit-'.$transaction->id; @endphp
+        <x-modal :name="$editTransactionModal" :show="old('_modal') === $editTransactionModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.transactions.partials.form', ['transaction' => $transaction, 'action' => route('admin.transactions.update', $transaction), 'method' => 'PATCH', 'submitLabel' => __('Save transaction'), 'modalName' => $editTransactionModal])</div></x-modal>
     @endforeach
 </x-app-layout>

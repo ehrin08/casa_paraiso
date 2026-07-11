@@ -89,7 +89,9 @@ class RoleWorkspaceTest extends TestCase
             ->get('/customer/appointments')
             ->assertOk()
             ->assertSee('data-page-loading', false)
-            ->assertSee('data-prefetch', false)
+            ->assertSee('data-turbo-track="reload"', false)
+            ->assertSee('data-panel-host data-turbo="false"', false)
+            ->assertDontSee('data-prefetch', false)
             ->assertSee('data-workspace-role="customer"', false)
             ->assertSee('data-role-navigation="customer"', false)
             ->assertSee('data-desktop-sidebar', false)
@@ -101,6 +103,29 @@ class RoleWorkspaceTest extends TestCase
             ->assertSee(route('customer.feedback.index'), false)
             ->assertSee(route('profile.edit'), false)
             ->assertSee(route('logout'), false);
+    }
+
+    public function test_turbo_exclusions_are_explicit_for_panels_logout_and_exports(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $customerProfile = CustomerProfile::factory()->create();
+        $service = Service::factory()->create();
+
+        Appointment::factory()
+            ->for($customerProfile)
+            ->for($service)
+            ->create(['status' => Appointment::STATUS_PENDING]);
+
+        $this->actingAs($admin)
+            ->get('/admin/dashboard')
+            ->assertOk()
+            ->assertSee('data-panel-link data-turbo="false"', false)
+            ->assertSee('action="'.route('logout').'" class="mt-auto pt-6" data-turbo="false"', false);
+
+        $this->actingAs($admin)
+            ->get('/admin/reports')
+            ->assertOk()
+            ->assertSee('href="'.route('admin.reports.export').'" class="casa-button-primary" data-turbo="false"', false);
     }
 
     public function test_authenticated_landing_page_links_directly_to_role_home(): void

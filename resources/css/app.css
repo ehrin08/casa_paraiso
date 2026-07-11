@@ -7,6 +7,10 @@
 @source "../views/**/*.blade.php";
 @source "../js/**/*.js";
 
+[x-cloak] {
+    display: none !important;
+}
+
 @theme {
     --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
@@ -405,6 +409,10 @@
         background: color-mix(in srgb, var(--color-casa-sand) 46%, white);
     }
 
+    .turbo-progress-bar {
+        display: none;
+    }
+
     .casa-page-loading {
         position: fixed;
         inset-inline: 0;
@@ -619,14 +627,6 @@
         color: var(--color-casa-palm-dark);
     }
 
-    .casa-modal-form [data-modal-actions] {
-        position: sticky;
-        bottom: -1px;
-        z-index: 5;
-        border-color: var(--color-casa-border);
-        background: rgba(255, 252, 247, 0.98);
-        box-shadow: 0 -12px 30px rgba(55, 44, 32, 0.09);
-    }
 }
 
 .casa-app-page h1 {
@@ -671,6 +671,15 @@
         flex-direction: row;
         align-items: end;
         justify-content: space-between;
+    }
+
+    .casa-modal-form [data-modal-actions] {
+        position: sticky;
+        bottom: -1px;
+        z-index: 5;
+        border-color: var(--color-casa-border);
+        background: rgba(255, 252, 247, 0.98);
+        box-shadow: 0 -12px 30px rgba(55, 44, 32, 0.09);
     }
 }
 

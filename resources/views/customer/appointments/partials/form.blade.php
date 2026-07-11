@@ -201,7 +201,7 @@
 
         <x-app-card>
             <button type="submit" class="casa-button-primary w-full" x-bind:disabled="!selectedSlot">{{ __('Submit appointment request') }}</button>
-            <a href="{{ route('customer.appointments.index') }}" class="casa-button-secondary mt-3 w-full" data-prefetch>{{ __('Cancel') }}</a>
+            <a href="{{ route('customer.appointments.index') }}" class="casa-button-secondary mt-3 w-full">{{ __('Cancel') }}</a>
             <p class="mt-4 text-center text-xs leading-5 text-casa-muted">{{ __('Submitting does not create an instant confirmed booking.') }}</p>
         </x-app-card>
 

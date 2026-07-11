@@ -20,6 +20,11 @@ services:
             IGNITION_LOCAL_SITES_PATH: '${PWD}'
         volumes:
             - '.:/var/www/html'
+            - type: volume
+              source: sail-vendor
+              target: /var/www/html/vendor
+              volume:
+                  nocopy: true
         networks:
             - sail
         depends_on:
@@ -61,4 +66,6 @@ networks:
         driver: bridge
 volumes:
     sail-mariadb:
+        driver: local
+    sail-vendor:
         driver: local

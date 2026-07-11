@@ -8,7 +8,7 @@
             </p>
         </div>
 
-        <a href="{{ route('customer.appointments.create') }}" class="casa-button-primary" data-prefetch>
+        <a href="{{ route('customer.appointments.create') }}" class="casa-button-primary">
             <x-nav-icon name="calendar" class="size-4" />
             {{ __('Request appointment') }}
         </a>
@@ -49,7 +49,7 @@
                     description="{{ __('Begin with a treatment and preferred time. Our team will review availability before confirming your visit.') }}"
                 >
                     <x-slot name="action">
-                        <a href="{{ route('customer.appointments.create') }}" class="casa-button-primary" data-prefetch>{{ __('Request your first visit') }}</a>
+                        <a href="{{ route('customer.appointments.create') }}" class="casa-button-primary">{{ __('Request your first visit') }}</a>
                     </x-slot>
                 </x-empty-state>
             @else
@@ -94,7 +94,7 @@
                                             <span>{{ $appointment->staffProfile?->user?->name ?? __('Therapist to be confirmed') }}</span>
                                         </div>
                                     </div>
-                                    <a href="{{ route('customer.appointments.show', $appointment) }}" class="casa-button-secondary shrink-0" data-prefetch>{{ __('View details') }}</a>
+                                    <a href="{{ route('customer.appointments.show', $appointment) }}" class="casa-button-secondary shrink-0">{{ __('View details') }}</a>
                                 </div>
                             </article>
                         @empty

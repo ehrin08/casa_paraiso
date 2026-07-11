@@ -7,8 +7,8 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('staff.customers.index') }}" class="casa-button-secondary" data-prefetch>{{ __('Customer lookup') }}</a>
-            <a href="{{ route('staff.appointments.index') }}" class="casa-button-primary" data-prefetch>{{ __('Open schedule') }}</a>
+            <a href="{{ route('staff.customers.index') }}" class="casa-button-secondary">{{ __('Customer lookup') }}</a>
+            <a href="{{ route('staff.appointments.index') }}" class="casa-button-primary">{{ __('Open schedule') }}</a>
         </div>
     </x-slot>
 
@@ -52,7 +52,7 @@
                                         <td class="px-4 py-4 text-casa-muted">{{ $appointment->customerProfile?->user?->name ?? __('Customer') }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $appointment->service?->name ?? __('Service') }}</td>
                                         <td class="px-4 py-4"><x-status-badge tone="success">{{ __(ucfirst($appointment->status)) }}</x-status-badge></td>
-                                        <td class="px-4 py-4"><a href="{{ route('staff.appointments.show', $appointment) }}" class="font-bold text-casa-cacao hover:text-casa-cacao-dark" data-panel-link>{{ __('Open') }}</a></td>
+                                        <td class="px-4 py-4"><a href="{{ route('staff.appointments.show', $appointment) }}" class="font-bold text-casa-cacao hover:text-casa-cacao-dark" data-panel-link data-turbo="false">{{ __('Open') }}</a></td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -70,7 +70,7 @@
                     <li class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-4"><span class="font-extrabold text-casa-brass-light">02</span><span class="text-sm text-white/78">{{ __('Open the customer context before service.') }}</span></li>
                     <li class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-4"><span class="font-extrabold text-casa-brass-light">03</span><span class="text-sm text-white/78">{{ __('Complete the visit and record payment.') }}</span></li>
                 </ol>
-                <a href="{{ route('staff.transactions.index') }}" class="casa-button-secondary mt-6 w-full border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white" data-prefetch>{{ __('Open payments') }}</a>
+                <a href="{{ route('staff.transactions.index') }}" class="casa-button-secondary mt-6 w-full border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">{{ __('Open payments') }}</a>
             </aside>
         </section>
     </div>

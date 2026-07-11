@@ -17,7 +17,8 @@ class AuthenticationTest extends TestCase
         $response
             ->assertStatus(200)
             ->assertSee('data-page-loading', false)
-            ->assertSee('data-prefetch', false);
+            ->assertSee('data-turbo-track="reload"', false)
+            ->assertDontSee('data-prefetch', false);
     }
 
     public function test_admin_users_are_redirected_to_admin_dashboard_after_login(): void

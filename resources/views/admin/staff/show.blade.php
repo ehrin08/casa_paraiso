@@ -21,9 +21,7 @@
             $createShiftModal = 'admin-staff-shift-create-'.$staffProfile->id;
             $createExceptionModal = 'admin-staff-exception-create-'.$staffProfile->id;
             $newWeeklySchedule = new \App\Models\StaffWeeklySchedule(['is_available' => true]);
-            $newScheduleException = new \App\Models\StaffScheduleException([
-                'exception_type' => \App\Models\StaffScheduleException::TYPE_UNAVAILABLE,
-            ]);
+            $newScheduleException = new \App\Models\StaffScheduleException(['exception_type' => \App\Models\StaffScheduleException::TYPE_UNAVAILABLE]);
         @endphp
 
         <section class="grid gap-4 md:grid-cols-4">
@@ -120,9 +118,7 @@
                                                 </x-status-badge>
                                             </div>
                                             <div class="flex gap-3 text-sm">
-                                                <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-staff-shift-edit-{{ $weeklySchedule->id }}')">
-                                                    {{ __('Edit') }}
-                                                </button>
+                                                <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-staff-shift-edit-{{ $weeklySchedule->id }}')">{{ __('Edit') }}</button>
                                                 <x-confirm-action
                                                     :action="route('admin.staff.weekly-schedules.destroy', [$staffProfile, $weeklySchedule])"
                                                     method="DELETE"
@@ -176,9 +172,7 @@
                                     @endif
                                 </div>
                                 <div class="flex gap-3 text-sm">
-                                    <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-staff-exception-edit-{{ $scheduleException->id }}')">
-                                        {{ __('Edit') }}
-                                    </button>
+                                    <button type="button" class="font-bold text-casa-primary hover:text-casa-primary-dark" x-data="" x-on:click="$dispatch('open-modal', 'admin-staff-exception-edit-{{ $scheduleException->id }}')">{{ __('Edit') }}</button>
                                     <x-confirm-action
                                         :action="route('admin.staff.schedule-exceptions.destroy', [$staffProfile, $scheduleException])"
                                         method="DELETE"
@@ -201,66 +195,8 @@
             </x-app-card>
         </section>
     </div>
-
-    <x-modal :name="$createShiftModal" :show="old('_modal') === $createShiftModal" maxWidth="4xl" focusable>
-        <div class="p-5">
-            @include('admin.staff.weekly-schedules.partials.form', [
-                'staffProfile' => $staffProfile,
-                'weeklySchedule' => $newWeeklySchedule,
-                'action' => route('admin.staff.weekly-schedules.store', $staffProfile),
-                'method' => 'POST',
-                'submitLabel' => __('Create shift'),
-                'modalName' => $createShiftModal,
-            ])
-        </div>
-    </x-modal>
-
-    <x-modal :name="$createExceptionModal" :show="old('_modal') === $createExceptionModal" maxWidth="4xl" focusable>
-        <div class="p-5">
-            @include('admin.staff.schedule-exceptions.partials.form', [
-                'staffProfile' => $staffProfile,
-                'scheduleException' => $newScheduleException,
-                'action' => route('admin.staff.schedule-exceptions.store', $staffProfile),
-                'method' => 'POST',
-                'submitLabel' => __('Create exception'),
-                'modalName' => $createExceptionModal,
-            ])
-        </div>
-    </x-modal>
-
-    @foreach ($staffProfile->weeklySchedules as $weeklySchedule)
-        @php
-            $editShiftModal = 'admin-staff-shift-edit-'.$weeklySchedule->id;
-        @endphp
-        <x-modal :name="$editShiftModal" :show="old('_modal') === $editShiftModal" maxWidth="4xl" focusable>
-            <div class="p-5">
-                @include('admin.staff.weekly-schedules.partials.form', [
-                    'staffProfile' => $staffProfile,
-                    'weeklySchedule' => $weeklySchedule,
-                    'action' => route('admin.staff.weekly-schedules.update', [$staffProfile, $weeklySchedule]),
-                    'method' => 'PATCH',
-                    'submitLabel' => __('Save shift'),
-                    'modalName' => $editShiftModal,
-                ])
-            </div>
-        </x-modal>
-    @endforeach
-
-    @foreach ($staffProfile->scheduleExceptions as $scheduleException)
-        @php
-            $editExceptionModal = 'admin-staff-exception-edit-'.$scheduleException->id;
-        @endphp
-        <x-modal :name="$editExceptionModal" :show="old('_modal') === $editExceptionModal" maxWidth="4xl" focusable>
-            <div class="p-5">
-                @include('admin.staff.schedule-exceptions.partials.form', [
-                    'staffProfile' => $staffProfile,
-                    'scheduleException' => $scheduleException,
-                    'action' => route('admin.staff.schedule-exceptions.update', [$staffProfile, $scheduleException]),
-                    'method' => 'PATCH',
-                    'submitLabel' => __('Save exception'),
-                    'modalName' => $editExceptionModal,
-                ])
-            </div>
-        </x-modal>
-    @endforeach
+    <x-modal :name="$createShiftModal" :show="old('_modal') === $createShiftModal" maxWidth="4xl" focusable><div class="p-5">@include('admin.staff.weekly-schedules.partials.form', ['staffProfile' => $staffProfile, 'weeklySchedule' => $newWeeklySchedule, 'action' => route('admin.staff.weekly-schedules.store', $staffProfile), 'method' => 'POST', 'submitLabel' => __('Create shift'), 'modalName' => $createShiftModal])</div></x-modal>
+    <x-modal :name="$createExceptionModal" :show="old('_modal') === $createExceptionModal" maxWidth="4xl" focusable><div class="p-5">@include('admin.staff.schedule-exceptions.partials.form', ['staffProfile' => $staffProfile, 'scheduleException' => $newScheduleException, 'action' => route('admin.staff.schedule-exceptions.store', $staffProfile), 'method' => 'POST', 'submitLabel' => __('Create exception'), 'modalName' => $createExceptionModal])</div></x-modal>
+    @foreach ($staffProfile->weeklySchedules as $weeklySchedule) @php $editShiftModal = 'admin-staff-shift-edit-'.$weeklySchedule->id; @endphp <x-modal :name="$editShiftModal" :show="old('_modal') === $editShiftModal" maxWidth="4xl" focusable><div class="p-5">@include('admin.staff.weekly-schedules.partials.form', ['staffProfile' => $staffProfile, 'weeklySchedule' => $weeklySchedule, 'action' => route('admin.staff.weekly-schedules.update', [$staffProfile, $weeklySchedule]), 'method' => 'PATCH', 'submitLabel' => __('Save shift'), 'modalName' => $editShiftModal])</div></x-modal> @endforeach
+    @foreach ($staffProfile->scheduleExceptions as $scheduleException) @php $editExceptionModal = 'admin-staff-exception-edit-'.$scheduleException->id; @endphp <x-modal :name="$editExceptionModal" :show="old('_modal') === $editExceptionModal" maxWidth="4xl" focusable><div class="p-5">@include('admin.staff.schedule-exceptions.partials.form', ['staffProfile' => $staffProfile, 'scheduleException' => $scheduleException, 'action' => route('admin.staff.schedule-exceptions.update', [$staffProfile, $scheduleException]), 'method' => 'PATCH', 'submitLabel' => __('Save exception'), 'modalName' => $editExceptionModal])</div></x-modal> @endforeach
 </x-app-layout>

@@ -9,8 +9,8 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('admin.reports.index') }}" class="casa-button-secondary" data-prefetch>{{ __('View reports') }}</a>
-            <a href="{{ route('admin.appointments.index') }}" class="casa-button-primary" data-prefetch>{{ __('Review requests') }}</a>
+            <a href="{{ route('admin.reports.index') }}" class="casa-button-secondary">{{ __('View reports') }}</a>
+            <a href="{{ route('admin.appointments.index') }}" class="casa-button-primary">{{ __('Review requests') }}</a>
         </div>
     </x-slot>
 
@@ -53,7 +53,7 @@
                                     <td class="px-4 py-4 text-casa-muted">{{ $appointment->requested_start_at?->format('M d, Y g:i A') }}</td>
                                     <td class="px-4 py-4"><x-status-badge tone="warning">{{ __(ucfirst($appointment->status)) }}</x-status-badge></td>
                                     <td class="px-4 py-4">
-                                        <a href="{{ route('admin.appointments.show', $appointment) }}" class="font-bold text-casa-cacao hover:text-casa-cacao-dark" data-panel-link>
+                                        <a href="{{ route('admin.appointments.show', $appointment) }}" class="font-bold text-casa-cacao hover:text-casa-cacao-dark" data-panel-link data-turbo="false">
                                             {{ __('Review') }}
                                         </a>
                                     </td>
@@ -74,14 +74,14 @@
                 <p class="mt-4 text-sm leading-7 text-white/65">{{ __('Review time-sensitive requests first, then move through payments, feedback, and promotion decisions.') }}</p>
                 <div class="casa-divider my-6"></div>
                 <div class="space-y-2">
-                    <a href="{{ route('admin.appointments.index') }}" class="flex min-h-11 items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm font-bold text-white transition hover:bg-white/10" data-prefetch>
+                    <a href="{{ route('admin.appointments.index') }}" class="flex min-h-11 items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm font-bold text-white transition hover:bg-white/10">
                         <span>{{ __('Appointment queue') }}</span><span class="text-casa-brass-light">{{ $summary['pendingAppointments'] ?? 0 }}</span>
                     </a>
-                    <a href="{{ route('admin.promotions.index') }}" class="flex min-h-11 items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm font-bold text-white transition hover:bg-white/10" data-prefetch>
+                    <a href="{{ route('admin.promotions.index') }}" class="flex min-h-11 items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm font-bold text-white transition hover:bg-white/10">
                         <span>{{ __('Promotion reviews') }}</span><span class="text-casa-brass-light">{{ $summary['promotionReviews'] ?? 0 }}</span>
                         <span class="sr-only">{{ trans_choice(':count promotion review waiting|:count promotion reviews waiting', $summary['promotionReviews'] ?? 0) }}</span>
                     </a>
-                    <a href="{{ route('admin.reports.index') }}" class="flex min-h-11 items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm font-bold text-white transition hover:bg-white/10" data-prefetch>
+                    <a href="{{ route('admin.reports.index') }}" class="flex min-h-11 items-center justify-between rounded-xl border border-white/10 bg-white/[0.06] px-4 text-sm font-bold text-white transition hover:bg-white/10">
                         <span>{{ __('Reports & exports') }}</span><span aria-hidden="true">→</span>
                     </a>
                 </div>

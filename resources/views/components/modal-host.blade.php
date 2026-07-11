@@ -1,4 +1,4 @@
-<div data-panel-host class="casa-panel-host" aria-hidden="true">
+<div data-panel-host data-turbo="false" class="casa-panel-host" aria-hidden="true">
     <div data-panel-backdrop class="casa-panel-backdrop"></div>
 
     <section

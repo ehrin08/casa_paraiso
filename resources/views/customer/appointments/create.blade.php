@@ -8,7 +8,7 @@
             </p>
         </div>
 
-        <a href="{{ route('customer.appointments.index') }}" class="casa-button-secondary" data-prefetch>{{ __('Back to appointments') }}</a>
+        <a href="{{ route('customer.appointments.index') }}" class="casa-button-secondary">{{ __('Back to appointments') }}</a>
     </x-slot>
 
     @include('customer.appointments.partials.form')

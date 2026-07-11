@@ -1,18 +1,10 @@
-@php
-    $modalName = $modalName ?? null;
-@endphp
-
-<form method="POST" action="{{ $action }}" @class([
-    'grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]',
-    'casa-modal-form' => $modalName,
-])>
+@php $modalName = $modalName ?? null; @endphp
+<form method="POST" action="{{ $action }}" @class(['grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]', 'casa-modal-form' => $modalName])>
     @csrf
     @if ($method !== 'POST')
         @method($method)
     @endif
-    @if ($modalName)
-        <input type="hidden" name="_modal" value="{{ $modalName }}">
-    @endif
+    @if ($modalName)<input type="hidden" name="_modal" value="{{ $modalName }}">@endif
 
     <x-app-card>
         <div class="border-b border-casa-border pb-5">
@@ -60,7 +52,7 @@
     </x-app-card>
 
     <aside class="space-y-4">
-        <x-app-card>
+        <x-app-card data-modal-actions>
             <p class="casa-section-label">{{ __('Generated fields') }}</p>
             <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Slug is automatic') }}</h2>
             <p class="mt-3 text-sm leading-6 text-casa-muted">
@@ -68,14 +60,10 @@
             </p>
         </x-app-card>
 
-        <x-app-card data-modal-actions>
+        <x-app-card>
             <div class="flex flex-col gap-3">
                 <button type="submit" class="casa-button-primary w-full">{{ $submitLabel }}</button>
-                @if ($modalName)
-                    <button type="button" class="casa-button-secondary w-full" x-on:click="$dispatch('close-modal', '{{ $modalName }}')">{{ __('Cancel') }}</button>
-                @else
-                    <a href="{{ route('admin.services.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>
-                @endif
+                @if ($modalName)<button type="button" class="casa-button-secondary w-full" x-on:click="$dispatch('close-modal', '{{ $modalName }}')">{{ __('Cancel') }}</button>@else<a href="{{ route('admin.services.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>@endif
             </div>
         </x-app-card>
     </aside>

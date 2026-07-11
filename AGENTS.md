@@ -72,9 +72,11 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 - Keep project-specific setup notes in this file as the application takes shape.
 - Use Laravel 12, PHP 8.2+, Blade, Tailwind CSS through Vite, and MariaDB/MySQL unless a later planning decision changes the stack.
 - Use Laravel Sail as the primary local development runtime, but prefer direct `docker compose` commands on this Windows machine because `vendor\bin\sail.bat` depends on a working Bash/WSL shim.
+- Keep the container's PHP dependencies in the `sail-vendor` Docker volume; after first creation or a Composer lock change, run `docker compose exec -T laravel.test composer install` in addition to the host install.
 - Keep Hostinger shared/web hosting compatibility in mind; Docker is not the production target.
 - Keep Apache/XAMPP compatibility as a fallback local workflow only.
 - Use Node/npm for frontend asset builds only; do not require a production Node.js runtime for the MVP.
+- Use Turbo Drive only for safe same-origin GET links and filter forms; keep state-changing forms, exports, and panel links on their existing Laravel request paths.
 - Use Laravel migrations and seeders as the primary database workflow.
 - Document setup, build, migration, seed, and deployment commands as the application is scaffolded.
 - Keep usability, security, and effectiveness visible in design and implementation decisions to support the ISO/IEC 25010 quality target.
@@ -86,6 +88,7 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 Current scaffold verification:
 
 - Laravel app: `docker compose up -d`, then open `http://localhost:8001`
+- PHP dependencies after creating the volume: `docker compose exec -T laravel.test composer install`, then `docker compose restart laravel.test`
 - Frontend assets: `docker compose exec -T laravel.test npm run build`
 - Database: `docker compose exec -T laravel.test php artisan migrate:fresh --seed`
 - Tests: `docker compose exec -T laravel.test php artisan test`

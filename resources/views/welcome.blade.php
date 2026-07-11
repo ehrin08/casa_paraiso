@@ -28,7 +28,7 @@
         <div class="casa-page min-h-screen overflow-hidden">
             <header class="sticky top-0 z-50 border-b border-casa-border/70 bg-casa-paper/92 backdrop-blur-xl">
                 <div class="mx-auto flex max-w-[90rem] items-center justify-between gap-5 px-4 py-3 sm:px-6 lg:px-8">
-                    <a href="/" class="rounded-xl bg-white px-2 py-1" data-prefetch>
+                    <a href="/" class="rounded-xl bg-white px-2 py-1">
                         <img src="{{ asset('images/casa_paraiso_logo.jpg') }}" alt="Casa Paraiso Body and Wellness Spa" class="h-10 w-36 object-cover object-center sm:h-12 sm:w-44">
                     </a>
 
@@ -41,11 +41,11 @@
                     @if (Route::has('login'))
                         <nav class="flex items-center gap-2 sm:gap-3" aria-label="Account navigation">
                             @auth
-                                <a href="{{ $homeUrl }}" class="casa-button-primary" data-prefetch>{{ __('Open workspace') }}</a>
+                                <a href="{{ $homeUrl }}" class="casa-button-primary">{{ __('Open workspace') }}</a>
                             @else
-                                <a href="{{ route('login') }}" class="hidden min-h-11 items-center px-2 text-sm font-bold text-casa-muted transition hover:text-casa-cacao sm:inline-flex" data-prefetch>{{ __('Log in') }}</a>
+                                <a href="{{ route('login') }}" class="hidden min-h-11 items-center px-2 text-sm font-bold text-casa-muted transition hover:text-casa-cacao sm:inline-flex">{{ __('Log in') }}</a>
                                 @if (Route::has('register'))
-                                    <a href="{{ route('register') }}" class="casa-button-primary" data-prefetch>{{ __('Reserve') }}</a>
+                                    <a href="{{ route('register') }}" class="casa-button-primary">{{ __('Reserve') }}</a>
                                 @endif
                             @endauth
                         </nav>
@@ -68,9 +68,9 @@
 
                             <div class="mt-8 flex flex-col gap-3 sm:flex-row">
                                 @auth
-                                    <a href="{{ $homeUrl }}" class="casa-button-primary" data-prefetch>{{ __('Open your workspace') }}</a>
+                                    <a href="{{ $homeUrl }}" class="casa-button-primary">{{ __('Open your workspace') }}</a>
                                 @else
-                                    <a href="{{ route('register') }}" class="casa-button-primary" data-prefetch>{{ __('Request an appointment') }}</a>
+                                    <a href="{{ route('register') }}" class="casa-button-primary">{{ __('Request an appointment') }}</a>
                                     <a href="#treatments" class="casa-button-secondary">{{ __('Explore treatments') }}</a>
                                 @endauth
                             </div>
@@ -200,7 +200,7 @@
                             <div class="casa-divider my-7"></div>
                             <p class="font-editorial text-3xl font-semibold italic leading-tight text-casa-cacao">{{ config('casa.marketing_line') }}</p>
                             @guest
-                                <a href="{{ route('register') }}" class="casa-button-primary mt-7 w-full" data-prefetch>{{ __('Request your visit') }}</a>
+                                <a href="{{ route('register') }}" class="casa-button-primary mt-7 w-full">{{ __('Request your visit') }}</a>
                             @endguest
                         </aside>
                     </div>

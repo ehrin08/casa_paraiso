@@ -8,7 +8,7 @@
             </p>
         </div>
 
-        <a href="{{ route('admin.reports.export', request()->query()) }}" class="casa-button-primary">{{ __('Export CSV') }}</a>
+        <a href="{{ route('admin.reports.export', request()->query()) }}" class="casa-button-primary" data-turbo="false">{{ __('Export CSV') }}</a>
     </x-slot>
 
     <div class="space-y-6">
@@ -90,7 +90,7 @@
 
         <x-app-card>
             <x-list-toolbar eyebrow="{{ __('Results') }}" title="{{ ucfirst($type) }}" :count="$records->total()" :reset-url="route('admin.reports.index', ['type' => $type])">
-                <a href="{{ route('admin.reports.export', request()->query()) }}" class="casa-button-secondary">{{ __('Export filtered CSV') }}</a>
+                <a href="{{ route('admin.reports.export', request()->query()) }}" class="casa-button-secondary" data-turbo="false">{{ __('Export filtered CSV') }}</a>
             </x-list-toolbar>
 
             <div class="mt-5">

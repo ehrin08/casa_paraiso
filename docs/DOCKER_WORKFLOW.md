@@ -16,6 +16,8 @@ The Sail-generated Compose setup uses:
 
 The app is served through the Laravel app container. It does not use a custom Nginx/PHP-FPM stack for this MVP.
 
+The container mounts its `vendor/` directory from the `sail-vendor` named volume. Keeping Composer packages on Docker's Linux filesystem avoids repeatedly loading Laravel framework files through the slower Windows bind mount. Application source files remain bind-mounted for immediate editing.
+
 On this Windows machine, use `docker compose` directly. The `vendor\bin\sail.bat` wrapper depends on a working Bash/WSL shim, and that shim is not currently reliable here.
 
 ## Local URLs
@@ -41,12 +43,23 @@ Then start the Docker services and verify the app:
 
 ```powershell
 docker compose up -d
+docker compose exec -T laravel.test composer install
+docker compose restart laravel.test
 docker compose exec -T laravel.test php artisan migrate:fresh --seed
 docker compose exec -T laravel.test npm run build
 docker compose exec -T laravel.test php artisan test
 ```
 
-The first `composer install` is still needed after a clean clone because Sail's Docker build context comes from `vendor/laravel/sail`.
+The host `composer install` is still needed after a clean clone because Sail's Docker build context comes from `vendor/laravel/sail`. The in-container install populates the separate `sail-vendor` volume used by the running application. Restart `laravel.test` afterward because its web process may have stopped while the empty volume was being populated.
+
+When `composer.lock` changes, refresh both dependency locations:
+
+```powershell
+composer install
+docker compose exec -T laravel.test composer install
+```
+
+Do not delete the `sail-vendor` volume during normal shutdown. `docker compose down` keeps it; `docker compose down -v` removes it and requires another in-container Composer install.
 
 ## Daily Commands
 
@@ -68,6 +81,13 @@ Run migrations:
 docker compose exec laravel.test php artisan migrate
 ```
 
+Refresh PHP dependencies after a Composer change:
+
+```powershell
+composer install
+docker compose exec -T laravel.test composer install
+```
+
 Run tests:
 
 ```powershell
@@ -79,6 +99,17 @@ Build frontend assets:
 ```powershell
 docker compose exec laravel.test npm run build
 ```
+
+If a host-side `npm run build` reports a missing Rollup optional dependency such as
+`@rollup/rollup-win32-x64-msvc`, restore the host dependency tree without changing
+`package-lock.json`:
+
+```powershell
+Remove-Item -Recurse -Force node_modules
+npm install
+```
+
+Use the Docker build command above as the primary verification path.
 
 Start Vite dev server:
 
@@ -128,4 +159,13 @@ For Hostinger:
 - Build assets locally with Docker Compose or host Node.
 - Upload/deploy the Laravel application using Hostinger-compatible PHP hosting.
 - Configure production `.env` with Hostinger database credentials.
+- Set `APP_ENV=production` and `APP_DEBUG=false`.
 - Point web requests to Laravel's `public/index.php` entrypoint or equivalent shared-hosting setup.
+- When Hostinger Terminal or SSH is available, install and optimize after the production `.env` is configured:
+
+```bash
+composer install --no-dev --optimize-autoloader
+php artisan optimize
+```
+
+`php artisan optimize` caches Laravel configuration, events, routes, and Blade views. Run it on the Linux hosting environment, not during normal Windows/XAMPP development. Re-run it after deploying application, route, configuration, or view changes.

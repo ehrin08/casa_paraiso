@@ -1,9 +1,5 @@
 <x-app-layout>
-    @php
-        $recordPaymentModal = 'admin-appointment-payment-'.$appointment->id;
-        $editAppointmentModal = 'admin-appointment-edit-'.$appointment->id;
-    @endphp
-
+    @php $recordPaymentModal = 'admin-appointment-payment-'.$appointment->id; $editAppointmentModal = 'admin-appointment-edit-'.$appointment->id; @endphp
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Appointment detail') }}</p>
@@ -101,28 +97,6 @@
         </aside>
     </div>
 
-    <x-modal :name="$editAppointmentModal" :show="old('_modal') === $editAppointmentModal" maxWidth="5xl" focusable>
-        <div class="p-5">
-            @include('admin.appointments.partials.form', [
-                'appointment' => $appointment,
-                'action' => route('admin.appointments.update', $appointment),
-                'method' => 'PATCH',
-                'submitLabel' => __('Save appointment'),
-                'modalName' => $editAppointmentModal,
-            ])
-        </div>
-    </x-modal>
-
-    <x-modal :name="$recordPaymentModal" :show="old('_modal') === $recordPaymentModal" maxWidth="5xl" focusable>
-        <div class="p-5">
-            @include('admin.transactions.partials.form', [
-                'transaction' => $transaction,
-                'appointments' => $transactionAppointments,
-                'action' => route('admin.transactions.store'),
-                'method' => 'POST',
-                'submitLabel' => __('Create transaction'),
-                'modalName' => $recordPaymentModal,
-            ])
-        </div>
-    </x-modal>
+    <x-modal :name="$editAppointmentModal" :show="old('_modal') === $editAppointmentModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.appointments.partials.form', ['appointment' => $appointment, 'action' => route('admin.appointments.update', $appointment), 'method' => 'PATCH', 'submitLabel' => __('Save appointment'), 'modalName' => $editAppointmentModal])</div></x-modal>
+    <x-modal :name="$recordPaymentModal" :show="old('_modal') === $recordPaymentModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.transactions.partials.form', ['transaction' => $transaction, 'appointments' => $transactionAppointments, 'action' => route('admin.transactions.store'), 'method' => 'POST', 'submitLabel' => __('Create transaction'), 'modalName' => $recordPaymentModal])</div></x-modal>
 </x-app-layout>

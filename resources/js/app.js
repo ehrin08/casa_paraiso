@@ -1,8 +1,126 @@
 import './bootstrap';
 
+import { session as turboSession } from '@hotwired/turbo';
 import Alpine from 'alpinejs';
 
+turboSession.drive = false;
+
 window.Alpine = Alpine;
+
+const modalStoreName = 'casaModal';
+
+const syncBodyScrollLock = () => {
+    if (!document.body) {
+        return;
+    }
+
+    const modalIsOpen = Boolean(Alpine.store(modalStoreName)?.active);
+    const panelIsOpen = document.querySelector('[data-panel-host]')?.classList.contains('is-open') ?? false;
+
+    document.body.classList.toggle('overflow-y-hidden', modalIsOpen || panelIsOpen);
+};
+
+Alpine.store(modalStoreName, {
+    active: null,
+    trigger: null,
+
+    open(name, trigger = null) {
+        if (typeof name !== 'string' || name.length === 0) {
+            return;
+        }
+
+        this.active = name;
+        this.trigger = trigger instanceof HTMLElement ? trigger : document.activeElement;
+
+        syncBodyScrollLock();
+    },
+
+    close(name = this.active) {
+        if (name && name !== this.active) {
+            return;
+        }
+
+        const trigger = this.trigger;
+
+        this.active = null;
+        this.trigger = null;
+
+        syncBodyScrollLock();
+
+        window.requestAnimationFrame(() => {
+            if (trigger instanceof HTMLElement && trigger.isConnected) {
+                trigger.focus({ preventScroll: true });
+            }
+        });
+    },
+});
+
+const modalStore = () => Alpine.store(modalStoreName);
+
+window.casaModal = ({ name, initialShow = false, focusable = false }) => ({
+    name,
+    initialShow,
+    focusable,
+
+    get show() {
+        return Alpine.store(modalStoreName).active === this.name;
+    },
+
+    init() {
+        if (this.initialShow) {
+            modalStore().open(this.name);
+        }
+
+        this.$watch('show', (show) => {
+            if (show && this.focusable) {
+                window.setTimeout(() => this.firstFocusable()?.focus(), 100);
+            }
+        });
+
+        if (this.show && this.focusable) {
+            window.setTimeout(() => this.firstFocusable()?.focus(), 100);
+        }
+    },
+
+    close() {
+        modalStore().close(this.name);
+    },
+
+    focusables() {
+        const selector = 'a, button, input:not([type=\'hidden\']), textarea, select, details, [tabindex]:not([tabindex=\'-1\'])';
+
+        return [...this.$el.querySelectorAll(selector)].filter((element) => !element.hasAttribute('disabled'));
+    },
+
+    firstFocusable() {
+        return this.focusables()[0];
+    },
+
+    handleTab(event) {
+        const focusable = this.focusables();
+
+        if (focusable.length === 0) {
+            event.preventDefault();
+            return;
+        }
+
+        const currentIndex = focusable.indexOf(document.activeElement);
+        const nextIndex = event.shiftKey
+            ? (currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1)
+            : (currentIndex === -1 || currentIndex === focusable.length - 1 ? 0 : currentIndex + 1);
+
+        event.preventDefault();
+        focusable[nextIndex].focus();
+    },
+});
+
+window.addEventListener('open-modal', (event) => {
+    modalStore().open(event.detail, event.target);
+});
+
+window.addEventListener('close-modal', (event) => {
+    modalStore().close(event.detail);
+});
 
 window.customerCalendarBooking = (config) => ({
     availabilityUrl: config.availabilityUrl,
@@ -164,31 +282,53 @@ window.customerCalendarBooking = (config) => ({
 
 Alpine.start();
 
-const loadingElement = document.querySelector('[data-page-loading]');
+let loadingRevealTimer = null;
 let loadingFallbackTimer = null;
 
-const showPageLoading = () => {
-    if (!loadingElement) {
+const loadingElement = () => document.querySelector('[data-page-loading]');
+
+const revealPageLoading = () => {
+    const element = loadingElement();
+
+    if (!element) {
         return;
     }
 
-    window.clearTimeout(loadingFallbackTimer);
-    loadingElement.classList.add('is-visible');
-    loadingElement.setAttribute('aria-hidden', 'false');
+    element.classList.add('is-visible');
+    element.setAttribute('aria-hidden', 'false');
 
+    window.clearTimeout(loadingFallbackTimer);
     loadingFallbackTimer = window.setTimeout(() => {
         hidePageLoading();
     }, 12000);
 };
 
-const hidePageLoading = () => {
-    if (!loadingElement) {
+const showPageLoading = (delay = 0) => {
+    window.clearTimeout(loadingRevealTimer);
+
+    if (delay > 0) {
+        loadingRevealTimer = window.setTimeout(revealPageLoading, delay);
         return;
     }
 
+    revealPageLoading();
+};
+
+const hidePageLoading = () => {
+    const element = loadingElement();
+
+    window.clearTimeout(loadingRevealTimer);
     window.clearTimeout(loadingFallbackTimer);
-    loadingElement.classList.remove('is-visible');
-    loadingElement.setAttribute('aria-hidden', 'true');
+
+    loadingRevealTimer = null;
+    loadingFallbackTimer = null;
+
+    if (!element) {
+        return;
+    }
+
+    element.classList.remove('is-visible');
+    element.setAttribute('aria-hidden', 'true');
 };
 
 const isModifiedClick = (event) => {
@@ -198,6 +338,14 @@ const isModifiedClick = (event) => {
 const linkUrl = (link) => {
     try {
         return new URL(link.href, window.location.href);
+    } catch {
+        return null;
+    }
+};
+
+const formUrl = (form) => {
+    try {
+        return new URL(form.action || window.location.href, window.location.href);
     } catch {
         return null;
     }
@@ -217,8 +365,66 @@ const shouldSkipNavigationUrl = (url) => {
         && Boolean(url.hash);
 };
 
+const isFastLink = (link) => {
+    if (!(link instanceof HTMLAnchorElement) || link.hasAttribute('data-turbo')) {
+        return false;
+    }
+
+    if (link.target && link.target !== '_self') {
+        return false;
+    }
+
+    if (link.hasAttribute('download') || link.hasAttribute('data-panel-link') || link.hasAttribute('data-no-turbo')) {
+        return false;
+    }
+
+    if (link.closest('[data-turbo="false"]')) {
+        return false;
+    }
+
+    const url = linkUrl(link);
+
+    return !shouldSkipNavigationUrl(url) && url.href !== window.location.href;
+};
+
+const isFastGetForm = (form) => {
+    if (!(form instanceof HTMLFormElement) || form.hasAttribute('data-turbo')) {
+        return false;
+    }
+
+    if (form.method.toLowerCase() !== 'get' || (form.target && form.target !== '_self')) {
+        return false;
+    }
+
+    if (form.hasAttribute('data-no-turbo') || form.closest('[data-turbo="false"]')) {
+        return false;
+    }
+
+    return !shouldSkipNavigationUrl(formUrl(form));
+};
+
+const prepareFastNavigation = (root = document) => {
+    root.querySelectorAll('a[href]').forEach((link) => {
+        if (isFastLink(link)) {
+            link.setAttribute('data-turbo', 'true');
+        }
+    });
+
+    root.querySelectorAll('form').forEach((form) => {
+        if (isFastGetForm(form)) {
+            form.setAttribute('data-turbo', 'true');
+        } else if (!form.hasAttribute('data-turbo') && form.method.toLowerCase() !== 'get') {
+            form.setAttribute('data-turbo', 'false');
+        }
+    });
+};
+
 const shouldHandleLink = (link, event) => {
     if (!link || event.defaultPrevented || isModifiedClick(event)) {
+        return false;
+    }
+
+    if (link.getAttribute('data-turbo') === 'true') {
         return false;
     }
 
@@ -243,11 +449,30 @@ const closestLink = (target, selector = 'a[href]') => {
     return target instanceof Element ? target.closest(selector) : null;
 };
 
-const panelHost = document.querySelector('[data-panel-host]');
-const panelContent = panelHost?.querySelector('[data-panel-content]');
-const panelStatus = panelHost?.querySelector('[data-panel-status]');
-const panelTitle = panelHost?.querySelector('[data-panel-title]');
-const panelDialog = panelHost?.querySelector('.casa-panel');
+const panelElements = () => {
+    const host = document.querySelector('[data-panel-host]');
+
+    return {
+        host,
+        content: host?.querySelector('[data-panel-content]'),
+        status: host?.querySelector('[data-panel-status]'),
+        title: host?.querySelector('[data-panel-title]'),
+        dialog: host?.querySelector('.casa-panel'),
+    };
+};
+
+const closeModalWithin = (root) => {
+    if (!root || !modalStore().active) {
+        return;
+    }
+
+    const containsActiveModal = [...root.querySelectorAll('[data-modal-name]')]
+        .some((element) => element.getAttribute('data-modal-name') === modalStore().active);
+
+    if (containsActiveModal) {
+        modalStore().close();
+    }
+};
 
 const panelPathPrefixes = [
     '/admin/appointments/',
@@ -274,7 +499,9 @@ const isPanelEligibleUrl = (url) => {
 };
 
 const isPanelLink = (link) => {
-    if (!panelHost || !link || link.hasAttribute('data-no-panel')) {
+    const { host } = panelElements();
+
+    if (!host || !link || link.hasAttribute('data-no-panel')) {
         return false;
     }
 
@@ -286,36 +513,46 @@ const isPanelLink = (link) => {
 };
 
 const setPanelLoading = (url) => {
-    panelHost.classList.add('is-open', 'is-loading');
-    panelHost.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('overflow-y-hidden');
+    const { host, content, status, title, dialog } = panelElements();
 
-    if (panelTitle) {
-        panelTitle.textContent = 'Loading';
-    }
-
-    if (panelStatus) {
-        panelStatus.textContent = `Opening ${url.pathname}`;
-    }
-
-    if (panelContent) {
-        panelContent.innerHTML = '';
-    }
-
-    window.setTimeout(() => panelDialog?.focus(), 20);
-};
-
-const closePanel = () => {
-    if (!panelHost) {
+    if (!host) {
         return;
     }
 
-    panelHost.classList.remove('is-open', 'is-loading');
-    panelHost.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('overflow-y-hidden');
+    host.classList.add('is-open', 'is-loading');
+    host.setAttribute('aria-hidden', 'false');
+    syncBodyScrollLock();
 
-    if (panelContent) {
-        panelContent.innerHTML = '';
+    if (title) {
+        title.textContent = 'Loading';
+    }
+
+    if (status) {
+        status.textContent = `Opening ${url.pathname}`;
+    }
+
+    if (content) {
+        closeModalWithin(content);
+        content.innerHTML = '';
+    }
+
+    window.setTimeout(() => dialog?.focus(), 20);
+};
+
+const closePanel = () => {
+    const { host, content } = panelElements();
+
+    if (!host) {
+        return;
+    }
+
+    host.classList.remove('is-open', 'is-loading');
+    host.setAttribute('aria-hidden', 'true');
+    closeModalWithin(content);
+    syncBodyScrollLock();
+
+    if (content) {
+        content.innerHTML = '';
     }
 };
 
@@ -336,7 +573,9 @@ const panelPageHtml = (doc) => {
 };
 
 const openPanel = async (url) => {
-    if (!panelHost || !panelContent) {
+    let { host, content } = panelElements();
+
+    if (!host || !content || !isPanelEligibleUrl(url)) {
         window.location.href = url.href;
         return;
     }
@@ -364,20 +603,51 @@ const openPanel = async (url) => {
             return;
         }
 
-        panelContent.innerHTML = pageHtml;
-        panelHost.classList.remove('is-loading');
+        ({ host, content } = panelElements());
 
-        const heading = panelContent.querySelector('h1, h2');
-        if (panelTitle) {
-            panelTitle.textContent = heading?.textContent?.trim() || 'Workspace panel';
+        if (!host || !content) {
+            window.location.href = url.href;
+            return;
         }
 
-        window.Alpine?.initTree(panelContent);
-        panelContent.querySelector('input, select, textarea, button, a')?.focus({ preventScroll: true });
+        content.innerHTML = pageHtml;
+        host.classList.remove('is-loading');
+
+        const heading = content.querySelector('h1, h2');
+        const { title } = panelElements();
+
+        if (title) {
+            title.textContent = heading?.textContent?.trim() || 'Workspace panel';
+        }
+
+        window.Alpine?.initTree(content);
+        content.querySelector('input, select, textarea, button, a')?.focus({ preventScroll: true });
     } catch {
         window.location.href = url.href;
     }
 };
+
+prepareFastNavigation();
+
+document.addEventListener('turbo:before-render', (event) => {
+    prepareFastNavigation(event.detail.newBody);
+});
+
+document.addEventListener('turbo:visit', () => {
+    showPageLoading(150);
+});
+
+document.addEventListener('turbo:load', () => {
+    prepareFastNavigation();
+    hidePageLoading();
+});
+
+document.addEventListener('turbo:before-cache', () => {
+    closePanel();
+    hidePageLoading();
+});
+
+document.addEventListener('turbo:fetch-request-error', hidePageLoading);
 
 document.addEventListener('click', (event) => {
     const closeTrigger = event.target instanceof Element ? event.target.closest('[data-panel-close], [data-panel-backdrop]') : null;
@@ -405,7 +675,20 @@ document.addEventListener('click', (event) => {
 });
 
 document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && panelHost?.classList.contains('is-open')) {
+    if (event.key !== 'Escape') {
+        return;
+    }
+
+    if (modalStore().active) {
+        event.preventDefault();
+        event.stopPropagation();
+        modalStore().close();
+        return;
+    }
+
+    const { host } = panelElements();
+
+    if (host?.classList.contains('is-open')) {
         closePanel();
     }
 });
@@ -425,45 +708,28 @@ document.addEventListener('submit', (event) => {
         return;
     }
 
+    if (form.getAttribute('data-turbo') === 'true') {
+        return;
+    }
+
     if (form.target && form.target !== '_self') {
         return;
     }
 
-    const actionUrl = form.action ? new URL(form.action, window.location.href) : new URL(window.location.href);
-
-    if (shouldSkipNavigationUrl(actionUrl)) {
+    if (shouldSkipNavigationUrl(formUrl(form))) {
         return;
     }
 
     showPageLoading();
 });
 
-window.addEventListener('pageshow', hidePageLoading);
-
-const prefetchedUrls = new Set();
-
-const prefetchLink = (link) => {
-    if (!link?.matches('a[data-prefetch][href]')) {
-        return;
-    }
-
-    const url = linkUrl(link);
-
-    if (shouldSkipNavigationUrl(url) || url.href === window.location.href || prefetchedUrls.has(url.href)) {
-        return;
-    }
-
-    const prefetch = document.createElement('link');
-    prefetch.rel = 'prefetch';
-    prefetch.href = url.href;
-    prefetch.as = 'document';
-
-    document.head.appendChild(prefetch);
-    prefetchedUrls.add(url.href);
-};
-
-['mouseover', 'focusin', 'touchstart'].forEach((eventName) => {
-    document.addEventListener(eventName, (event) => {
-        prefetchLink(closestLink(event.target, 'a[data-prefetch][href]'));
-    }, { passive: true });
+window.addEventListener('pageshow', () => {
+    prepareFastNavigation();
+    hidePageLoading();
 });
+
+/*
+ * Turbo is intentionally opt-in so state-changing forms and specialized panel
+ * links retain their normal Laravel behavior. Eligible links and GET forms are
+ * prepared above on the initial document and before every Turbo body swap.
+ */

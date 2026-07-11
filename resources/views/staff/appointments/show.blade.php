@@ -1,4 +1,5 @@
 <x-app-layout>
+    @php $recordPaymentModal = 'staff-appointment-payment-'.$appointment->id; @endphp
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Staff appointment') }}</p>
@@ -8,10 +9,6 @@
             </p>
         </div>
     </x-slot>
-
-    @php
-        $recordPaymentModal = 'staff-appointment-payment-'.$appointment->id;
-    @endphp
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section class="space-y-6">
@@ -129,15 +126,5 @@
         </aside>
     </div>
 
-    <x-modal :name="$recordPaymentModal" :show="old('_modal') === $recordPaymentModal" maxWidth="4xl" focusable>
-        <div class="p-5">
-            @include('staff.transactions.partials.form', [
-                'transaction' => $transaction,
-                'action' => route('staff.transactions.store'),
-                'method' => 'POST',
-                'submitLabel' => __('Create transaction'),
-                'modalName' => $recordPaymentModal,
-            ])
-        </div>
-    </x-modal>
+    <x-modal :name="$recordPaymentModal" :show="old('_modal') === $recordPaymentModal" maxWidth="4xl" focusable><div class="p-5">@include('staff.transactions.partials.form', ['transaction' => $transaction, 'action' => route('staff.transactions.store'), 'method' => 'POST', 'submitLabel' => __('Create transaction'), 'modalName' => $recordPaymentModal])</div></x-modal>
 </x-app-layout>

@@ -27,7 +27,7 @@
                 <div class="absolute inset-0 bg-gradient-to-t from-casa-charcoal via-casa-charcoal/22 to-casa-charcoal/15"></div>
 
                 <div class="relative z-10 flex min-h-screen flex-col justify-between p-10 xl:p-14">
-                    <a href="/" class="inline-flex w-fit rounded-2xl bg-casa-paper p-3 shadow-casa-lift" data-prefetch>
+                    <a href="/" class="inline-flex w-fit rounded-2xl bg-casa-paper p-3 shadow-casa-lift">
                         <img src="{{ asset('images/casa_paraiso_logo.jpg') }}" alt="Casa Paraiso Body and Wellness Spa" class="h-16 w-60 object-cover object-center xl:h-20 xl:w-72">
                     </a>
 
@@ -54,7 +54,7 @@
                         <div class="relative h-28">
                             <img src="{{ asset('images/spa/spa-auth-720.webp') }}" alt="A warmly lit tropical spa treatment room" class="h-full w-full object-cover object-center">
                             <div class="absolute inset-0 bg-gradient-to-r from-casa-charcoal/65 to-transparent"></div>
-                            <a href="/" class="absolute start-4 top-4 inline-flex rounded-xl bg-casa-paper p-2" data-prefetch>
+                            <a href="/" class="absolute start-4 top-4 inline-flex rounded-xl bg-casa-paper p-2">
                                 <img src="{{ asset('images/casa_paraiso_logo.jpg') }}" alt="Casa Paraiso Body and Wellness Spa" class="h-10 w-40 object-cover object-center">
                             </a>
                         </div>

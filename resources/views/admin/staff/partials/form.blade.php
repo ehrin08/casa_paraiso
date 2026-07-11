@@ -1,21 +1,13 @@
-@php
-    $modalName = $modalName ?? null;
-@endphp
-
-<form method="POST" action="{{ $action }}" @class([
-    'grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]',
-    'casa-modal-form' => $modalName,
-])>
+@php $modalName = $modalName ?? null; @endphp
+<form method="POST" action="{{ $action }}" @class(['grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]', 'casa-modal-form' => $modalName])>
     @csrf
     @if ($method !== 'POST')
         @method($method)
     @endif
-    @if ($modalName)
-        <input type="hidden" name="_modal" value="{{ $modalName }}">
-    @endif
+    @if ($modalName)<input type="hidden" name="_modal" value="{{ $modalName }}">@endif
 
     <div class="space-y-6">
-        <x-app-card>
+        <x-app-card data-modal-actions>
             <div class="border-b border-casa-border pb-5">
                 <p class="casa-section-label">{{ __('Account') }}</p>
                 <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Login details') }}</h2>
@@ -140,14 +132,10 @@
             <x-input-error class="mt-2" :messages="$errors->get('service_ids.*')" />
         </x-app-card>
 
-        <x-app-card data-modal-actions>
+        <x-app-card>
             <div class="flex flex-col gap-3">
                 <button type="submit" class="casa-button-primary w-full">{{ $submitLabel }}</button>
-                @if ($modalName)
-                    <button type="button" class="casa-button-secondary w-full" x-on:click="$dispatch('close-modal', '{{ $modalName }}')">{{ __('Cancel') }}</button>
-                @else
-                    <a href="{{ route('admin.staff.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>
-                @endif
+                @if ($modalName)<button type="button" class="casa-button-secondary w-full" x-on:click="$dispatch('close-modal', '{{ $modalName }}')">{{ __('Cancel') }}</button>@else<a href="{{ route('admin.staff.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>@endif
             </div>
         </x-app-card>
     </aside>

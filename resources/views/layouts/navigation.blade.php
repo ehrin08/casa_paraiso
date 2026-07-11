@@ -65,7 +65,7 @@
 <nav x-data="{ open: false }" x-on:keydown.escape.window="open = false" data-role-navigation="{{ $user->role }}">
     <div class="sticky top-0 z-40 border-b border-casa-border/80 bg-casa-paper/94 px-4 py-2.5 backdrop-blur-xl lg:hidden">
         <div class="flex items-center justify-between gap-4">
-            <a href="{{ route($dashboardRoute) }}" class="min-w-0 rounded-xl bg-white px-2 py-1" data-prefetch>
+            <a href="{{ route($dashboardRoute) }}" class="min-w-0 rounded-xl bg-white px-2 py-1">
                 <x-application-logo class="origin-left scale-[0.72]" />
             </a>
 
@@ -84,7 +84,7 @@
     </div>
 
     <aside data-desktop-sidebar class="casa-wood-panel fixed inset-y-0 start-0 z-30 hidden w-72 flex-col overflow-y-auto border-e border-white/10 p-4 lg:flex">
-        <a href="{{ route($dashboardRoute) }}" class="rounded-2xl bg-casa-paper px-3 py-2.5 shadow-casa-card" data-prefetch>
+        <a href="{{ route($dashboardRoute) }}" class="rounded-2xl bg-casa-paper px-3 py-2.5 shadow-casa-card">
             <x-application-logo class="origin-left scale-[0.88]" />
         </a>
 
@@ -106,7 +106,7 @@
                     <div class="mt-2 space-y-1">
                         @foreach ($group['items'] as $item)
                             @php $isActive = request()->routeIs(...(array) $item['active']); @endphp
-                            <a href="{{ route($item['route']) }}" data-prefetch @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif>
+                            <a href="{{ route($item['route']) }}" @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif>
                                 <x-nav-icon :name="$item['icon']" />
                                 <span>{{ $item['label'] }}</span>
                             </a>
@@ -120,7 +120,7 @@
                 <div class="mt-2 space-y-1">
                     @foreach ($accountLinks as $item)
                         @php $isActive = request()->routeIs(...(array) $item['active']); @endphp
-                        <a href="{{ route($item['route']) }}" data-prefetch @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif>
+                        <a href="{{ route($item['route']) }}" @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif>
                             <x-nav-icon :name="$item['icon']" />
                             <span>{{ $item['label'] }}</span>
                         </a>
@@ -144,7 +144,7 @@
         <div class="absolute inset-0 bg-casa-charcoal/72 backdrop-blur-sm" @click="open = false"></div>
         <aside id="mobile-workspace-navigation" x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full" class="casa-wood-panel absolute inset-y-0 start-0 flex w-[min(21rem,90vw)] flex-col overflow-y-auto p-4 shadow-casa-lift" aria-label="Mobile workspace navigation">
             <div class="flex items-center justify-between gap-4">
-                <a href="{{ route($dashboardRoute) }}" class="rounded-xl bg-casa-paper px-2 py-1.5" data-prefetch @click="open = false">
+                <a href="{{ route($dashboardRoute) }}" class="rounded-xl bg-casa-paper px-2 py-1.5" @click="open = false">
                     <x-application-logo class="origin-left scale-[0.72]" />
                 </a>
                 <button type="button" class="casa-icon-button border-white/15 bg-white/10 text-white" aria-label="Close navigation" @click="open = false">
@@ -167,7 +167,7 @@
                         <div class="mt-2 space-y-1">
                             @foreach ($group['items'] as $item)
                                 @php $isActive = request()->routeIs(...(array) $item['active']); @endphp
-                                <a href="{{ route($item['route']) }}" data-prefetch @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif @click="open = false">
+                                <a href="{{ route($item['route']) }}" @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif @click="open = false">
                                     <x-nav-icon :name="$item['icon']" />
                                     <span>{{ $item['label'] }}</span>
                                 </a>
@@ -181,7 +181,7 @@
                     <div class="mt-2 space-y-1">
                         @foreach ($accountLinks as $item)
                             @php $isActive = request()->routeIs(...(array) $item['active']); @endphp
-                            <a href="{{ route($item['route']) }}" data-prefetch @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif @click="open = false">
+                            <a href="{{ route($item['route']) }}" @class(['casa-nav-link w-full', 'casa-nav-link-active' => $isActive]) @if($isActive) aria-current="page" @endif @click="open = false">
                                 <x-nav-icon :name="$item['icon']" />
                                 <span>{{ $item['label'] }}</span>
                             </a>
@@ -190,7 +190,7 @@
                 </section>
             </div>
 
-            <form method="POST" action="{{ route('logout') }}" class="mt-auto pt-6">
+            <form method="POST" action="{{ route('logout') }}" class="mt-auto pt-6" data-turbo="false">
                 @csrf
                 <button type="submit" class="casa-button-secondary w-full border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">Log out</button>
             </form>
@@ -199,15 +199,15 @@
 
     @if ($isCustomer)
         <div data-mobile-customer-navigation class="casa-mobile-dock lg:hidden" aria-label="Customer navigation">
-            <a href="{{ route('customer.appointments.index') }}" data-prefetch @class(['casa-mobile-dock-link', 'casa-mobile-dock-link-active' => request()->routeIs('customer.appointments.*')]) @if(request()->routeIs('customer.appointments.*')) aria-current="page" @endif>
+            <a href="{{ route('customer.appointments.index') }}" @class(['casa-mobile-dock-link', 'casa-mobile-dock-link-active' => request()->routeIs('customer.appointments.*')]) @if(request()->routeIs('customer.appointments.*')) aria-current="page" @endif>
                 <x-nav-icon name="calendar" class="size-4" />
                 <span>Appointments</span>
             </a>
-            <a href="{{ route('customer.feedback.index') }}" data-prefetch @class(['casa-mobile-dock-link', 'casa-mobile-dock-link-active' => request()->routeIs('customer.feedback.*')]) @if(request()->routeIs('customer.feedback.*')) aria-current="page" @endif>
+            <a href="{{ route('customer.feedback.index') }}" @class(['casa-mobile-dock-link', 'casa-mobile-dock-link-active' => request()->routeIs('customer.feedback.*')]) @if(request()->routeIs('customer.feedback.*')) aria-current="page" @endif>
                 <x-nav-icon name="feedback" class="size-4" />
                 <span>Feedback</span>
             </a>
-            <a href="{{ route('profile.edit') }}" data-prefetch @class(['casa-mobile-dock-link', 'casa-mobile-dock-link-active' => request()->routeIs('profile.*')]) @if(request()->routeIs('profile.*')) aria-current="page" @endif>
+            <a href="{{ route('profile.edit') }}" @class(['casa-mobile-dock-link', 'casa-mobile-dock-link-active' => request()->routeIs('profile.*')]) @if(request()->routeIs('profile.*')) aria-current="page" @endif>
                 <x-nav-icon name="profile" class="size-4" />
                 <span>Profile</span>
             </a>
