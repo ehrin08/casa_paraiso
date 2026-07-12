@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Password;
-use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\AbstractProvider;
 use Laravel\Socialite\Two\User as GoogleUser;
 use Mockery;
 use Tests\TestCase;
@@ -155,7 +155,8 @@ class AuthenticationTest extends TestCase
         $googleUser->email = $email;
         $googleUser->user = ['verified_email' => $verified];
 
-        $provider = Mockery::mock(Provider::class);
+        $provider = Mockery::mock(AbstractProvider::class);
+        $provider->shouldReceive('redirectUrl')->once()->andReturnSelf();
         $provider->shouldReceive('user')->once()->andReturn($googleUser);
         Socialite::shouldReceive('driver')->with('google')->once()->andReturn($provider);
     }

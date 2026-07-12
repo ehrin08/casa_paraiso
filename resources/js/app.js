@@ -411,19 +411,40 @@ window.operationalCalendar = (config) => ({
         }[event.kind] || 'casa-calendar-availability';
     },
 
-    emptySlotUrl(resourceId, slot) {
-        if (!this.createUrl || resourceId === 'requests' || this.mode !== 'bookings') {
-            return '';
+    slotCanCreate(resourceId, slot) {
+        if (resourceId === 'requests' || this.mode !== 'bookings') {
+            return false;
         }
 
-        const startsAt = `${this.selectedDate} ${slot.time}:00`;
-        const url = new URL(this.createUrl, window.location.origin);
-        url.searchParams.set('staff_profile_id', resourceId);
-        url.searchParams.set('requested_start_at', startsAt);
-        url.searchParams.set('scheduled_start_at', startsAt);
-        url.searchParams.set('status', 'confirmed');
+        const covered = this.backgroundEvents(resourceId).some((event) => {
+            const start = calendarMinutes(event.starts_at, this.selectedDate);
+            const end = calendarMinutes(event.ends_at, this.selectedDate);
 
-        return url.toString();
+            return event.kind === 'availability' && start <= slot.minutes && end > slot.minutes;
+        });
+        const occupied = this.positionedEvents(resourceId)
+            .some((event) => event.startMinutes <= slot.minutes && event.endMinutes > slot.minutes);
+
+        return covered && !occupied;
+    },
+
+    chooseBooking(resource, slot) {
+        if (this.mode !== 'bookings') {
+            return;
+        }
+
+        const time = slot?.time || '13:00';
+        const startsAt = `${this.selectedDate}T${time}`;
+
+        window.dispatchEvent(new CustomEvent('calendar-booking-selected', {
+            detail: {
+                staffId: resource?.id === 'requests' ? '' : String(resource?.id || ''),
+                date: this.selectedDate,
+                time,
+                startsAt,
+            },
+        }));
+        modalStore().open('calendar-appointment-create');
     },
 
     chooseAvailability(resource, slot) {
@@ -586,11 +607,13 @@ window.adminAppointmentForm = (config) => ({
     availableUrl: config.availableUrl,
     appointmentId: config.appointmentId || '',
     serviceId: config.initialServiceId || '',
+    requestedStart: config.initialRequestedStart || '',
     scheduledStart: config.initialScheduledStart || '',
     staffId: config.initialStaffId || '',
     persistedServiceId: config.persistedServiceId || '',
     persistedScheduledStart: config.persistedScheduledStart || '',
     persistedStaffId: config.persistedStaffId || '',
+    staffNames: config.staffNames || {},
     availableStaffIds: null,
     loadingTherapists: false,
     therapistError: '',
@@ -599,6 +622,40 @@ window.adminAppointmentForm = (config) => ({
         if (this.serviceId && this.scheduledStart) {
             this.refreshTherapists();
         }
+    },
+
+    applyCalendarSelection(selection) {
+        if (!selection?.startsAt) {
+            return;
+        }
+
+        this.requestedStart = selection.startsAt;
+        this.scheduledStart = selection.startsAt;
+        this.staffId = selection.staffId || '';
+        this.refreshTherapists();
+    },
+
+    get assignedStaffName() {
+        return this.staffNames[String(this.staffId)] || 'Choose therapist';
+    },
+
+    get scheduleSummary() {
+        if (!this.scheduledStart) {
+            return 'Choose a date and time';
+        }
+
+        const date = new Date(this.scheduledStart);
+        const label = Number.isNaN(date.getTime())
+            ? this.scheduledStart.replace('T', ' · ')
+            : date.toLocaleString(undefined, {
+                weekday: 'short',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+            });
+
+        return `${label} · ${this.assignedStaffName}`;
     },
 
     refreshTherapists() {

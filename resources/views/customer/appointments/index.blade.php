@@ -10,7 +10,7 @@
 
         <a href="{{ route('customer.appointments.create') }}" class="casa-button-primary">
             <x-nav-icon name="calendar" class="size-4" />
-            {{ __('Request appointment') }}
+            {{ __('Book appointment') }}
         </a>
     </x-slot>
 
@@ -29,7 +29,7 @@
                     </svg>
                     <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-casa-brass-light">{{ __('Your wellness rhythm') }}</p>
                     <h2 class="mt-3 max-w-xl font-editorial text-4xl font-semibold leading-none text-white">{{ __('Every visit, held in one place.') }}</h2>
-                    <p class="mt-4 max-w-xl text-sm leading-7 text-white/68">{{ __('Choose a day to see its request or confirmed schedule. A pending request is not final until the spa team confirms it.') }}</p>
+                    <p class="mt-4 max-w-xl text-sm leading-7 text-white/68">{{ __('Choose an available date and time. Your therapist and booking are confirmed as soon as the reservation succeeds.') }}</p>
                 </div>
                 <dl class="grid grid-cols-3 divide-x divide-casa-border bg-casa-paper p-1">
                     <div class="p-4 text-center sm:p-5"><dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Upcoming') }}</dt><dd class="mt-2 text-2xl font-extrabold text-casa-palm sm:text-3xl">{{ $summary['upcoming'] }}</dd></div>

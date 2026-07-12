@@ -134,7 +134,7 @@ class InteractiveListControlsTest extends TestCase
             ->assertSee('sort=price', false);
     }
 
-    public function test_staff_appointment_calendar_filters_its_queue_feed(): void
+    public function test_staff_appointment_calendar_excludes_unassigned_pending_demand(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staffProfile = StaffProfile::factory()->for($staffUser)->create();
@@ -183,7 +183,7 @@ class InteractiveListControlsTest extends TestCase
 
         $response->assertOk();
         $numbers = collect($response->json('events'))->pluck('appointment_number')->filter();
-        $this->assertTrue($numbers->contains('APT-PENDING-QUEUE'));
+        $this->assertFalse($numbers->contains('APT-PENDING-QUEUE'));
         $this->assertFalse($numbers->contains('APT-COMPLETE-QUEUE'));
     }
 

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\StaffWeeklyScheduleController as AdminStaffWeekly
 use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
 use App\Http\Controllers\Admin\UserManagementController as AdminUserManagementController;
 use App\Http\Controllers\Auth\GoogleDeletionController;
+use App\Http\Controllers\Auth\GooglePasswordSetupController;
 use App\Http\Controllers\Customer\AppointmentCalendarController as CustomerAppointmentCalendarController;
 use App\Http\Controllers\Customer\AppointmentController as CustomerAppointmentController;
 use App\Http\Controllers\Customer\FeedbackController as CustomerFeedbackController;
@@ -43,6 +44,8 @@ Route::middleware(['auth', 'active', 'verified'])->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/profile/delete/google', [GoogleDeletionController::class, 'redirect'])->name('profile.deletion.google');
     Route::get('/profile/delete/google/callback', [GoogleDeletionController::class, 'callback'])->name('profile.deletion.google.callback');
+    Route::get('/profile/password/google', [GooglePasswordSetupController::class, 'redirect'])->name('profile.password.google');
+    Route::get('/profile/password/google/callback', [GooglePasswordSetupController::class, 'callback'])->name('profile.password.google.callback');
 });
 
 Route::middleware(['auth', 'active', 'verified', 'role:super_admin,admin'])
@@ -51,7 +54,10 @@ Route::middleware(['auth', 'active', 'verified', 'role:super_admin,admin'])
     ->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
         Route::get('/appointments/calendar', AdminAppointmentCalendarController::class)->name('appointments.calendar');
+        Route::post('/appointments/calendar', [AdminAppointmentController::class, 'storeFromCalendar'])->name('appointments.calendar.store');
         Route::get('/appointments/available-therapists', [AdminAppointmentController::class, 'availableTherapists'])->name('appointments.available-therapists');
+        Route::post('/appointments/{appointment}/complete', [AdminAppointmentController::class, 'complete'])->name('appointments.complete');
+        Route::patch('/appointments/{appointment}/outcome', [AdminAppointmentController::class, 'outcome'])->name('appointments.outcome');
         Route::resource('appointments', AdminAppointmentController::class)->except('destroy');
         Route::resource('customers', AdminCustomerController::class)->only(['index', 'show', 'update']);
         Route::get('/staff/{staff}/weekly-schedules/create', [AdminStaffWeeklyScheduleController::class, 'create'])->name('staff.weekly-schedules.create');
@@ -109,9 +115,9 @@ Route::middleware(['auth', 'active', 'verified', 'role:staff'])
     ->group(function () {
         Route::get('/dashboard', StaffDashboardController::class)->name('dashboard');
         Route::get('/appointments/calendar', StaffAppointmentCalendarController::class)->name('appointments.calendar');
-        Route::resource('appointments', StaffAppointmentController::class)->only(['index', 'show', 'update']);
+        Route::resource('appointments', StaffAppointmentController::class)->only(['index', 'show']);
         Route::resource('customers', StaffCustomerController::class)->only(['index', 'show']);
-        Route::resource('transactions', StaffTransactionController::class)->except('destroy');
+        Route::resource('transactions', StaffTransactionController::class)->only(['index', 'show']);
         Route::resource('feedback', StaffFeedbackController::class)->only(['index', 'show']);
     });
 

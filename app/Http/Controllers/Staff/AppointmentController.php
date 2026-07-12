@@ -113,13 +113,7 @@ class AppointmentController extends Controller
     private function authorizeOperationalAccess(Request $request, Appointment $appointment): void
     {
         $staffProfile = $request->user()->staffProfile;
-        $serviceIds = $staffProfile?->services()->pluck('services.id') ?? collect();
-
-        $allowed = (int) $appointment->staff_profile_id === (int) ($staffProfile?->id ?? 0)
-            || ($appointment->status === Appointment::STATUS_PENDING
-                && $serviceIds->contains($appointment->service_id)
-                && ($appointment->preferred_staff_profile_id === null
-                    || (int) $appointment->preferred_staff_profile_id === (int) ($staffProfile?->id ?? 0)));
+        $allowed = (int) $appointment->staff_profile_id === (int) ($staffProfile?->id ?? 0);
 
         abort_unless($allowed, 403);
     }

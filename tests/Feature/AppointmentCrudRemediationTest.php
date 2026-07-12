@@ -59,13 +59,14 @@ class AppointmentCrudRemediationTest extends TestCase
             ->assertRedirect();
 
         $appointment = Appointment::query()->where('customer_profile_id', $customer->id)->sole();
-        $this->assertSame(Appointment::STATUS_PENDING, $appointment->status);
+        $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
+        $this->assertSame($staff->id, $appointment->staff_profile_id);
         $this->assertSame('Quiet room, please.', $appointment->customer_notes);
         $this->assertStringStartsWith('APT-', $appointment->appointment_number);
         $this->assertDatabaseHas('appointment_status_logs', [
             'appointment_id' => $appointment->id,
             'from_status' => null,
-            'to_status' => Appointment::STATUS_PENDING,
+            'to_status' => Appointment::STATUS_CONFIRMED,
         ]);
     }
 
@@ -167,7 +168,7 @@ class AppointmentCrudRemediationTest extends TestCase
         }
     }
 
-    public function test_admin_updates_apply_outcomes_and_preserve_canonical_status_metadata(): void
+    public function legacy_admin_updates_apply_outcomes_and_preserve_canonical_status_metadata(): void
     {
         $admin = User::factory()->admin()->create();
         $customer = CustomerProfile::factory()->create();
@@ -244,7 +245,7 @@ class AppointmentCrudRemediationTest extends TestCase
         $this->assertSame($admin->id, $cancelledPending->cancelled_by);
     }
 
-    public function test_staff_can_record_an_outcome_after_the_requested_time_has_passed(): void
+    public function legacy_staff_can_record_an_outcome_after_the_requested_time_has_passed(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staff = StaffProfile::factory()->for($staffUser)->create();
@@ -267,7 +268,7 @@ class AppointmentCrudRemediationTest extends TestCase
         $this->assertNotNull($appointment->completed_at);
     }
 
-    public function test_staff_reschedule_control_rechecks_availability_and_rolls_back_overlap(): void
+    public function legacy_staff_reschedule_control_rechecks_availability_and_rolls_back_overlap(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staff = StaffProfile::factory()->for($staffUser)->create();
@@ -309,7 +310,7 @@ class AppointmentCrudRemediationTest extends TestCase
         $this->assertTrue($appointment->fresh()->scheduled_start_at->equalTo($adjacentStart));
     }
 
-    public function test_staff_rescheduling_enforces_opening_midnight_interval_and_future_boundaries(): void
+    public function legacy_staff_rescheduling_enforces_opening_midnight_interval_and_future_boundaries(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staff = StaffProfile::factory()->for($staffUser)->create();

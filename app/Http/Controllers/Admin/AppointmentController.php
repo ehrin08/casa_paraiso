@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\AdminAppointmentCompletionRequest;
+use App\Http\Requests\AdminAppointmentOutcomeRequest;
 use App\Http\Requests\AdminAppointmentStoreRequest;
 use App\Http\Requests\AdminAppointmentUpdateRequest;
+use App\Http\Requests\AdminCalendarAppointmentStoreRequest;
 use App\Http\Requests\AppointmentRequest;
 use App\Models\Appointment;
 use App\Models\CustomerProfile;
 use App\Models\Service;
 use App\Models\StaffProfile;
 use App\Models\Transaction;
+use App\Services\AppointmentCompletion;
 use App\Services\AppointmentWorkflow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -27,6 +31,12 @@ class AppointmentController extends Controller
             ? (string) $request->query('mode')
             : 'bookings';
 
+        $calendarAppointment = new Appointment([
+            'requested_start_at' => now()->addDay()->setTime(13, 0),
+            'scheduled_start_at' => now()->addDay()->setTime(13, 0),
+            'status' => Appointment::STATUS_CONFIRMED,
+        ]);
+
         return view('admin.appointments.index', [
             'mode' => $mode,
             'initialWeek' => now()->startOfWeek(Carbon::SUNDAY)->toDateString(),
@@ -42,6 +52,13 @@ class AppointmentController extends Controller
                 ->whereHas('user', fn ($query) => $query->where('is_active', true))
                 ->get()
                 ->sortBy('user.name'),
+            'customers' => CustomerProfile::query()->with('user')->get()->sortBy('user.name')->values(),
+            'calendarAppointment' => $calendarAppointment,
+            'serviceQueue' => Appointment::query()
+                ->with(['customerProfile.user', 'service', 'staffProfile.user'])
+                ->where('status', Appointment::STATUS_CONFIRMED)
+                ->orderBy('scheduled_start_at')
+                ->get(),
         ]);
     }
 
@@ -74,6 +91,15 @@ class AppointmentController extends Controller
 
         return redirect()
             ->route('admin.appointments.show', $appointment)
+            ->with('status', 'appointment-created');
+    }
+
+    public function storeFromCalendar(AdminCalendarAppointmentStoreRequest $request, AppointmentWorkflow $workflow): RedirectResponse
+    {
+        $this->persistAppointment(new Appointment, $request, $workflow);
+
+        return redirect()
+            ->route('admin.appointments.index')
             ->with('status', 'appointment-created');
     }
 
@@ -123,6 +149,39 @@ class AppointmentController extends Controller
             ->with('status', 'appointment-updated');
     }
 
+    public function complete(
+        AdminAppointmentCompletionRequest $request,
+        Appointment $appointment,
+        AppointmentCompletion $completion,
+    ): RedirectResponse {
+        $transaction = $completion->complete($appointment, $request->validated(), $request->user()->id);
+
+        return redirect()
+            ->route('admin.transactions.show', $transaction)
+            ->with('status', 'appointment-completed');
+    }
+
+    public function outcome(
+        AdminAppointmentOutcomeRequest $request,
+        Appointment $appointment,
+        AppointmentWorkflow $workflow,
+    ): RedirectResponse {
+        $data = $request->validated();
+
+        if ($appointment->status !== Appointment::STATUS_CONFIRMED) {
+            throw ValidationException::withMessages(['status' => __('Only a confirmed appointment can receive this outcome.')]);
+        }
+
+        if ($data['status'] === Appointment::STATUS_NO_SHOW
+            && (! $appointment->scheduled_start_at || $appointment->scheduled_start_at->isFuture())) {
+            throw ValidationException::withMessages(['status' => __('A no-show can be recorded once the scheduled start time is reached.')]);
+        }
+
+        $workflow->changeStatus($appointment, $data['status'], $request->user()->id, $data['reason'] ?? null);
+
+        return redirect()->route('admin.appointments.index')->with('status', 'appointment-updated');
+    }
+
     private function persistAppointment(Appointment $appointment, AppointmentRequest $request, AppointmentWorkflow $workflow): Appointment
     {
         $data = $request->validated();
@@ -146,6 +205,14 @@ class AppointmentController extends Controller
         $originalScheduledStart = $appointment->scheduled_start_at?->copy();
 
         $workflow->assertTransitionAllowed($appointment, $status);
+
+        if ($appointment->exists
+            && $appointment->status === Appointment::STATUS_CONFIRMED
+            && $status === Appointment::STATUS_COMPLETED) {
+            throw ValidationException::withMessages([
+                'status' => __('Finish the service from its completion form so the transaction is recorded with the outcome.'),
+            ]);
+        }
 
         $preferenceChanged = $isNew
             || (int) $appointment->preferred_staff_profile_id !== (int) $preferredStaffProfile?->id;

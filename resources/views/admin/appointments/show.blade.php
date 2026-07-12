@@ -1,5 +1,5 @@
 <x-app-layout>
-    @php $recordPaymentModal = 'admin-appointment-payment-'.$appointment->id; $editAppointmentModal = 'admin-appointment-edit-'.$appointment->id; @endphp
+    @php $completionModal = 'admin-appointment-completion-'.$appointment->id; $recordPaymentModal = 'admin-appointment-payment-'.$appointment->id; $editAppointmentModal = 'admin-appointment-edit-'.$appointment->id; @endphp
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Appointment detail') }}</p>
@@ -10,7 +10,12 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <button type="button" class="casa-button-secondary" x-data="" x-on:click="$dispatch('open-modal', '{{ $recordPaymentModal }}')">{{ __('Record payment') }}</button>
+            @if ($appointment->status === \App\Models\Appointment::STATUS_CONFIRMED && $appointment->scheduled_start_at?->lte(now()))
+                <button type="button" class="casa-button-primary" x-data="" x-on:click="$dispatch('open-modal', '{{ $completionModal }}')">{{ __('Finish service') }}</button>
+            @endif
+            @if ($appointment->status !== \App\Models\Appointment::STATUS_CONFIRMED)
+                <button type="button" class="casa-button-secondary" x-data="" x-on:click="$dispatch('open-modal', '{{ $recordPaymentModal }}')">{{ __('Record payment') }}</button>
+            @endif
             <button type="button" class="casa-button-primary" x-data="" x-on:click="$dispatch('open-modal', '{{ $editAppointmentModal }}')">{{ __('Edit') }}</button>
         </div>
     </x-slot>
@@ -105,5 +110,6 @@
     </div>
 
     <x-modal :name="$editAppointmentModal" :show="old('_modal') === $editAppointmentModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.appointments.partials.form', ['appointment' => $appointment, 'action' => route('admin.appointments.update', $appointment), 'method' => 'PATCH', 'submitLabel' => __('Save appointment'), 'modalName' => $editAppointmentModal])</div></x-modal>
+    <x-modal :name="$completionModal" :show="old('_modal') === $completionModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.appointments.partials.completion-form', ['appointment' => $appointment, 'modalName' => $completionModal])</div></x-modal>
     <x-modal :name="$recordPaymentModal" :show="old('_modal') === $recordPaymentModal" maxWidth="5xl" focusable><div class="p-5">@include('admin.transactions.partials.form', ['transaction' => $transaction, 'appointments' => $transactionAppointments, 'action' => route('admin.transactions.store'), 'method' => 'POST', 'submitLabel' => __('Create transaction'), 'modalName' => $recordPaymentModal])</div></x-modal>
 </x-app-layout>

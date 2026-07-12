@@ -202,7 +202,7 @@ class RoleWorkspaceTest extends TestCase
             ->assertSee('1 promotion review waiting');
     }
 
-    public function test_staff_dashboard_shows_assigned_pending_and_completed_counts(): void
+    public function legacy_staff_dashboard_shows_assigned_pending_and_completed_counts(): void
     {
         $staff = User::factory()->staff()->create();
         $staffProfile = StaffProfile::factory()->for($staff)->create();

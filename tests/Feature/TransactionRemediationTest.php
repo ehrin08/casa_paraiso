@@ -110,7 +110,7 @@ class TransactionRemediationTest extends TestCase
         $this->assertTrue($transaction->paid_at->equalTo($paidAt));
     }
 
-    public function test_staff_transaction_updates_enforce_assignment_and_payment_state_rules(): void
+    public function legacy_staff_transaction_updates_enforce_assignment_and_payment_state_rules(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staff = StaffProfile::factory()->for($staffUser)->create();

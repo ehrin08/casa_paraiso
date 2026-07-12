@@ -38,6 +38,11 @@ abstract class AppointmentRequest extends FormRequest
                 ->orWhere('id', $appointment->customer_profile_id));
     }
 
+    protected function customerProfileRule(): Exists
+    {
+        return Rule::exists('customer_profiles', 'id')->whereNull('deleted_at');
+    }
+
     protected function activeStaffProfileRule(): Exists
     {
         return Rule::exists('staff_profiles', 'id')->whereNull('deleted_at');

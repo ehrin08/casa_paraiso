@@ -48,7 +48,12 @@ class AppointmentCalendar
                     $query->where('staff_profile_id', $id)->orWhere('preferred_staff_profile_id', $id);
                 }));
 
-            $events = $query->get()->map(fn (Appointment $appointment) => $this->appointmentEvent($appointment, 'admin'));
+            $availability = $staffProfiles->flatMap(
+                fn (StaffProfile $staff) => $this->effectiveAvailabilityEvents($staff, $start, $end),
+            );
+            $events = $availability->concat(
+                $query->get()->map(fn (Appointment $appointment) => $this->appointmentEvent($appointment, 'admin')),
+            );
         }
 
         return $this->payload($start, $end, $resources, $events, $mode);
@@ -62,27 +67,12 @@ class AppointmentCalendar
         $staff = StaffProfile::query()
             ->with(['user', 'services', 'weeklySchedules', 'scheduleExceptions'])
             ->findOrFail($staffProfile->id);
-        $serviceIds = $staff->services->pluck('id');
-
         $query = $this->appointmentsInRange(Appointment::query(), $start, $end)
             ->with(['customerProfile.user', 'service', 'staffProfile.user', 'preferredStaffProfile.user'])
-            ->where(function (Builder $query) use ($staff, $serviceIds): void {
-                $query->where('staff_profile_id', $staff->id)
-                    ->orWhere(function (Builder $query) use ($staff, $serviceIds): void {
-                        $query->where('status', Appointment::STATUS_PENDING)
-                            ->whereIn('service_id', $serviceIds)
-                            ->where(function (Builder $query) use ($staff): void {
-                                $query->whereNull('preferred_staff_profile_id')
-                                    ->orWhere('preferred_staff_profile_id', $staff->id);
-                            });
-                    });
-            })
+            ->where('staff_profile_id', $staff->id)
             ->when($status, fn (Builder $query, string $value) => $query->where('status', $value));
 
-        $resources = collect([
-            ['id' => 'requests', 'name' => __('Requests'), 'subtitle' => __('Eligible demand')],
-            $this->resource($staff),
-        ]);
+        $resources = collect([$this->resource($staff)]);
 
         $events = $this->effectiveAvailabilityEvents($staff, $start, $end)
             ->concat($query->get()->map(fn (Appointment $appointment) => $this->appointmentEvent($appointment, 'staff')));

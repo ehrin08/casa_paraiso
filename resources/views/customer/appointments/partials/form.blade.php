@@ -194,7 +194,7 @@
                 <div class="mt-5">
                     <x-input-label for="requested_start_at_fallback" :value="__('Preferred date and time')" />
                     <x-text-input id="requested_start_at_fallback" name="requested_start_at" type="datetime-local" class="mt-2" :value="old('requested_start_at', now()->addDay()->setTime(14, 0)->format('Y-m-d\TH:i'))" required />
-                    <p class="mt-2 text-xs leading-5 text-casa-muted">{{ __('JavaScript is off, so staff will verify this requested time manually.') }}</p>
+                    <p class="mt-2 text-xs leading-5 text-casa-muted">{{ __('JavaScript is off, so the server will verify this time when you book.') }}</p>
                 </div>
             </noscript>
         </section>
@@ -217,9 +217,9 @@
 
     <aside class="space-y-4 xl:sticky xl:top-6 xl:self-start">
         <div class="casa-dark-panel rounded-[24px] p-6 shadow-casa-card">
-            <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-casa-brass-light">{{ __('Your request') }}</p>
-            <h2 class="mt-3 font-editorial text-3xl font-semibold text-white">{{ __('A preferred visit, not yet final.') }}</h2>
-            <p class="mt-4 text-sm leading-7 text-white/65">{{ __('The team will review therapist and schedule availability before confirming your appointment.') }}</p>
+            <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-casa-brass-light">{{ __('Your booking') }}</p>
+            <h2 class="mt-3 font-editorial text-3xl font-semibold text-white">{{ __('Your reserved moment of care.') }}</h2>
+            <p class="mt-4 text-sm leading-7 text-white/65">{{ __('The system rechecks therapist availability and confirms your reserved schedule when you book.') }}</p>
             <div class="casa-divider my-6"></div>
             <dl class="space-y-4">
                 <div>
@@ -235,16 +235,16 @@
                     <dd class="mt-1.5 text-sm font-bold text-white" x-text="selectedSlotLabel || '{{ __('No time selected') }}'"></dd>
                 </div>
                 <div>
-                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Request status') }}</dt>
-                    <dd class="mt-1.5 text-sm font-bold text-white">{{ __('Pending until reviewed') }}</dd>
+                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Booking status') }}</dt>
+                    <dd class="mt-1.5 text-sm font-bold text-white">{{ __('Confirmed when booked') }}</dd>
                 </div>
             </dl>
         </div>
 
         <x-app-card>
-            <button type="submit" class="casa-button-primary w-full" x-bind:disabled="!serviceId || !selectedSlot">{{ __('Submit appointment request') }}</button>
+            <button type="submit" class="casa-button-primary w-full" x-bind:disabled="!serviceId || !selectedSlot">{{ __('Confirm booking') }}</button>
             <a href="{{ route('customer.appointments.index') }}" class="casa-button-secondary mt-3 w-full">{{ __('Cancel') }}</a>
-            <p class="mt-4 text-center text-xs leading-5 text-casa-muted">{{ __('Submitting does not create an instant confirmed booking or reserve a therapist.') }}</p>
+            <p class="mt-4 text-center text-xs leading-5 text-casa-muted">{{ __('A successful booking immediately reserves the assigned therapist and time.') }}</p>
         </x-app-card>
 
         <x-app-card>

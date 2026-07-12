@@ -13,13 +13,9 @@ class DashboardController extends Controller
     {
         $today = today();
         $staffProfile = $request->user()->staffProfile;
-        $serviceIds = $staffProfile
-            ? $staffProfile->services()->pluck('services.id')
-            : collect();
-
         $summary = [
             'assignedToday' => 0,
-            'pendingRequests' => 0,
+            'upcoming' => 0,
             'completedToday' => 0,
         ];
 
@@ -32,9 +28,10 @@ class DashboardController extends Controller
                 ->whereDate('scheduled_start_at', $today)
                 ->count();
 
-            $summary['pendingRequests'] = Appointment::query()
-                ->where('status', Appointment::STATUS_PENDING)
-                ->whereIn('service_id', $serviceIds)
+            $summary['upcoming'] = Appointment::query()
+                ->where('staff_profile_id', $staffProfile->id)
+                ->where('status', Appointment::STATUS_CONFIRMED)
+                ->where('scheduled_start_at', '>', now())
                 ->count();
 
             $summary['completedToday'] = Appointment::query()

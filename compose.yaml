@@ -30,6 +30,15 @@ services:
         depends_on:
             - mariadb
             - mailpit
+    cloudflared:
+        image: 'cloudflare/cloudflared:latest'
+        command: tunnel --no-autoupdate --url http://laravel.test
+        profiles:
+            - tunnel
+        networks:
+            - sail
+        depends_on:
+            - laravel.test
     mariadb:
         image: 'mariadb:11'
         ports:

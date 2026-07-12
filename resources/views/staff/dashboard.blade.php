@@ -15,7 +15,7 @@
     <div class="space-y-6">
         <section class="grid gap-4 sm:grid-cols-3">
             <x-metric-card label="Assigned today" :value="$summary['assignedToday'] ?? 0" meta="Confirmed appointments" tone="green" />
-            <x-metric-card label="Pending" :value="$summary['pendingRequests'] ?? 0" meta="Requests needing action" tone="gold" />
+            <x-metric-card label="Upcoming" :value="$summary['upcoming'] ?? 0" meta="Confirmed visits on your schedule" tone="gold" />
             <x-metric-card label="Completed" :value="$summary['completedToday'] ?? 0" meta="Services finished today" tone="brown" />
         </section>
 

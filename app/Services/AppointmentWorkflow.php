@@ -129,6 +129,82 @@ class AppointmentWorkflow
         });
     }
 
+    /**
+     * Atomically assign and confirm a customer-selected slot.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function autoBook(
+        array $attributes,
+        Service $service,
+        CarbonInterface $start,
+        ?int $preferredStaffProfileId = null,
+        ?int $changedBy = null,
+    ): Appointment {
+        $this->assertBookableStart($start, $service, 'requested_start_at');
+
+        return $this->withAppointmentNumberRetry(function (string $number) use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy): Appointment {
+            return DB::transaction(function () use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy, $number): Appointment {
+                $candidateIds = StaffProfile::query()
+                    ->where('is_bookable', true)
+                    ->whereHas('user', fn ($query) => $query->where('is_active', true))
+                    ->whereHas('services', fn ($query) => $query->whereKey($service->id))
+                    ->orderBy('id')
+                    ->pluck('id');
+
+                $staffProfiles = StaffProfile::query()
+                    ->with(['user', 'services', 'weeklySchedules', 'scheduleExceptions'])
+                    ->whereKey($candidateIds)
+                    ->orderBy('id')
+                    ->lockForUpdate()
+                    ->get();
+
+                $futureBookingCounts = Appointment::query()
+                    ->selectRaw('staff_profile_id, COUNT(*) as aggregate')
+                    ->whereIn('staff_profile_id', $candidateIds)
+                    ->where('status', Appointment::STATUS_CONFIRMED)
+                    ->where('scheduled_start_at', '>=', now())
+                    ->groupBy('staff_profile_id')
+                    ->pluck('aggregate', 'staff_profile_id');
+
+                $available = $staffProfiles
+                    ->filter(fn (StaffProfile $staff) => $this->isStaffAvailable($staff, $service, $start))
+                    ->sortBy(fn (StaffProfile $staff) => sprintf(
+                        '%012d-%012d',
+                        (int) ($futureBookingCounts[$staff->id] ?? 0),
+                        $staff->id,
+                    ));
+
+                $assignedStaff = $preferredStaffProfileId
+                    ? $available->firstWhere('id', $preferredStaffProfileId)
+                    : null;
+                $assignedStaff ??= $available->first();
+
+                if (! $assignedStaff) {
+                    throw ValidationException::withMessages([
+                        'requested_start_at' => __('Selected calendar slot is no longer available. Choose another date or time.'),
+                    ]);
+                }
+
+                $end = $this->scheduledEnd($start, $service);
+                $appointment = new Appointment;
+                $appointment->fill([
+                    ...$attributes,
+                    'appointment_number' => $number,
+                    'service_id' => $service->id,
+                    'staff_profile_id' => $assignedStaff->id,
+                    'preferred_staff_profile_id' => $preferredStaffProfileId,
+                    'requested_start_at' => $start,
+                    'scheduled_start_at' => $start,
+                    'scheduled_end_at' => $end,
+                    'updated_by' => $changedBy,
+                ]);
+
+                return $this->applyStatus($appointment, Appointment::STATUS_CONFIRMED, $changedBy, __('Automatically confirmed from customer booking'));
+            }, 3);
+        });
+    }
+
     public function schedule(
         Appointment $appointment,
         StaffProfile $staffProfile,

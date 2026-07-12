@@ -59,7 +59,7 @@ Relationships:
 
 - One user may have one staff profile.
 - One user may have one customer profile.
-- Admin and staff users may record transactions and review promotion suggestions.
+- Admin users record transactions; staff may review records linked to their assigned appointments.
 
 ### `staff_profiles`
 
@@ -279,12 +279,13 @@ Indexes:
 
 Rules:
 
-- New customer requests start as `pending`.
+- New customer bookings start as `confirmed`; historical and admin-created requests may remain `pending`.
 - A preferred therapist is a customer preference only; final assignment remains in `staff_profile_id`.
-- Pending requests do not reserve therapist capacity and remain visible as operational demand.
+- Customer booking locks eligible therapist rows, rechecks availability, assigns one therapist, and reserves capacity in one transaction.
+- An available preferred therapist is assigned first. Otherwise choose the therapist with the fewest future confirmed bookings, then the lowest profile ID.
 - `confirmed` appointments must have `staff_profile_id`, `scheduled_start_at`, and `scheduled_end_at`.
 - `scheduled_end_at` should be calculated from service duration unless manually adjusted by admin/staff.
-- Prevent overlapping `confirmed` appointments for the same staff member.
+- Prevent overlapping `confirmed` appointments for the same staff member, including concurrent customer submissions.
 - Completed appointments can be used for transaction and RFM reporting.
 
 Relationships:
@@ -570,10 +571,10 @@ Use this order when creating Laravel migrations:
 
 ## Acceptance Scenarios
 
-- A customer account can request an appointment for a service and preferred date/time.
-- Staff can confirm a pending request by assigning a staff member and scheduled time.
+- A customer account can instantly book an available service date/time.
+- The system atomically assigns the preferred available therapist or the least-booked eligible therapist.
 - The system can detect an overlapping confirmed appointment for the same staff member.
-- Staff can mark an appointment completed and record a manual transaction.
+- Admin can finish an appointment and atomically record its manual transaction.
 - RFM calculations can use completed paid transactions to store promotion suggestions.
 - Admin or staff can review, apply, or dismiss promotion suggestions.
 - Customer can submit one feedback record for a completed appointment.

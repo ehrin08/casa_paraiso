@@ -114,7 +114,7 @@ class PhaseFiveToTenWorkflowTest extends TestCase
         $this->assertFalse(collect($preferredResponse->json('dates.'.$slotDate->toDateString()))->contains('time', '14:00'));
     }
 
-    public function test_customer_request_can_be_confirmed_by_staff_and_overlap_is_blocked(): void
+    public function test_customer_booking_is_confirmed_automatically_and_overlap_is_blocked(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staffProfile = StaffProfile::factory()->for($staffUser)->create();
@@ -141,18 +141,10 @@ class PhaseFiveToTenWorkflowTest extends TestCase
 
         $appointment = Appointment::query()->firstOrFail();
 
-        $this->assertSame(Appointment::STATUS_PENDING, $appointment->status);
+        $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
+        $this->assertSame($staffProfile->id, $appointment->staff_profile_id);
         $this->assertSame($staffProfile->id, $appointment->preferred_staff_profile_id);
         $this->assertSame('Quiet room please.', $appointment->customer_notes);
-
-        $this->actingAs($staffUser)
-            ->patch(route('staff.appointments.update', $appointment, false), [
-                'service_id' => $service->id,
-                'requested_start_at' => $appointment->requested_start_at->format('Y-m-d H:i:s'),
-                'scheduled_start_at' => $start->format('Y-m-d H:i:s'),
-                'status' => Appointment::STATUS_CONFIRMED,
-            ])
-            ->assertRedirect(route('staff.appointments.show', $appointment, false));
 
         $this->assertDatabaseHas('appointments', [
             'id' => $appointment->id,
@@ -160,26 +152,18 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             'status' => Appointment::STATUS_CONFIRMED,
         ]);
 
-        $overlap = Appointment::factory()
-            ->for($customerProfile)
-            ->for($service)
-            ->create([
-                'requested_start_at' => $start,
-                'status' => Appointment::STATUS_PENDING,
-            ]);
-
-        $this->actingAs($staffUser)
-            ->from(route('staff.appointments.show', $overlap, false))
-            ->patch(route('staff.appointments.update', $overlap, false), [
+        $secondCustomer = User::factory()->customer()->create();
+        CustomerProfile::factory()->for($secondCustomer)->create();
+        $this->actingAs($secondCustomer)
+            ->from(route('customer.appointments.create', absolute: false))
+            ->post(route('customer.appointments.store', absolute: false), [
                 'service_id' => $service->id,
-                'requested_start_at' => $overlap->requested_start_at->format('Y-m-d H:i:s'),
-                'scheduled_start_at' => $start->format('Y-m-d H:i:s'),
-                'status' => Appointment::STATUS_CONFIRMED,
+                'requested_start_at' => $start->format('Y-m-d H:i:s'),
             ])
-            ->assertRedirect(route('staff.appointments.show', $overlap, false))
-            ->assertSessionHasErrors('scheduled_start_at');
+            ->assertRedirect(route('customer.appointments.create', absolute: false))
+            ->assertSessionHasErrors('requested_start_at');
 
-        $this->assertSame(Appointment::STATUS_PENDING, $overlap->fresh()->status);
+        $this->assertDatabaseCount('appointments', 1);
     }
 
     public function test_customer_cannot_request_unavailable_calendar_slot(): void

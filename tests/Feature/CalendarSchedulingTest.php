@@ -97,7 +97,7 @@ class CalendarSchedulingTest extends TestCase
         ], false))->assertUnprocessable()->assertJsonValidationErrors('end');
     }
 
-    public function test_preference_is_stored_separately_and_pending_requests_do_not_hold_capacity(): void
+    public function test_preference_is_assigned_and_confirmed_booking_holds_capacity(): void
     {
         $firstCustomer = User::factory()->customer()->create();
         CustomerProfile::factory()->for($firstCustomer)->create();
@@ -123,8 +123,8 @@ class CalendarSchedulingTest extends TestCase
         ])->assertRedirect();
 
         $appointment = Appointment::query()->firstOrFail();
-        $this->assertSame(Appointment::STATUS_PENDING, $appointment->status);
-        $this->assertNull($appointment->staff_profile_id);
+        $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
+        $this->assertSame($staff->id, $appointment->staff_profile_id);
         $this->assertSame($staff->id, $appointment->preferred_staff_profile_id);
         $this->assertSame('Quiet room please.', $appointment->customer_notes);
 
@@ -134,10 +134,10 @@ class CalendarSchedulingTest extends TestCase
             'month' => $start->format('Y-m'),
         ], false));
 
-        $this->assertTrue(collect($response->json('dates.'.$start->toDateString()))->contains('time', '14:00'));
+        $this->assertFalse(collect($response->json('dates.'.$start->toDateString()))->contains('time', '14:00'));
     }
 
-    public function test_staff_calendar_hides_requests_that_prefer_another_therapist(): void
+    public function test_staff_calendar_hides_unassigned_pending_requests(): void
     {
         $admin = User::factory()->admin()->create();
         $firstUser = User::factory()->staff()->create();
@@ -170,8 +170,8 @@ class CalendarSchedulingTest extends TestCase
         $staffResponse = $this->actingAs($firstUser)->getJson(route('staff.appointments.calendar', $range, false));
         $staffNumbers = collect($staffResponse->json('events'))->pluck('appointment_number')->filter();
 
-        $this->assertTrue($staffNumbers->contains('APT-NO-PREFERENCE'));
-        $this->assertTrue($staffNumbers->contains('APT-PREFERS-FIRST'));
+        $this->assertFalse($staffNumbers->contains('APT-NO-PREFERENCE'));
+        $this->assertFalse($staffNumbers->contains('APT-PREFERS-FIRST'));
         $this->assertFalse($staffNumbers->contains('APT-PREFERS-SECOND'));
 
         $adminResponse = $this->actingAs($admin)->getJson(route('admin.appointments.calendar', [
@@ -266,5 +266,105 @@ class CalendarSchedulingTest extends TestCase
         $ids = collect($response->json('therapists'))->pluck('id');
         $this->assertFalse($ids->contains($first->id));
         $this->assertTrue($ids->contains($second->id));
+    }
+
+    public function test_admin_calendar_page_exposes_confirmed_creation_modal_and_selection_hooks(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->get(route('admin.appointments.index', absolute: false))
+            ->assertOk()
+            ->assertSee('calendar-appointment-create', false)
+            ->assertSee(route('admin.appointments.calendar.store', absolute: false), false)
+            ->assertSee('calendar-booking-selected', false)
+            ->assertSee('Confirmed reservation')
+            ->assertSee('Add appointment on this day');
+    }
+
+    public function test_admin_calendar_creation_saves_confirmed_reservation_and_returns_to_calendar(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $customer = CustomerProfile::factory()->create();
+        $service = Service::factory()->create(['duration_minutes' => 90, 'is_active' => true]);
+        $staff = StaffProfile::factory()->create();
+        $staff->services()->attach($service);
+        $start = now()->addWeek()->setTime(14, 0, 0);
+        StaffWeeklySchedule::factory()->for($staff)->create([
+            'day_of_week' => $start->dayOfWeek,
+            'start_time' => '13:00:00',
+            'end_time' => '18:00:00',
+        ]);
+
+        $this->actingAs($admin)
+            ->post(route('admin.appointments.calendar.store', absolute: false), [
+                '_modal' => 'calendar-appointment-create',
+                'customer_profile_id' => $customer->id,
+                'service_id' => $service->id,
+                'staff_profile_id' => $staff->id,
+                'requested_start_at' => $start->toDateTimeString(),
+                'scheduled_start_at' => $start->toDateTimeString(),
+                'status' => Appointment::STATUS_CONFIRMED,
+            ])
+            ->assertRedirect(route('admin.appointments.index', absolute: false));
+
+        $appointment = Appointment::query()->sole();
+        $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
+        $this->assertSame($staff->id, $appointment->staff_profile_id);
+        $this->assertTrue($appointment->scheduled_end_at->equalTo($start->copy()->addMinutes(90)));
+        $this->assertDatabaseHas('appointment_status_logs', [
+            'appointment_id' => $appointment->id,
+            'from_status' => null,
+            'to_status' => Appointment::STATUS_CONFIRMED,
+        ]);
+    }
+
+    public function test_admin_calendar_creation_rejects_pending_missing_staff_and_overlap(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $customer = CustomerProfile::factory()->create();
+        $service = Service::factory()->create(['duration_minutes' => 60, 'is_active' => true]);
+        $staff = StaffProfile::factory()->create();
+        $staff->services()->attach($service);
+        $start = now()->addWeek()->setTime(14, 0, 0);
+        StaffWeeklySchedule::factory()->for($staff)->create([
+            'day_of_week' => $start->dayOfWeek,
+            'start_time' => '13:00:00',
+            'end_time' => '18:00:00',
+        ]);
+        Appointment::factory()->for($customer)->for($service)->for($staff, 'staffProfile')->create([
+            'status' => Appointment::STATUS_CONFIRMED,
+            'requested_start_at' => $start,
+            'scheduled_start_at' => $start,
+            'scheduled_end_at' => $start->copy()->addHour(),
+        ]);
+
+        $base = [
+            'customer_profile_id' => $customer->id,
+            'service_id' => $service->id,
+            'requested_start_at' => $start->toDateTimeString(),
+            'scheduled_start_at' => $start->toDateTimeString(),
+        ];
+
+        $this->actingAs($admin)
+            ->from(route('admin.appointments.index', absolute: false))
+            ->post(route('admin.appointments.calendar.store', absolute: false), [
+                ...$base,
+                'status' => Appointment::STATUS_PENDING,
+            ])
+            ->assertSessionHasErrors(['status', 'staff_profile_id']);
+
+        $this->actingAs($admin)
+            ->from(route('admin.appointments.index', absolute: false))
+            ->post(route('admin.appointments.calendar.store', absolute: false), [
+                ...$base,
+                'staff_profile_id' => $staff->id,
+                'status' => Appointment::STATUS_CONFIRMED,
+                '_modal' => 'calendar-appointment-create',
+            ])
+            ->assertSessionHasErrors('scheduled_start_at')
+            ->assertSessionHasInput('_modal', 'calendar-appointment-create');
+
+        $this->assertDatabaseCount('appointments', 1);
     }
 }

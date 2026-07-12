@@ -8,6 +8,8 @@ return [
 
     'profile_deletion_reauth_ttl' => (int) env('PROFILE_DELETION_REAUTH_TTL', 600),
 
+    'profile_password_setup_reauth_ttl' => (int) env('PROFILE_PASSWORD_SETUP_REAUTH_TTL', 600),
+
     /*
     |--------------------------------------------------------------------------
     | Authentication Defaults

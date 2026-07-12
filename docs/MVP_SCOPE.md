@@ -9,20 +9,21 @@ The MVP should support appointment scheduling, customer records, manual transact
 ## MVP Users
 
 - Admin: manages services, staff, appointments, customer records, transactions, reports, promotion suggestions, and feedback insights.
-- Staff: manages assigned appointments, confirms or updates booking requests, records service transactions, and reviews customer details needed for daily operations.
-- Customer: requests appointments, views booking status, and submits feedback after service.
+- Staff: reviews assigned appointments and customer details needed for daily operations through read-only workspaces.
+- Customer: books appointments, views booking status, cancels before the scheduled start, and submits feedback after service.
 
-Users authenticate with either a verified Google account or a verified email and password. Customers may self-register; staff and admin emails must be pre-authorized by the protected super administrator and can establish a password through the reset-password flow.
+Users authenticate with either a verified Google account or a verified email and password. Customers may self-register; staff and admin emails must be pre-authorized by the protected super administrator. Authenticated Google-only users may reconfirm their linked Google identity in Account Settings to create a password, while passwordless accounts without Google linkage use the reset-password flow.
 
 ## MVP Features
 
 ### Appointment Scheduling
 
-- Customers can request appointments.
-- Staff or admin can confirm, reschedule, or cancel appointment requests.
+- Customers can book available appointments and receive immediate confirmation.
+- The system atomically assigns an eligible therapist, preferring the customer's selection when available and otherwise balancing future bookings.
+- Admin can reschedule, cancel, mark no-show, or finish confirmed appointments.
 - Appointments should include customer, service, preferred date and time, assigned staff member, status, and notes.
 - Scheduling should consider service duration, staff assignment, and staff availability.
-- Instant customer booking without staff confirmation is not part of the MVP.
+- Confirmed customer bookings immediately reserve therapist capacity and disappear from availability when no eligible therapist remains.
 
 ### Service And Staff Management
 
@@ -44,7 +45,7 @@ Users authenticate with either a verified Google account or a verified email and
 
 ### Manual Transactions
 
-- Staff or admin can record service transactions manually.
+- Admin records service transactions manually, including through the atomic finish-service workflow.
 - Transaction records should include customer, appointment or service reference, amount, payment status, payment method, transaction date, and staff/admin recorder.
 - Online payment gateway integration is not part of the MVP.
 
@@ -76,7 +77,6 @@ Users authenticate with either a verified Google account or a verified email and
 - Online payment gateway integration.
 - VPS deployment or server administration.
 - External AI services for sentiment analysis.
-- Instant customer booking without staff confirmation.
 - Persistent background workers, custom daemons, or long-running Node.js services.
 - 24/7 technical monitoring requirements.
 
@@ -92,6 +92,6 @@ Users authenticate with either a verified Google account or a verified email and
 
 - MVP scope clearly supports bookings, customer records, manual transactions, RFM promotion suggestions, feedback insights, and low-maintenance operation.
 - Each MVP module can be implemented without VPS-only services or external AI dependencies.
-- Staff/admin remain in control of appointment confirmation and promotion application.
-- Customer-facing workflows stay limited to appointment requests, booking status, and feedback.
+- Admin remains in control of service outcomes, transaction recording, and promotion application.
+- Customer-facing workflows stay limited to confirmed booking, pre-start cancellation, booking status, and feedback.
 - Future implementation work should use this document as the first-build scope reference before database, screen, or API design.

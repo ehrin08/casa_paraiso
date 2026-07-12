@@ -27,7 +27,7 @@
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Scheduled') }}</dt>
-                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->scheduled_start_at?->format('M d, Y g:i A') ?: __('Waiting for confirmation') }}</dd>
+                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->scheduled_start_at?->format('M d, Y g:i A') ?: __('Not scheduled') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Assigned therapist') }}</dt>
@@ -40,7 +40,7 @@
                     <div class="rounded-2xl bg-casa-bg p-4 sm:col-span-2">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Therapist preference') }}</dt>
                         <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->preferredStaffProfile?->user?->name ?: __('No preference') }}</dd>
-                        <p class="mt-1 text-xs leading-5 text-casa-muted">{{ __('Preferences are considered during review but are not a final assignment.') }}</p>
+                        <p class="mt-1 text-xs leading-5 text-casa-muted">{{ __('Your preferred therapist is assigned when available; otherwise the system selects another eligible therapist.') }}</p>
                     </div>
                 </dl>
             </x-app-card>
@@ -55,18 +55,18 @@
         </section>
 
         <aside class="space-y-4">
-            @if ($appointment->status === \App\Models\Appointment::STATUS_PENDING)
+            @if ($appointment->status === \App\Models\Appointment::STATUS_CONFIRMED && $appointment->scheduled_start_at?->isFuture())
                 <x-app-card>
-                    <p class="casa-section-label">{{ __('Pending request') }}</p>
-                    <p class="mt-3 text-sm leading-6 text-casa-muted">{{ __('You can cancel this request while staff has not confirmed it yet.') }}</p>
+                    <p class="casa-section-label">{{ __('Confirmed booking') }}</p>
+                    <p class="mt-3 text-sm leading-6 text-casa-muted">{{ __('Your time and therapist are reserved. Cancel before the start time if your plans change.') }}</p>
                     <div class="mt-5">
                         <x-confirm-action
                             :action="route('customer.appointments.cancel', $appointment)"
                             method="PATCH"
-                            label="{{ __('Cancel request') }}"
-                            confirm-title="{{ __('Cancel appointment request?') }}"
-                            confirm-message="{{ __('This pending request will be marked cancelled and staff will no longer review it for confirmation.') }}"
-                            confirm-button="{{ __('Cancel request') }}"
+                            label="{{ __('Cancel booking') }}"
+                            confirm-title="{{ __('Cancel this confirmed booking?') }}"
+                            confirm-message="{{ __('The reserved therapist and time will become available to other customers immediately.') }}"
+                            confirm-button="{{ __('Cancel booking') }}"
                             button-class="casa-danger-button w-full"
                         />
                     </div>

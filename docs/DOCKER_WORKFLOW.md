@@ -13,6 +13,7 @@ The Sail-generated Compose setup uses:
 - `laravel.test`: Laravel app container using Sail PHP 8.2.
 - `mariadb`: local MariaDB database for development.
 - `mailpit`: local email testing.
+- `cloudflared`: optional, profile-gated HTTPS tunnel for short-lived remote testing.
 
 The app is served through the Laravel app container. It does not use a custom Nginx/PHP-FPM stack for this MVP.
 
@@ -133,11 +134,94 @@ DB_USERNAME=sail
 DB_PASSWORD=password
 FORWARD_DB_PORT=3307
 MAIL_MAILER=smtp
+MAIL_SCHEME=null
 MAIL_HOST=mailpit
 MAIL_PORT=1025
 FORWARD_MAILPIT_PORT=1026
 FORWARD_MAILPIT_DASHBOARD_PORT=8025
 ```
+
+Mailpit remains the safe default for clean clones. It captures messages locally and never delivers them to a real inbox.
+
+## Real Gmail Delivery
+
+Use Gmail SMTP only when real delivery is intentional. The Gmail account must have 2-Step Verification enabled and use a generated app password, not the normal account password. Keep the app password only in the ignored local `.env`; never commit it, paste it into chat, or print it in terminal output. Remove the display spaces from Google's 16-character value and keep the resulting value inside double quotes so Laravel can parse it safely.
+
+Set the local mail values to:
+
+```env
+MAIL_MAILER=smtp
+MAIL_SCHEME=null
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME="ehrinjohn08@gmail.com"
+MAIL_PASSWORD="replace-with-the-local-app-password"
+MAIL_FROM_ADDRESS="ehrinjohn08@gmail.com"
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+Laravel selects SMTP with automatic STARTTLS for port `587`. This mailer is global, so both password-reset and email-verification notifications will be delivered through Gmail. After saving the secret, clear cached configuration without displaying it:
+
+```powershell
+docker compose exec -T laravel.test php artisan optimize:clear
+```
+
+Google references:
+
+- App passwords: https://support.google.com/accounts/answer/185833
+- Gmail SMTP settings: https://support.google.com/a/answer/176600
+
+## Temporary Public Reset Links
+
+The `cloudflared` service is disabled by default through the `tunnel` Compose profile. A Quick Tunnel creates a random public `https://*.trycloudflare.com` URL and is for temporary development testing only. It has no uptime guarantee, and the URL changes whenever the tunnel is recreated.
+
+Before starting a tunnel, disable debug output and require HTTPS-only session cookies in the ignored local `.env`:
+
+```env
+APP_DEBUG=false
+SESSION_SECURE_COOKIE=true
+```
+
+Apply those settings, then start the profile and read the generated public URL from its logs:
+
+```powershell
+docker compose exec -T laravel.test php artisan optimize:clear
+docker compose --profile tunnel up -d cloudflared
+docker compose logs cloudflared
+```
+
+Copy the generated HTTPS URL into `APP_URL`, clear configuration again, and submit the forgot-password form through that public URL:
+
+```env
+APP_URL=https://random-words.trycloudflare.com
+```
+
+```powershell
+docker compose exec -T laravel.test php artisan optimize:clear
+```
+
+The entire local application is public while the tunnel runs. Keep `APP_DEBUG=false`, do not share the URL, and stop the tunnel immediately after the reset-link check:
+
+```powershell
+docker compose --profile tunnel stop cloudflared
+docker compose --profile tunnel rm -f cloudflared
+```
+
+Restore the normal local settings and clear configuration:
+
+```env
+APP_URL=http://localhost:8001
+APP_DEBUG=true
+SESSION_SECURE_COOKIE=null
+```
+
+```powershell
+docker compose exec -T laravel.test php artisan optimize:clear
+```
+
+Gmail SMTP may remain enabled after the tunnel stops. Reset links generated through localhost will then work only on this development computer. Old Quick Tunnel links stop working when their tunnel closes.
+
+Cloudflare reference: https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/trycloudflare/
 
 ## XAMPP Fallback
 

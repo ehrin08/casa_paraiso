@@ -130,6 +130,16 @@
         </div>
 
         <div class="p-4 lg:hidden">
+            @if ($isAdminCalendar)
+                <button
+                    type="button"
+                    class="casa-button-primary mb-4 w-full"
+                    x-show="mode === 'bookings'"
+                    x-on:click="chooseBooking(null, { time: '13:00', label: '1:00 PM' })"
+                >
+                    {{ __('Add appointment on this day') }}
+                </button>
+            @endif
             <div class="space-y-3" x-show="selectedAgendaEvents.length">
                 <template x-for="event in selectedAgendaEvents" x-bind:key="event.id">
                     <a x-bind:href="event.detail_url || '#'" class="block rounded-2xl border border-casa-border bg-casa-paper p-4 shadow-sm transition hover:border-casa-brass">
@@ -172,12 +182,13 @@
                             <div class="absolute inset-0 z-0">
                                 <template x-for="slot in timeSlots" x-bind:key="slot.time">
                                     <div class="h-11 border-b border-casa-border/70">
-                                        <a
-                                            x-show="mode === 'bookings' && emptySlotUrl(resource.id, slot)"
-                                            x-bind:href="emptySlotUrl(resource.id, slot)"
-                                            class="block h-full w-full transition hover:bg-casa-palm/8"
+                                        <button
+                                            x-show="slotCanCreate(resource.id, slot)"
+                                            type="button"
+                                            class="block h-full w-full transition hover:bg-casa-palm/10 focus:bg-casa-palm/10"
+                                            x-on:click="chooseBooking(resource, slot)"
                                             x-bind:aria-label="`Create appointment for ${resource.name} on ${selectedDate} at ${slot.label}`"
-                                        ></a>
+                                        ></button>
                                         <button
                                             x-show="mode === 'availability' && resource.id !== 'requests'"
                                             type="button"
@@ -193,7 +204,7 @@
                                 <a
                                     x-bind:href="event.detail_url || '#'"
                                     class="absolute inset-x-1 z-10 overflow-hidden rounded-lg border px-2 py-1 text-[0.62rem] font-extrabold uppercase tracking-[0.04em]"
-                                    x-bind:class="backgroundClass(event)"
+                                    x-bind:class="[backgroundClass(event), event.read_only ? 'pointer-events-none' : '']"
                                     x-bind:style="backgroundStyle(event)"
                                     x-bind:aria-label="`${event.title}, ${eventTimeRange(event)}`"
                                 >

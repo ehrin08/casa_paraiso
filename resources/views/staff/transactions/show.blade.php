@@ -7,7 +7,6 @@
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('staff.transactions.edit', $transaction) }}" class="casa-button-primary">{{ __('Edit') }}</a>
             <a href="{{ route('staff.transactions.index') }}" class="casa-button-secondary">{{ __('All transactions') }}</a>
         </div>
     </x-slot>

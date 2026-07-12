@@ -50,7 +50,7 @@ Primary actions:
 
 - Login.
 - Register.
-- Request appointment after authentication.
+- Book an available appointment after authentication.
 
 Main data:
 
@@ -125,7 +125,7 @@ Purpose:
 Main data:
 
 - Today appointments.
-- Pending appointment requests.
+- Confirmed appointments waiting in the service queue.
 - Recent transactions.
 - Revenue summary.
 - Feedback sentiment summary.
@@ -133,7 +133,7 @@ Main data:
 
 Primary actions:
 
-- Review pending appointments.
+- Run the service queue.
 - Add appointment.
 - Add transaction.
 - View reports.
@@ -144,14 +144,15 @@ Route group: `/admin/appointments`
 
 Purpose:
 
-- Manage all customer appointment requests and bookings.
+- Manage all confirmed customer bookings and historical appointment requests.
 
 Screens:
 
 - Calendar-only weekly schedule with Bookings and Availability modes.
+- In-page confirmed appointment modal opened from Add appointment or an available therapist/time cell.
 - Appointment detail.
 - Create appointment.
-- Confirm/reschedule/cancel appointment.
+- Service queue plus appointment detail, reschedule, and cancellation controls.
 - Mark completed or no-show.
 
 Main data:
@@ -160,14 +161,14 @@ Main data:
 
 Primary actions:
 
-- Confirm pending request.
-- Assign staff.
+- Finish a service and record its transaction atomically.
+- Mark a confirmed visit no-show.
 - Click an open therapist time to create a confirmed internal appointment.
+- On mobile, use Add appointment on this day and select an available therapist in the same modal.
 - Switch to Availability mode to add recurring shifts or date exceptions.
 - Reschedule.
 - Cancel.
-- Complete.
-- Record transaction.
+- Complete and record transaction.
 
 ### Customers
 
@@ -384,15 +385,12 @@ Purpose:
 Main data:
 
 - Today assigned appointments.
-- Pending appointment requests that need action.
 - Upcoming confirmed appointments.
 - Recently completed appointments.
 
 Primary actions:
 
-- Review pending requests.
 - Open assigned appointment.
-- Record transaction.
 
 ### Staff Appointments
 
@@ -400,19 +398,17 @@ Route group: `/staff/appointments`
 
 Purpose:
 
-- Let staff handle assigned and pending appointments.
+- Let staff view their assigned appointments.
 
 Screens:
 
-- Personal weekly calendar with assigned appointments and eligible pending-request demand.
+- Personal weekly calendar with assigned appointments.
 - Appointment detail.
-- Confirm/reschedule/cancel appointment.
-- Complete appointment.
 
 Rules:
 
 - Staff can view assigned appointments.
-- Staff can view no-preference requests for services they can perform and requests that prefer them.
+- Staff appointment and transaction workspaces are read-only.
 - Staff availability is read-only and maintained by admin.
 - Staff cannot access admin-only settings.
 
@@ -452,12 +448,12 @@ Route group: `/staff/transactions`
 
 Purpose:
 
-- Let staff record manual service payments.
+- Let staff review transactions linked to assigned appointments.
 
 Screens:
 
 - Create transaction from appointment.
-- Transaction list for staff-recorded or assigned appointments.
+- Read-only transaction list and detail for assigned appointments.
 - Transaction detail.
 
 Primary actions:
@@ -496,23 +492,23 @@ Purpose:
 
 Main data:
 
-- Monthly calendar of upcoming appointments, pending requests, and appointment history.
+- Monthly calendar of confirmed upcoming appointments and appointment history.
 - Selected-day visit details and booking status.
 
 Primary actions:
 
-- Request appointment.
+- Book an appointment.
 - View appointment details.
-- Cancel pending request if allowed.
+- Cancel a confirmed booking before its start.
 - Submit feedback for completed appointment.
 
-### Request Appointment
+### Book Appointment
 
 Route: `/customer/appointments/create`
 
 Purpose:
 
-- Let customers submit appointment requests.
+- Let customers reserve an available appointment immediately.
 - Use the dedicated page as the primary booking experience rather than embedding the full calendar form in the appointment list.
 
 Main data:
@@ -524,14 +520,14 @@ Main data:
 
 Rules:
 
-- Submitted requests start as `pending`.
-- Staff/admin must confirm before the booking is final.
-- Pending requests do not hold therapist capacity; confirmation performs the final availability check.
-- A therapist preference is optional and does not guarantee assignment.
+- Successful submissions start as `confirmed` and reserve therapist capacity immediately.
+- The server locks eligible therapist rows and rechecks availability before saving.
+- An available preferred therapist is assigned first; otherwise the least-booked eligible therapist is selected.
+- A lost concurrency race returns a slot-unavailable error without creating an appointment.
 
 Primary actions:
 
-- Submit request.
+- Confirm booking.
 
 ### Appointment Detail
 
@@ -548,7 +544,7 @@ Main data:
 Primary actions:
 
 - Submit feedback for completed appointment.
-- Cancel pending request if allowed.
+- Cancel a confirmed appointment before its scheduled start.
 
 ### Feedback
 
@@ -583,33 +579,26 @@ Main data:
 Primary actions:
 
 - Update profile.
-- Change password through auth flow.
+- Change an existing password through the auth flow.
+- Reconfirm a linked Google identity to create a first password and enable conventional email/password login.
 
 ## Primary User Journeys
 
-### Customer Appointment Request
+### Customer Appointment Booking
 
 1. Customer registers or logs in.
 2. Customer lands on My Appointments.
-3. Customer opens Request Appointment.
+3. Customer opens Book Appointment.
 4. Customer selects service and preferred date/time.
-5. System creates a `pending` appointment.
-6. Customer sees the request in My Appointments.
-
-### Staff Confirmation
-
-1. Staff opens pending requests.
-2. Staff reviews customer, service, requested time, and availability.
-3. Staff assigns staff member and scheduled start/end time.
-4. System prevents overlapping confirmed appointments for the assigned staff member.
-5. Appointment becomes `confirmed`.
+5. System atomically assigns an available therapist and creates a `confirmed` appointment.
+6. Customer sees the reserved time and therapist in My Appointments.
 
 ### Service Completion And Payment
 
-1. Staff opens a confirmed appointment.
-2. Staff marks the appointment completed.
-3. Staff records a manual transaction.
-4. Transaction becomes part of customer history and RFM calculation input.
+1. Admin opens a ready confirmed appointment from the chronological service queue.
+2. Admin enters payment details and finishes the service.
+3. The completed status, audit log, and linked transaction are saved atomically.
+4. The transaction becomes part of customer history and RFM calculation input.
 
 ### Feedback Submission
 
@@ -633,7 +622,7 @@ Primary actions:
 | Admin dashboard | Yes | No | No | No |
 | Staff dashboard | No | Yes | No | No |
 | Customer appointments | No | No | Own only | No |
-| Appointments management | All | Assigned/pending only | Own only | No |
+| Appointments management | All | Assigned read-only | Own booking/cancellation | No |
 | Services management | Yes | View only if needed | View active services | View active services |
 | Staff management | Yes | No | No | No |
 | Customer records | Yes | Operational access | Own profile only | No |
@@ -645,7 +634,7 @@ Primary actions:
 
 ## MVP Coverage Check
 
-- Appointment scheduling is covered by customer request screens, admin appointment management, and staff appointment management.
+- Appointment scheduling is covered by automated customer booking, admin appointment management, and staff read-only schedules.
 - Service and staff management are covered by admin modules.
 - Customer records are covered by admin customer screens and staff customer lookup.
 - Manual transactions are covered by admin and staff transaction screens.

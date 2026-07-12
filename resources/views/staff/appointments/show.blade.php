@@ -53,7 +53,7 @@
         </section>
 
         <aside class="space-y-4">
-            @if ($appointment->status === \App\Models\Appointment::STATUS_PENDING)
+            @if (false && $appointment->status === \App\Models\Appointment::STATUS_PENDING)
                 <x-app-card>
                     <p class="casa-section-label">{{ __('Confirm') }}</p>
                     <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Accept request') }}</h2>
@@ -81,7 +81,7 @@
                         />
                     </form>
                 </x-app-card>
-            @elseif ($appointment->status === \App\Models\Appointment::STATUS_CONFIRMED)
+            @elseif (false && $appointment->status === \App\Models\Appointment::STATUS_CONFIRMED)
                 <x-app-card>
                     <p class="casa-section-label">{{ __('Schedule') }}</p>
                     <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Reschedule appointment') }}</h2>
@@ -164,5 +164,4 @@
         </aside>
     </div>
 
-    <x-modal :name="$recordPaymentModal" :show="old('_modal') === $recordPaymentModal" maxWidth="4xl" focusable><div class="p-5">@include('staff.transactions.partials.form', ['transaction' => $transaction, 'action' => route('staff.transactions.store'), 'method' => 'POST', 'submitLabel' => __('Create transaction'), 'modalName' => $recordPaymentModal])</div></x-modal>
 </x-app-layout>

@@ -12,7 +12,6 @@ use App\Services\AppointmentWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
-use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
@@ -76,7 +75,7 @@ class AppointmentController extends Controller
         );
     }
 
-    public function store(CustomerAppointmentStoreRequest $request, AppointmentWorkflow $workflow, AppointmentAvailability $availability): RedirectResponse
+    public function store(CustomerAppointmentStoreRequest $request, AppointmentWorkflow $workflow): RedirectResponse
     {
         $customerProfile = $request->user()->customerProfile;
 
@@ -89,12 +88,6 @@ class AppointmentController extends Controller
 
         $workflow->assertBookableStart($requestedStart, $service, 'requested_start_at');
 
-        if (! $availability->hasAvailableSlot($service, $requestedStart, $preferredStaffProfileId)) {
-            throw ValidationException::withMessages([
-                'requested_start_at' => __('Selected calendar slot is no longer available. Choose another date or time.'),
-            ]);
-        }
-
         if ($preferredStaffProfileId) {
             $preferredStaff = StaffProfile::query()->with('user')->findOrFail($preferredStaffProfileId);
 
@@ -104,18 +97,15 @@ class AppointmentController extends Controller
 
         }
 
-        $appointment = $workflow->createPending([
+        $appointment = $workflow->autoBook([
             'customer_profile_id' => $customerProfile->id,
-            'service_id' => $service->id,
-            'preferred_staff_profile_id' => $preferredStaffProfileId,
-            'requested_start_at' => $requestedStart,
             'customer_notes' => filled($data['customer_notes'] ?? null) ? trim((string) $data['customer_notes']) : null,
             'created_by' => $request->user()->id,
-        ], $request->user()->id);
+        ], $service, $requestedStart, $preferredStaffProfileId, $request->user()->id);
 
         return redirect()
             ->route('customer.appointments.show', $appointment)
-            ->with('status', 'appointment-requested');
+            ->with('status', 'appointment-booked');
     }
 
     public function show(Request $request, Appointment $appointment): View
@@ -133,8 +123,12 @@ class AppointmentController extends Controller
     {
         $this->authorizeOwnAppointment($request, $appointment);
 
-        if ($appointment->status !== Appointment::STATUS_PENDING) {
-            return back()->withErrors(['status' => __('Only pending requests can be cancelled online.')]);
+        if ($appointment->status !== Appointment::STATUS_CONFIRMED) {
+            return back()->withErrors(['status' => __('Only an upcoming confirmed appointment can be cancelled online.')]);
+        }
+
+        if (! $appointment->scheduled_start_at || ! $appointment->scheduled_start_at->isFuture()) {
+            return back()->withErrors(['status' => __('This appointment can no longer be cancelled online because its start time has passed.')]);
         }
 
         $workflow->changeStatus($appointment, Appointment::STATUS_CANCELLED, $request->user()->id, __('Cancelled by customer'));

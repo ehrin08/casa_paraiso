@@ -57,11 +57,11 @@ Project imagery is stored under `public/images/spa/` as responsive WebP variants
 | Context | Voice | Example |
 | --- | --- | --- |
 | Public marketing | Warm and restorative | “Let the day soften here.” |
-| Customer workflow | Calm and transparent | “Your request starts as pending until our team confirms it.” |
+| Customer workflow | Calm and transparent | “Your time and therapist are reserved as soon as booking succeeds.” |
 | Staff operations | Clear and focused | “Review the requested time and treatment.” |
 | Admin operations | Concise and decision-oriented | “Review time-sensitive requests first.” |
 | Errors | Plain and helpful | “Availability could not be loaded. Try another service or month.” |
-| Success | Reassuring and specific | “Appointment request submitted.” |
+| Success | Reassuring and specific | “Appointment confirmed and added to the schedule.” |
 
 Preserve established service names, prices, business hours, statuses, and the line “Reserve your spot. You deserve this.”
 

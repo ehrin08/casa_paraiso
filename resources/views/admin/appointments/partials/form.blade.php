@@ -1,6 +1,9 @@
 @php
     $modalName = $modalName ?? null;
+    $fixedStatus = $fixedStatus ?? null;
+    $initialRequestedStart = old('requested_start_at', optional($appointment->requested_start_at)->format('Y-m-d\TH:i'));
     $initialScheduledStart = old('scheduled_start_at', optional($appointment->scheduled_start_at)->format('Y-m-d\TH:i'));
+    $staffNames = $staffProfiles->mapWithKeys(fn ($staff) => [(string) $staff->id => $staff->user?->name])->all();
 @endphp
 
 <form
@@ -11,13 +14,16 @@
         availableUrl: @js(route('admin.appointments.available-therapists')),
         appointmentId: @js($appointment->id),
         initialServiceId: @js((string) old('service_id', $appointment->service_id)),
+        initialRequestedStart: @js($initialRequestedStart),
         initialScheduledStart: @js($initialScheduledStart),
         initialStaffId: @js((string) old('staff_profile_id', $appointment->staff_profile_id)),
         persistedServiceId: @js($appointment->exists ? (string) $appointment->service_id : ''),
         persistedScheduledStart: @js($appointment->exists ? optional($appointment->scheduled_start_at)->format('Y-m-d\TH:i') : ''),
-        persistedStaffId: @js($appointment->exists ? (string) $appointment->staff_profile_id : '')
+        persistedStaffId: @js($appointment->exists ? (string) $appointment->staff_profile_id : ''),
+        staffNames: @js($staffNames)
     })"
     x-init="init()"
+    x-on:calendar-booking-selected.window="applyCalendarSelection($event.detail)"
 >
     @csrf
     @if ($method !== 'POST')
@@ -61,13 +67,13 @@
             <div class="grid gap-5 sm:grid-cols-2">
                 <div>
                     <x-input-label for="requested_start_at" :value="__('Requested time')" />
-                    <x-text-input id="requested_start_at" name="requested_start_at" type="datetime-local" class="mt-2" :value="old('requested_start_at', optional($appointment->requested_start_at)->format('Y-m-d\TH:i'))" required />
+                    <x-text-input id="requested_start_at" name="requested_start_at" type="datetime-local" class="mt-2" :value="$initialRequestedStart" x-model="requestedStart" required />
                     <x-input-error class="mt-2" :messages="$errors->get('requested_start_at')" />
                 </div>
 
                 <div>
                     <x-input-label for="scheduled_start_at" :value="__('Scheduled time')" />
-                    <x-text-input id="scheduled_start_at" name="scheduled_start_at" type="datetime-local" class="mt-2" :value="$initialScheduledStart" x-model="scheduledStart" x-on:change="refreshTherapists()" />
+                    <x-text-input id="scheduled_start_at" name="scheduled_start_at" type="datetime-local" class="mt-2" :value="$initialScheduledStart" x-model="scheduledStart" x-on:change="refreshTherapists()" :required="(bool) $fixedStatus" />
                     <x-input-error class="mt-2" :messages="$errors->get('scheduled_start_at')" />
                 </div>
             </div>
@@ -99,15 +105,24 @@
                 </div>
             </div>
 
-            <div>
-                <x-input-label for="status" :value="__('Status')" />
-                <select id="status" name="status" class="casa-input mt-2">
-                    @foreach ($appointment->allowedTargetStatuses() as $option)
-                        <option value="{{ $option }}" @selected(old('status', $appointment->status) === $option)>{{ ucfirst(str_replace('_', ' ', $option)) }}</option>
-                    @endforeach
-                </select>
-                <x-input-error class="mt-2" :messages="$errors->get('status')" />
-            </div>
+            @if ($fixedStatus)
+                <input type="hidden" name="status" value="{{ $fixedStatus }}">
+                <div class="rounded-2xl border border-casa-palm/25 bg-casa-palm/5 p-4">
+                    <p class="casa-section-label">{{ __('Reservation status') }}</p>
+                    <p class="mt-2 font-bold text-casa-palm">{{ __('Confirmed reservation') }}</p>
+                    <p class="mt-1 text-xs leading-5 text-casa-muted">{{ __('Saving reserves the assigned therapist and time immediately.') }}</p>
+                </div>
+            @else
+                <div>
+                    <x-input-label for="status" :value="__('Status')" />
+                    <select id="status" name="status" class="casa-input mt-2">
+                        @foreach ($appointment->allowedTargetStatuses() as $option)
+                            <option value="{{ $option }}" @selected(old('status', $appointment->status) === $option)>{{ ucfirst(str_replace('_', ' ', $option)) }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error class="mt-2" :messages="$errors->get('status')" />
+                </div>
+            @endif
 
             <div>
                 <x-input-label for="customer_notes" :value="__('Customer notes')" />
@@ -125,7 +140,10 @@
 
     <aside class="space-y-4">
         <x-app-card data-modal-actions>
-            <p class="casa-section-label">{{ __('Confirmation rule') }}</p>
+            <p class="casa-section-label">{{ $fixedStatus ? __('Selected calendar time') : __('Confirmation rule') }}</p>
+            @if ($fixedStatus)
+                <p class="mt-3 font-display text-lg font-black text-casa-text" x-text="scheduleSummary"></p>
+            @endif
             <p class="mt-3 text-sm leading-6 text-casa-muted">
                 {{ __('Confirmed appointments require an eligible therapist inside business and working hours. The server rechecks overlaps while locking that therapist’s schedule.') }}
             </p>

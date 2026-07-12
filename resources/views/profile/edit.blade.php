@@ -16,9 +16,7 @@
         </aside>
         <div class="space-y-4">
             <x-app-card padding="p-4 sm:p-6"><div class="max-w-2xl">@include('profile.partials.update-profile-information-form')</div></x-app-card>
-            @if (filled($user->password))
-                <x-app-card padding="p-4 sm:p-6"><div class="max-w-2xl">@include('profile.partials.update-password-form')</div></x-app-card>
-            @endif
+            <x-app-card padding="p-4 sm:p-6"><div class="max-w-2xl">@include('profile.partials.update-password-form')</div></x-app-card>
             @if ($user->isCustomer())
                 <x-app-card padding="p-4 sm:p-6"><div id="delete-account" class="max-w-2xl">@include('profile.partials.delete-user-form')</div></x-app-card>
             @endif

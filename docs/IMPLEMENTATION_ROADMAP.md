@@ -205,7 +205,7 @@ Acceptance:
 
 ## Phase 6: Appointment Workflow
 
-Goal: implement the core appointment request, confirmation, and completion workflow.
+Goal: implement automated confirmed booking, admin service queue, and atomic completion/payment workflow.
 
 Tasks:
 
@@ -237,7 +237,8 @@ docker compose exec -T laravel.test php artisan test
 Acceptance:
 
 - Customer can request an appointment.
-- Staff/admin can confirm, reschedule, cancel, complete, or mark no-show.
+- Customer bookings confirm automatically; admin can reschedule, cancel, complete, or mark no-show.
+- Admin can create confirmed reservations directly from effective availability cells in the operational calendar.
 - The system blocks overlapping confirmed appointments for the same staff member.
 - Customer, staff, and admin calendars expose only role-authorized events.
 - Customer can view their own appointment status from the monthly calendar.
@@ -249,7 +250,7 @@ Goal: build manual transaction recording and payment status management.
 Tasks:
 
 - Build admin transaction list/create/detail screens.
-- Build staff transaction entry from completed or confirmed appointments.
+- Keep staff transaction history read-only and build admin completion/payment capture.
 - Generate unique transaction numbers.
 - Support payment statuses:
   - `unpaid`
@@ -273,7 +274,7 @@ docker compose exec -T laravel.test php artisan test
 
 Acceptance:
 
-- Staff/admin can record manual payments.
+- Admin can record manual payments.
 - Transactions link to customers and appointments where applicable.
 - Paid completed transactions are available for RFM calculations.
 
@@ -411,7 +412,7 @@ The MVP is complete when:
 - Admin, staff, and customer authentication works.
 - Admin can manage services, staff, schedules, customers, transactions, promotions, feedback, and reports.
 - Staff can handle daily appointment and transaction workflows.
-- Customers can request appointments, view status/history, update profile, and submit feedback.
+- Customers can book confirmed appointments, view status/history, cancel before the start, update profile, and submit feedback.
 - RFM promotion suggestions are stored and reviewable.
 - Feedback sentiment is classified without external AI services.
 - CSV reports are available for admin.
