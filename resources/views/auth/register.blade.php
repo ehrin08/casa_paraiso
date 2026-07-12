@@ -2,6 +2,10 @@
     <x-slot name="title">{{ __('Create your spa account') }}</x-slot>
     <x-slot name="subtitle">{{ __('Register as a customer to request appointments and track your visits.') }}</x-slot>
 
+    <div class="mb-5 rounded-2xl border border-casa-border bg-casa-sand px-4 py-3 text-sm leading-6 text-casa-text">
+        Team members do not register here. Use your pre-authorized email on the login page and select “Forgot password?” to establish access.
+    </div>
+
     <form method="POST" action="{{ route('register') }}" class="space-y-5">
         @csrf
 
@@ -55,7 +59,7 @@
             </a>
 
             <x-primary-button class="w-full sm:w-auto">
-                {{ __('Register') }}
+                {{ __('Create customer account') }}
             </x-primary-button>
         </div>
     </form>

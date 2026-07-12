@@ -16,13 +16,17 @@ class GoogleAuthController extends Controller
 {
     public function redirect(): RedirectResponse
     {
-        return Socialite::driver('google')->redirect();
+        return Socialite::driver('google')
+            ->redirectUrl(route('auth.google.callback'))
+            ->redirect();
     }
 
     public function callback(): RedirectResponse
     {
         try {
-            $googleUser = Socialite::driver('google')->user();
+            $googleUser = Socialite::driver('google')
+                ->redirectUrl(route('auth.google.callback'))
+                ->user();
         } catch (Throwable $exception) {
             report($exception);
 

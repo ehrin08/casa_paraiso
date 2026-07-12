@@ -1,7 +1,7 @@
 <section>
     <header>
         <h2 class="font-display text-lg font-black text-casa-text">Profile information</h2>
-        <p class="mt-1 text-sm leading-6 text-casa-muted">Your Google email identifies your account and cannot be changed here.</p>
+        <p class="mt-1 text-sm leading-6 text-casa-muted">Your verified sign-in email identifies your account and cannot be changed here.</p>
     </header>
     <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-6">
         @csrf @method('patch')
@@ -11,7 +11,7 @@
             <x-input-error class="mt-2" :messages="$errors->get('name')" />
         </div>
         <div>
-            <x-input-label for="email" value="Google email" />
+            <x-input-label for="email" value="Sign-in email" />
             <x-text-input id="email" type="email" class="mt-1 block w-full opacity-70" :value="$user->email" disabled />
         </div>
         <div>

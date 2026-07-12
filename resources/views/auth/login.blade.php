@@ -1,7 +1,7 @@
 <x-guest-layout>
-    <x-slot name="eyebrow">One calm doorway</x-slot>
+    <x-slot name="eyebrow">Your calm doorway</x-slot>
     <x-slot name="title">Welcome to Casa Paraiso</x-slot>
-    <x-slot name="subtitle">Use your Google account to request visits or enter your pre-authorized team workspace. No registration form, no password to remember.</x-slot>
+    <x-slot name="subtitle">Sign in with your email and password or continue securely with Google.</x-slot>
 
     @if (session('auth_notice'))
         <div class="mb-5 rounded-2xl border border-casa-border bg-casa-sand px-4 py-3 text-sm leading-6 text-casa-text" role="status">
@@ -14,6 +14,30 @@
             {{ $errors->first('google') }}
         </div>
     @endif
+
+    <form method="POST" action="{{ route('login') }}" class="space-y-5">
+        @csrf
+        <div>
+            <x-input-label for="email" value="Email" />
+            <x-text-input id="email" class="mt-1 block w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
+            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+        </div>
+        <div>
+            <div class="flex items-center justify-between gap-4">
+                <x-input-label for="password" value="Password" />
+                <a href="{{ route('password.request') }}" class="text-sm font-semibold text-casa-primary hover:text-casa-primary-dark">Forgot password?</a>
+            </div>
+            <x-text-input id="password" class="mt-1 block w-full" type="password" name="password" required autocomplete="current-password" />
+            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        </div>
+        <label class="flex items-center gap-3 text-sm text-casa-muted">
+            <input type="checkbox" name="remember" class="rounded border-casa-border text-casa-primary focus:ring-casa-gold">
+            <span>Remember me</span>
+        </label>
+        <x-primary-button class="w-full justify-center">Sign in</x-primary-button>
+    </form>
+
+    <div class="my-6 flex items-center gap-3" aria-hidden="true"><span class="h-px flex-1 bg-casa-border"></span><span class="text-xs font-bold uppercase tracking-wider text-casa-muted">or</span><span class="h-px flex-1 bg-casa-border"></span></div>
 
     <a href="{{ route('auth.google.redirect') }}"
        class="group flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-casa-primary px-5 py-4 text-sm font-extrabold text-white shadow-casa-lift transition duration-200 hover:bg-casa-primary-dark focus:outline-none focus:ring-4 focus:ring-casa-gold/35">
@@ -32,13 +56,13 @@
     <div class="mt-6 grid gap-3 sm:grid-cols-2">
         <div class="rounded-2xl border border-casa-border bg-casa-paper p-4">
             <p class="text-xs font-extrabold uppercase tracking-wider text-casa-primary">Guests</p>
-            <p class="mt-2 text-sm leading-6 text-casa-muted">Your first verified Google sign-in creates your customer account automatically.</p>
+            <p class="mt-2 text-sm leading-6 text-casa-muted">Create an account with email and password, or use your verified Google account.</p>
         </div>
         <div class="rounded-2xl border border-casa-border bg-casa-paper p-4">
             <p class="text-xs font-extrabold uppercase tracking-wider text-casa-primary">Team</p>
-            <p class="mt-2 text-sm leading-6 text-casa-muted">Use the Google email pre-authorized by the Casa Paraiso super administrator.</p>
+            <p class="mt-2 text-sm leading-6 text-casa-muted">Use your pre-authorized email. Select “Forgot password?” to establish your first password.</p>
         </div>
     </div>
 
-    <p class="mt-6 text-center text-xs leading-5 text-casa-muted">By continuing, you allow Casa Paraiso to use your verified name and email only for your account and spa services.</p>
+    <p class="mt-6 text-center text-sm text-casa-muted">New customer? <a href="{{ route('register') }}" class="font-bold text-casa-primary hover:text-casa-primary-dark">Create an account</a></p>
 </x-guest-layout>

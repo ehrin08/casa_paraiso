@@ -3,7 +3,12 @@
 namespace Tests\Feature\Auth;
 
 use App\Models\User;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Password;
 use Laravel\Socialite\Contracts\Provider;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as GoogleUser;
@@ -14,10 +19,29 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_login_screen_is_google_only(): void
+    public function test_login_screen_offers_password_and_google_sign_in(): void
     {
-        $this->get('/login')->assertOk()->assertSee('Continue with Google')->assertDontSee('name="password"', false);
-        $this->post('/login', ['email' => 'x@example.com', 'password' => 'password'])->assertMethodNotAllowed();
+        $this->get('/login')->assertOk()->assertSee('Continue with Google')->assertSee('name="password"', false);
+    }
+
+    public function test_active_user_can_sign_in_with_a_password(): void
+    {
+        $user = User::factory()->customer()->create();
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+            ->assertRedirect(route('customer.appointments.index', absolute: false));
+
+        $this->assertAuthenticatedAs($user);
+    }
+
+    public function test_inactive_user_cannot_sign_in_with_a_password(): void
+    {
+        $user = User::factory()->customer()->create(['is_active' => false]);
+
+        $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+            ->assertSessionHasErrors('email');
+
+        $this->assertGuest();
     }
 
     public function test_unknown_verified_google_user_becomes_customer(): void
@@ -32,6 +56,7 @@ class AuthenticationTest extends TestCase
 
     public function test_designated_email_becomes_the_protected_super_admin(): void
     {
+        config(['auth.super_admin_email' => 'ehrinjohn08@gmail.com']);
         $this->mockGoogle('google-root', 'Ehrin John', 'EHRINJOHN08@gmail.com');
 
         $this->get('/auth/google/callback')->assertRedirect(route('admin.dashboard', absolute: false));
@@ -53,6 +78,73 @@ class AuthenticationTest extends TestCase
         $this->mockGoogle('google-2', 'Guest', 'guest@example.com', false);
         $this->get('/auth/google/callback')->assertRedirect(route('login', absolute: false))->assertSessionHasErrors('google');
         $this->assertGuest();
+    }
+
+    public function test_preauthorized_team_user_can_request_a_password_setup_link(): void
+    {
+        Notification::fake();
+        $staff = User::factory()->staff()->create(['password' => null, 'google_id' => null]);
+
+        $this->post('/forgot-password', ['email' => $staff->email])
+            ->assertSessionHas('status');
+
+        Notification::assertSentTo($staff, ResetPassword::class);
+    }
+
+    public function test_password_reset_request_does_not_reveal_whether_an_email_exists(): void
+    {
+        Notification::fake();
+        $user = User::factory()->create();
+
+        $known = $this->post('/forgot-password', ['email' => $user->email]);
+        $unknown = $this->post('/forgot-password', ['email' => 'unknown@example.com']);
+
+        $known->assertSessionHas('status');
+        $unknown->assertSessionHas('status');
+        $this->assertSame($known->getSession()->get('status'), $unknown->getSession()->get('status'));
+        $unknown->assertSessionDoesntHaveErrors('email');
+    }
+
+    public function test_password_reset_rotates_credentials_and_revokes_database_sessions(): void
+    {
+        config(['session.driver' => 'database']);
+        $user = User::factory()->create(['remember_token' => 'old-token']);
+        DB::table('sessions')->insert([
+            'id' => 'existing-session',
+            'user_id' => $user->id,
+            'ip_address' => '127.0.0.1',
+            'user_agent' => 'test',
+            'payload' => '',
+            'last_activity' => now()->timestamp,
+        ]);
+        $token = Password::createToken($user);
+
+        $this->post('/reset-password', [
+            'token' => $token,
+            'email' => $user->email,
+            'password' => 'new-secure-password',
+            'password_confirmation' => 'new-secure-password',
+        ])->assertRedirect(route('login', absolute: false));
+
+        $user->refresh();
+        $this->assertTrue(Hash::check('new-secure-password', $user->password));
+        $this->assertNotSame('old-token', $user->remember_token);
+        $this->assertDatabaseMissing('sessions', ['id' => 'existing-session']);
+    }
+
+    public function test_password_change_rotates_the_remember_token(): void
+    {
+        $user = User::factory()->create(['remember_token' => 'old-token']);
+
+        $this->actingAs($user)->put('/password', [
+            'current_password' => 'password',
+            'password' => 'new-secure-password',
+            'password_confirmation' => 'new-secure-password',
+        ])->assertSessionHas('status', 'password-updated');
+
+        $user->refresh();
+        $this->assertTrue(Hash::check('new-secure-password', $user->password));
+        $this->assertNotSame('old-token', $user->remember_token);
     }
 
     private function mockGoogle(string $id, string $name, string $email, bool $verified = true): void

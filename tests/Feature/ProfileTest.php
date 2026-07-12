@@ -32,7 +32,34 @@ class ProfileTest extends TestCase
 
     public function test_customer_deletion_requires_google_reauthentication_marker(): void
     {
-        $customer = User::factory()->customer()->create(['google_id' => 'google-customer']);
+        $customer = User::factory()->customer()->create(['google_id' => 'google-customer', 'password' => null]);
         $this->actingAs($customer)->delete('/profile')->assertForbidden();
+    }
+
+    public function test_password_customer_can_confirm_password_to_delete_account(): void
+    {
+        $customer = User::factory()->customer()->create(['google_id' => null]);
+
+        $this->actingAs($customer)->delete('/profile', ['password' => 'password'])->assertRedirect('/');
+
+        $this->assertGuest();
+        $this->assertDatabaseHas('users', ['id' => $customer->id, 'is_active' => false, 'password' => null]);
+    }
+
+    public function test_password_deletion_confirmation_is_rate_limited(): void
+    {
+        $customer = User::factory()->customer()->create();
+
+        foreach (range(1, 5) as $attempt) {
+            $this->actingAs($customer)
+                ->delete('/profile', ['password' => 'wrong-password'])
+                ->assertSessionHasErrors('password');
+        }
+
+        $this->actingAs($customer)
+            ->delete('/profile', ['password' => 'password'])
+            ->assertSessionHasErrors(['password' => 'Too many confirmation attempts. Please wait before trying again.']);
+
+        $this->assertDatabaseHas('users', ['id' => $customer->id, 'is_active' => true]);
     }
 }

@@ -25,6 +25,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new \LogicException('Demo data must not be seeded in production. Run migrations without --seed.');
+        }
+
         $admin = User::updateOrCreate(
             ['email' => 'admin@casaparaiso.test'],
             [

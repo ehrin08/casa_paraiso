@@ -9,7 +9,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -92,9 +95,38 @@ class ProfileController extends Controller
 
     private function consumeValidDeletionConfirmation(Request $request, User $user): bool
     {
+        $throttleKey = "profile-deletion|{$user->id}|{$request->ip()}";
+        $password = $request->input('password');
+
+        if (filled($user->password) && is_string($password) && $password !== '') {
+            if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                throw ValidationException::withMessages([
+                    'password' => 'Too many confirmation attempts. Please wait before trying again.',
+                ]);
+            }
+
+            if (Hash::check($password, $user->password)) {
+                RateLimiter::clear($throttleKey);
+
+                return true;
+            }
+
+            RateLimiter::hit($throttleKey, 60);
+
+            throw ValidationException::withMessages([
+                'password' => 'The password is incorrect.',
+            ]);
+        }
+
         $confirmation = $request->session()->pull('google_reauthenticated_for_deletion');
 
         if (! is_array($confirmation)) {
+            if (filled($user->password)) {
+                throw ValidationException::withMessages([
+                    'password' => 'Enter your password to confirm account deletion.',
+                ]);
+            }
+
             return false;
         }
 

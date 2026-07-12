@@ -54,6 +54,8 @@ Acceptance:
 
 Goal: keep the Laravel application foundation reproducible under Docker Compose.
 
+Authentication direction: support verified email/password customer registration and login alongside verified Google OAuth. Staff and administrators remain pre-authorized and establish passwords through a reset link.
+
 Tasks:
 
 - Maintain Laravel 12 and Breeze Blade templates.

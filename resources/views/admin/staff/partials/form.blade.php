@@ -23,7 +23,7 @@
         <x-app-card data-modal-actions>
             <div class="border-b border-casa-border pb-5">
                 <p class="casa-section-label">{{ __('Account') }}</p>
-                <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Google account details') }}</h2>
+                <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Sign-in account details') }}</h2>
             </div>
 
             <div class="mt-5 grid gap-5">
@@ -37,7 +37,7 @@
                     <div>
                         <x-input-label for="email" :value="__('Email')" />
                         <x-text-input id="email" name="email" type="email" class="mt-2" :value="old('email', $staffUser->email)" required :disabled="$method !== 'POST'" />
-                        @if($method !== 'POST')<input type="hidden" name="email" value="{{ $staffUser->email }}"><p class="mt-2 text-xs text-casa-muted">Google email changes are managed in User access.</p>@endif
+                        @if($method !== 'POST')<input type="hidden" name="email" value="{{ $staffUser->email }}"><p class="mt-2 text-xs text-casa-muted">Sign-in email changes are managed in User access.</p>@endif
                         <x-input-error class="mt-2" :messages="$errors->get('email')" />
                     </div>
 

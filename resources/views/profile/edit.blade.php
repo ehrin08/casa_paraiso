@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <p class="casa-section-label">Google account</p>
+            <p class="casa-section-label">Account settings</p>
             <h1 class="mt-2 font-display text-3xl font-black text-casa-text">Profile</h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">Keep your contact details current. Your verified email is managed by Google.</p>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">Keep your contact details and sign-in security current.</p>
         </div>
     </x-slot>
 
@@ -16,6 +16,9 @@
         </aside>
         <div class="space-y-4">
             <x-app-card padding="p-4 sm:p-6"><div class="max-w-2xl">@include('profile.partials.update-profile-information-form')</div></x-app-card>
+            @if (filled($user->password))
+                <x-app-card padding="p-4 sm:p-6"><div class="max-w-2xl">@include('profile.partials.update-password-form')</div></x-app-card>
+            @endif
             @if ($user->isCustomer())
                 <x-app-card padding="p-4 sm:p-6"><div id="delete-account" class="max-w-2xl">@include('profile.partials.delete-user-form')</div></x-app-card>
             @endif

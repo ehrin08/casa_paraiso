@@ -12,7 +12,7 @@ The MVP should support appointment scheduling, customer records, manual transact
 - Staff: manages assigned appointments, confirms or updates booking requests, records service transactions, and reviews customer details needed for daily operations.
 - Customer: requests appointments, views booking status, and submits feedback after service.
 
-All users authenticate with a verified Google account. Unknown Google emails are onboarded as customers; staff and admin emails must be pre-authorized by the protected super administrator.
+Users authenticate with either a verified Google account or a verified email and password. Customers may self-register; staff and admin emails must be pre-authorized by the protected super administrator and can establish a password through the reset-password flow.
 
 ## MVP Features
 

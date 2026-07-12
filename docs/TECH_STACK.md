@@ -11,7 +11,7 @@ Casa Paraiso should be built as a production-ready Laravel monolith that stays c
 - Database: MariaDB/MySQL
 - Database workflow: Laravel migrations and seeders
 - Package management: Composer for PHP dependencies, npm for frontend build dependencies
-- Authentication: Laravel Socialite with Google OAuth for all login-capable users
+- Authentication: Laravel Breeze email/password authentication with email verification, plus Laravel Socialite Google OAuth
 - Primary local development: Docker with Laravel Sail services managed through direct Docker Compose commands
 - Fallback local development: XAMPP / Apache
 - Production hosting: Hostinger shared/web hosting by default
@@ -100,9 +100,11 @@ docker compose exec -T laravel.test composer install
 docker compose restart laravel.test
 docker compose exec -T laravel.test npm install
 docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan migrate --seed
+docker compose exec -T laravel.test php artisan migrate
 docker compose exec -T laravel.test php artisan test
 ```
+
+Demo seeding is restricted to local and testing environments. Production deployments must run migrations without `--seed` so predictable demo credentials are never installed or reset.
 
 ## References
 

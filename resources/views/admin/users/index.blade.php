@@ -3,7 +3,7 @@
         <div>
             <p class="casa-section-label">Protected administration</p>
             <h1 class="mt-2 font-display text-3xl font-black text-casa-text">User access</h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">Pre-authorize Google emails and assign their workspace before team members sign in.</p>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">Pre-authorize team emails and assign their workspace before team members sign in.</p>
         </div>
     </x-slot>
 
@@ -27,7 +27,7 @@
             <form method="post" action="{{ route('admin.users.store') }}" class="mt-5 space-y-4">
                 @csrf
                 <div><x-input-label for="new-name" value="Full name"/><x-text-input id="new-name" name="name" class="mt-2" required/><x-input-error class="mt-2" :messages="$errors->get('name')"/></div>
-                <div><x-input-label for="new-email" value="Google email"/><x-text-input id="new-email" name="email" type="email" class="mt-2" required/><x-input-error class="mt-2" :messages="$errors->get('email')"/></div>
+                <div><x-input-label for="new-email" value="Sign-in email"/><x-text-input id="new-email" name="email" type="email" class="mt-2" required/><x-input-error class="mt-2" :messages="$errors->get('email')"/></div>
                 <div><x-input-label for="new-role" value="Workspace"/><select id="new-role" name="role" class="casa-input mt-2" required>@foreach($assignableRoles as $role)<option value="{{ $role }}">{{ str($role)->replace('_', ' ')->title() }}</option>@endforeach</select></div>
                 <label class="flex items-center gap-3 text-sm font-semibold"><input type="hidden" name="is_active" value="0"><input type="checkbox" name="is_active" value="1" checked class="rounded border-casa-border text-casa-primary focus:ring-casa-gold"> Active account</label>
                 <x-primary-button class="w-full justify-center">Pre-authorize email</x-primary-button>
@@ -40,7 +40,7 @@
                     @csrf @method('put')
                     <div><x-input-label :for="'name-'.$managedUser->id" value="Name"/><x-text-input :id="'name-'.$managedUser->id" name="name" class="mt-1" :value="$managedUser->name" :disabled="$managedUser->isSuperAdmin()" required/></div>
                     <div>
-                        <x-input-label :for="'email-'.$managedUser->id" value="Google email"/>
+                        <x-input-label :for="'email-'.$managedUser->id" value="Sign-in email"/>
                         <x-text-input :id="'email-'.$managedUser->id" name="email" type="email" class="mt-1" :value="$managedUser->email" :disabled="$managedUser->isSuperAdmin() || filled($managedUser->google_id)" required/>
                         @if (filled($managedUser->google_id) && ! $managedUser->isSuperAdmin())
                             <input type="hidden" name="email" value="{{ $managedUser->email }}">
