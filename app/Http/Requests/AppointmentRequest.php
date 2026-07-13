@@ -9,11 +9,6 @@ use Illuminate\Validation\Rules\Exists;
 
 abstract class AppointmentRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user() !== null;
-    }
-
     protected function activeServiceRule(): Exists
     {
         return Rule::exists('services', 'id')

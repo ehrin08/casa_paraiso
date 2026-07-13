@@ -3,7 +3,6 @@
     $message = match ($status) {
         'appointment-created' => __('Appointment created.'),
         'appointment-updated' => __('Appointment updated.'),
-        'appointment-requested' => __('Appointment request submitted.'),
         'appointment-booked' => __('Appointment confirmed and added to the schedule.'),
         'appointment-completed' => __('Service finished and transaction recorded.'),
         'appointment-cancelled' => __('Appointment cancelled.'),

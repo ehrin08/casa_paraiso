@@ -63,16 +63,6 @@ class AppointmentAvailability
         ];
     }
 
-    public function hasAvailableSlot(Service $service, Carbon $start, ?int $preferredStaffProfileId = null): bool
-    {
-        if ($start->lte(now())) {
-            return false;
-        }
-
-        return $this->eligibleStaff($service, $preferredStaffProfileId)
-            ->contains(fn (StaffProfile $staffProfile) => $this->workflow->isStaffAvailable($staffProfile, $service, $start));
-    }
-
     /**
      * @return Collection<int, StaffProfile>
      */
@@ -80,9 +70,8 @@ class AppointmentAvailability
     {
         return StaffProfile::query()
             ->with(['user', 'services', 'weeklySchedules', 'scheduleExceptions'])
-            ->where('is_bookable', true)
-            ->whereHas('user', fn ($query) => $query->where('is_active', true))
-            ->whereHas('services', fn ($query) => $query->whereKey($service->id))
+            ->eligibleForAppointments()
+            ->offeringService($service)
             ->when($preferredStaffProfileId, fn ($query) => $query->whereKey($preferredStaffProfileId))
             ->get();
     }
@@ -97,7 +86,7 @@ class AppointmentAvailability
         $slots = [];
         $business = $this->scheduleWindows->businessWindow($day);
         $slot = $business['start']->copy();
-        $interval = (int) config('casa.business_hours.slot_interval_minutes', 30);
+        $interval = $this->scheduleWindows->businessHours()['slot_interval_minutes'];
 
         while ($slot->lt($business['end'])) {
             $slotEnd = $this->workflow->scheduledEnd($slot, $service);

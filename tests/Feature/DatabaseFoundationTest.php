@@ -132,7 +132,7 @@ class DatabaseFoundationTest extends TestCase
         $this->assertTrue($appointment->service->is($service));
         $this->assertTrue($appointment->staffProfile->is($staffProfile));
         $this->assertTrue($appointment->statusLogs->contains($statusLog));
-        $this->assertTrue($appointment->transactions->contains($transaction));
+        $this->assertTrue($appointment->transaction->is($transaction));
         $this->assertTrue($appointment->feedback->is($feedback));
         $this->assertTrue($transaction->recorder->is($staffUser));
     }

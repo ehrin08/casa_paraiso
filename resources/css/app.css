@@ -1,9 +1,10 @@
+@import "@fontsource-variable/manrope/index.css";
+@import "@fontsource-variable/cormorant-garamond/index.css";
 @import "tailwindcss";
 
 @plugin "@tailwindcss/forms";
 
 @source "../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php";
-@source "../../storage/framework/views/*.php";
 @source "../views/**/*.blade.php";
 @source "../js/**/*.js";
 
@@ -15,6 +16,7 @@
     --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
     --font-display: "Manrope", ui-sans-serif, system-ui, sans-serif;
     --font-editorial: "Cormorant Garamond", ui-serif, Georgia, serif;
+    --font-weight-black: 800;
 
     --color-casa-cacao: #7A3E14;
     --color-casa-cacao-dark: #54290E;
@@ -26,15 +28,14 @@
     --color-casa-paper: #FFFCF7;
     --color-casa-ink: #232620;
     --color-casa-bg: #F5F0E7;
-    --color-casa-surface: #FFFCF7;
-    --color-casa-surface-dark: #263028;
-    --color-casa-primary: #4F6A4E;
-    --color-casa-primary-dark: #334736;
-    --color-casa-gold: #B38745;
     --color-casa-green: #3F714B;
-    --color-casa-text: #232620;
+    --color-casa-success: #376B46;
+    --color-casa-warning: #8A5A17;
+    --color-casa-danger: #A23B32;
+    --color-casa-info: #285F77;
     --color-casa-muted: #67675F;
     --color-casa-border: #DCD2C2;
+    --color-casa-control-border: #9C8C76;
     --color-casa-charcoal: #263028;
     --color-casa-taupe: #B9AD9C;
     --color-casa-wood: #2D332D;
@@ -51,7 +52,7 @@
 
     body {
         min-width: 320px;
-        color: var(--color-casa-text);
+        color: var(--color-casa-ink);
         background: var(--color-casa-bg);
         text-rendering: optimizeLegibility;
     }
@@ -75,8 +76,9 @@
     }
 
     :focus-visible {
-        outline: 3px solid color-mix(in srgb, var(--color-casa-brass) 78%, white);
-        outline-offset: 3px;
+        outline: 2px solid var(--color-casa-paper);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 5px var(--color-casa-palm-dark);
     }
 }
 
@@ -123,7 +125,7 @@
 
     .casa-section-label,
     .casa-eyebrow {
-        font-size: 0.69rem;
+        font-size: 0.875rem;
         font-weight: 800;
         letter-spacing: 0.16em;
         line-height: 1.4;
@@ -154,7 +156,7 @@
         gap: 0.55rem;
         border-radius: 12px;
         padding: 0.68rem 1.05rem;
-        font-size: 0.74rem;
+        font-size: 0.875rem;
         font-weight: 800;
         letter-spacing: 0.075em;
         line-height: 1.2;
@@ -184,7 +186,7 @@
     }
 
     .casa-button-secondary {
-        border: 1px solid var(--color-casa-border);
+        border: 1px solid var(--color-casa-control-border);
         background: color-mix(in srgb, var(--color-casa-paper) 90%, var(--color-casa-sand));
         color: var(--color-casa-cacao);
     }
@@ -210,9 +212,9 @@
         width: 100%;
         min-height: 2.75rem;
         border-radius: 12px;
-        border: 1px solid var(--color-casa-border);
+        border: 1px solid var(--color-casa-control-border);
         background: var(--color-casa-paper);
-        color: var(--color-casa-text);
+        color: var(--color-casa-ink);
         box-shadow: 0 1px 0 rgba(55, 44, 32, 0.035);
         transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
     }
@@ -223,20 +225,27 @@
 
     .casa-input:focus {
         border-color: var(--color-casa-palm);
-        box-shadow: 0 0 0 4px rgba(79, 106, 78, 0.16);
-        outline: none;
+        outline: 2px solid var(--color-casa-paper);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 5px var(--color-casa-palm-dark);
+    }
+
+    .casa-input:focus-visible {
+        outline: 2px solid var(--color-casa-paper);
+        outline-offset: 2px;
+        box-shadow: 0 0 0 5px var(--color-casa-palm-dark);
     }
 
     .casa-label {
         display: block;
-        color: var(--color-casa-text);
-        font-size: 0.82rem;
+        color: var(--color-casa-ink);
+        font-size: 0.875rem;
         font-weight: 700;
     }
 
     .casa-error {
         color: #A92D23;
-        font-size: 0.84rem;
+        font-size: 0.875rem;
         line-height: 1.5;
     }
 
@@ -250,7 +259,7 @@
         border-radius: 12px;
         padding: 0.64rem 0.75rem;
         color: rgba(249, 243, 233, 0.72);
-        font-size: 0.82rem;
+        font-size: 0.875rem;
         font-weight: 700;
         transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
     }
@@ -284,7 +293,7 @@
         border-radius: 12px;
         padding: 0.6rem 0.75rem;
         color: var(--color-casa-muted);
-        font-size: 0.84rem;
+        font-size: 0.875rem;
         font-weight: 800;
         text-align: left;
         transition: background-color 180ms ease, color 180ms ease;
@@ -296,23 +305,6 @@
         color: var(--color-casa-palm-dark);
     }
 
-    .casa-top-link {
-        display: inline-flex;
-        min-height: 2.75rem;
-        align-items: center;
-        border-bottom: 2px solid transparent;
-        color: var(--color-casa-muted);
-        font-size: 0.9rem;
-        font-weight: 700;
-        transition: border-color 180ms ease, color 180ms ease;
-    }
-
-    .casa-top-link:hover,
-    .casa-top-link-active {
-        color: var(--color-casa-cacao);
-        border-color: var(--color-casa-brass);
-    }
-
     .casa-icon-button {
         display: inline-grid;
         width: 2.75rem;
@@ -320,7 +312,7 @@
         flex: 0 0 auto;
         place-items: center;
         border-radius: 12px;
-        border: 1px solid var(--color-casa-border);
+        border: 1px solid var(--color-casa-control-border);
         background: var(--color-casa-paper);
         color: var(--color-casa-palm-dark);
         box-shadow: 0 7px 18px rgba(55, 44, 32, 0.06);
@@ -341,7 +333,7 @@
         border-radius: 999px;
         border: 1px solid transparent;
         padding: 0.35rem 0.68rem;
-        font-size: 0.68rem;
+        font-size: 0.875rem;
         font-weight: 800;
         letter-spacing: 0.055em;
         line-height: 1.2;
@@ -354,7 +346,7 @@
         max-width: 100%;
         overflow-x: auto;
         border-radius: 14px;
-        border: 1px solid var(--color-casa-border);
+        border: 1px solid var(--color-casa-control-border);
         background: var(--color-casa-paper);
         scrollbar-width: thin;
         scrollbar-color: var(--color-casa-taupe) transparent;
@@ -373,6 +365,13 @@
         padding-block: 0.82rem;
     }
 
+    .casa-table-wrap tbody a,
+    .casa-table-wrap tbody button {
+        display: inline-flex;
+        min-height: 2.75rem;
+        align-items: center;
+    }
+
     .casa-list-toolbar {
         display: flex;
         flex-direction: column;
@@ -388,14 +387,14 @@
 
     .casa-filter-chip {
         display: inline-flex;
-        min-height: 2rem;
+        min-height: 2.75rem;
         align-items: center;
         border-radius: 999px;
-        border: 1px solid var(--color-casa-border);
+        border: 1px solid var(--color-casa-control-border);
         background: var(--color-casa-paper);
         padding: 0.35rem 0.7rem;
         color: var(--color-casa-muted);
-        font-size: 0.68rem;
+        font-size: 0.875rem;
         font-weight: 800;
         letter-spacing: 0.055em;
         text-transform: uppercase;
@@ -511,7 +510,7 @@
         background: rgba(255, 252, 247, 0.95);
         color: var(--color-casa-cacao);
         padding: 0.45rem 0.8rem;
-        font-size: 0.68rem;
+        font-size: 0.875rem;
         font-weight: 800;
         letter-spacing: 0.08em;
         text-transform: uppercase;
@@ -589,7 +588,7 @@
         background: var(--color-casa-paper);
         padding: 1rem;
         color: var(--color-casa-muted);
-        font-size: 0.84rem;
+        font-size: 0.875rem;
         font-weight: 700;
     }
 
@@ -655,7 +654,7 @@
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 0.25rem;
-        border: 1px solid rgba(220, 210, 194, 0.92);
+        border: 1px solid var(--color-casa-control-border);
         border-radius: 18px;
         background: rgba(255, 252, 247, 0.96);
         padding: 0.35rem;
@@ -672,7 +671,7 @@
         gap: 0.2rem;
         border-radius: 13px;
         color: var(--color-casa-muted);
-        font-size: 0.62rem;
+        font-size: 0.875rem;
         font-weight: 800;
         letter-spacing: 0.04em;
         text-transform: uppercase;
@@ -692,6 +691,12 @@
 
 .casa-app-page h2 {
     letter-spacing: -0.02em;
+}
+
+.casa-app-page .text-xs,
+.casa-app-page [class*="text-[0."] {
+    font-size: 0.875rem;
+    line-height: 1.4;
 }
 
 .casa-app-page .space-y-6 > :not([hidden]) ~ :not([hidden]) {

@@ -10,15 +10,6 @@ use Illuminate\Validation\Rule;
 
 class StaffRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        if (! $this->route('staff')) {
-            return $this->user()?->isSuperAdmin() ?? false;
-        }
-
-        return $this->user()?->isAdmin() ?? false;
-    }
-
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
@@ -29,19 +20,20 @@ class StaffRequest extends FormRequest
         $assignedServiceIds = $staffProfile instanceof StaffProfile
             ? $staffProfile->services()->pluck('services.id')->all()
             : [];
+        $isUpdate = $staffProfile instanceof StaffProfile;
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => [
+            ...(! $isUpdate ? ['email' => [
                 'required',
                 'string',
                 'lowercase',
                 'email',
                 'max:255',
                 Rule::unique(User::class)->ignore($staffUser?->id),
-            ],
+            ]] : []),
             'phone' => ['nullable', 'string', 'max:50'],
-            'is_active' => ['sometimes', 'boolean'],
+            ...(! $isUpdate ? ['is_active' => ['sometimes', 'boolean']] : []),
             'position' => ['nullable', 'string', 'max:255'],
             'specialization' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:5000'],

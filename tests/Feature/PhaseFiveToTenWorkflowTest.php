@@ -134,7 +134,7 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             ->post(route('customer.appointments.store', absolute: false), [
                 'service_id' => $service->id,
                 'preferred_staff_profile_id' => $staffProfile->id,
-                'requested_start_at' => $start->format('Y-m-d H:i:s'),
+                'scheduled_start_at' => $start->format('Y-m-d H:i:s'),
                 'customer_notes' => 'Quiet room please.',
             ])
             ->assertRedirect();
@@ -158,10 +158,10 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             ->from(route('customer.appointments.create', absolute: false))
             ->post(route('customer.appointments.store', absolute: false), [
                 'service_id' => $service->id,
-                'requested_start_at' => $start->format('Y-m-d H:i:s'),
+                'scheduled_start_at' => $start->format('Y-m-d H:i:s'),
             ])
             ->assertRedirect(route('customer.appointments.create', absolute: false))
-            ->assertSessionHasErrors('requested_start_at');
+            ->assertSessionHasErrors('scheduled_start_at');
 
         $this->assertDatabaseCount('appointments', 1);
     }
@@ -185,11 +185,11 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             ->from(route('customer.appointments.create', absolute: false))
             ->post(route('customer.appointments.store', absolute: false), [
                 'service_id' => $service->id,
-                'requested_start_at' => $start->format('Y-m-d H:i:s'),
+                'scheduled_start_at' => $start->format('Y-m-d H:i:s'),
                 'customer_notes' => 'Trying an unavailable slot.',
             ])
             ->assertRedirect(route('customer.appointments.create', absolute: false))
-            ->assertSessionHasErrors('requested_start_at');
+            ->assertSessionHasErrors('scheduled_start_at');
 
         $this->assertDatabaseCount('appointments', 0);
     }
@@ -204,6 +204,7 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             ->for($customerProfile)
             ->for($service)
             ->create([
+                'quoted_amount' => 1250,
                 'status' => Appointment::STATUS_COMPLETED,
                 'requested_start_at' => now()->subDay()->setTime(10, 0),
                 'scheduled_start_at' => now()->subDay()->setTime(10, 0),
@@ -217,9 +218,10 @@ class PhaseFiveToTenWorkflowTest extends TestCase
                 'appointment_id' => $appointment->id,
                 'service_id' => $service->id,
                 'amount' => 1250,
-                'payment_status' => Transaction::PAYMENT_PAID,
+                'payment_amount' => 1250,
                 'payment_method' => Transaction::METHOD_CASH,
                 'paid_at' => now()->format('Y-m-d H:i:s'),
+                'idempotency_key' => 'phase-ten-payment-1',
             ])
             ->assertRedirect();
 
@@ -272,6 +274,7 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             ->for($customerProfile)
             ->for($service)
             ->create([
+                'quoted_amount' => 1500,
                 'status' => Appointment::STATUS_COMPLETED,
                 'completed_at' => now()->subDays(5),
             ]);
@@ -283,6 +286,7 @@ class PhaseFiveToTenWorkflowTest extends TestCase
             ->for($admin, 'recorder')
             ->create([
                 'amount' => 1500,
+                'amount_paid' => 1500,
                 'payment_status' => Transaction::PAYMENT_PAID,
                 'paid_at' => now()->subDays(5),
             ]);

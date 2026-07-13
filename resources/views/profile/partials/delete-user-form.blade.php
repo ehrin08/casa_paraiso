@@ -5,7 +5,7 @@
         $deletionReauthUnit = $deletionReauthTtl % 60 === 0 ? 'minute' : 'second';
     @endphp
     <header>
-        <h2 class="font-display text-lg font-black text-casa-text">Delete account</h2>
+        <h2 class="font-display text-lg font-black text-casa-ink">Delete account</h2>
         <p class="mt-1 text-sm leading-6 text-casa-muted">Deletion permanently removes your sign-in and personal profile details. Appointment, payment, feedback, and promotion records remain under a de-identified customer account so required business history is preserved.</p>
         <p class="mt-2 text-sm leading-6 text-casa-muted">For your protection, confirm your identity before deletion. Google confirmation expires after {{ $deletionReauthAmount }} {{ \Illuminate\Support\Str::plural($deletionReauthUnit, $deletionReauthAmount) }}.</p>
     </header>

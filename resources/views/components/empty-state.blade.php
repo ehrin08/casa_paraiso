@@ -10,7 +10,7 @@
             <path d="M6.5 17.5 15 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
         </svg>
     </div>
-    <h3 class="mt-4 text-lg font-extrabold text-casa-text">{{ $title }}</h3>
+    <h3 class="mt-4 text-lg font-extrabold text-casa-ink">{{ $title }}</h3>
     @if ($description)
         <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-casa-muted">{{ $description }}</p>
     @endif

@@ -1,20 +1,9 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="csrf-token" content="{{ csrf_token() }}">
-
-        <title>{{ config('app.name', 'Casa Paraiso') }}</title>
-
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=cormorant-garamond:600,700|manrope:400,500,600,700,800&display=swap" rel="stylesheet" />
-
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @include('layouts.partials.document-head')
     </head>
-    <body class="font-sans text-casa-text antialiased">
+    <body class="font-sans text-casa-ink antialiased">
         <x-page-loading />
         <x-toast-stack />
 
@@ -37,9 +26,9 @@
                             Your calm place,<br>before you arrive.
                         </h1>
                         <p class="mt-5 max-w-md text-sm leading-7 text-white/78">
-                            Request a visit, follow its status, and keep every step of your Casa Paraiso care close at hand.
+                    Book a confirmed visit and keep every step of your Casa Paraiso care close at hand.
                         </p>
-                        <div class="mt-7 flex flex-wrap gap-2 text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-white/72">
+                        <div class="mt-7 flex flex-wrap gap-2 text-sm font-extrabold uppercase tracking-[0.12em] text-white/72">
                             <span class="rounded-full border border-white/20 bg-black/15 px-3 py-2">Bookings</span>
                             <span class="rounded-full border border-white/20 bg-black/15 px-3 py-2">Wellness care</span>
                             <span class="rounded-full border border-white/20 bg-black/15 px-3 py-2">Open daily</span>
@@ -63,7 +52,7 @@
                     <div class="casa-editorial-card p-6 sm:p-8">
                         <div class="mb-6">
                             <p class="casa-eyebrow">{{ $eyebrow ?? __('Casa Paraiso') }}</p>
-                            <h1 class="mt-3 font-editorial text-4xl font-semibold leading-none text-casa-text">
+                            <h1 class="mt-3 font-editorial text-4xl font-semibold leading-none text-casa-ink">
                                 {{ $title ?? __('Welcome') }}
                             </h1>
                             @isset($subtitle)

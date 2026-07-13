@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Http\Requests\Concerns\ValidatesScheduleInterval;
 use App\Models\StaffProfile;
 use App\Models\StaffWeeklySchedule;
 use Illuminate\Contracts\Validation\ValidationRule;
@@ -10,10 +11,7 @@ use Illuminate\Validation\Validator;
 
 class StaffWeeklyScheduleRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->isAdmin() ?? false;
-    }
+    use ValidatesScheduleInterval;
 
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
@@ -22,9 +20,7 @@ class StaffWeeklyScheduleRequest extends FormRequest
     {
         return [
             'day_of_week' => ['required', 'integer', 'between:0,6'],
-            'start_time' => ['required', 'date_format:H:i'],
-            'end_time' => ['required', 'date_format:H:i'],
-            'ends_next_day' => ['sometimes', 'boolean'],
+            ...$this->scheduleIntervalRules(timesRequired: true),
             'is_available' => ['sometimes', 'boolean'],
         ];
     }
@@ -39,28 +35,21 @@ class StaffWeeklyScheduleRequest extends FormRequest
 
                 $staff = $this->route('staff');
                 $weeklySchedule = $this->route('weeklySchedule');
-                $startMinutes = $this->minutes((string) $this->input('start_time'));
                 $endsNextDay = $this->boolean('ends_next_day');
-                $endMinutes = $endsNextDay ? 1440 : $this->minutes((string) $this->input('end_time'));
-                $openingMinutes = $this->minutes((string) config('casa.business_hours.opens_at', '13:00'));
+                $interval = $this->validateScheduleInterval(
+                    $validator,
+                    (string) $this->input('start_time'),
+                    (string) $this->input('end_time'),
+                    $endsNextDay,
+                    __('Therapist availability'),
+                );
 
-                if ($startMinutes < $openingMinutes) {
-                    $validator->errors()->add('start_time', 'Therapist availability must begin within business hours at 1:00 PM or later.');
-
+                if (! $interval) {
                     return;
                 }
 
-                if ($endsNextDay && $this->input('end_time') !== '00:00') {
-                    $validator->errors()->add('end_time', 'A next-day shift must end at 12:00 midnight.');
-
-                    return;
-                }
-
-                if ($endMinutes <= $startMinutes) {
-                    $validator->errors()->add('end_time', 'The end time must be after the start time.');
-
-                    return;
-                }
+                $startMinutes = $interval['start'];
+                $endMinutes = $interval['end'];
 
                 if (! $staff instanceof StaffProfile) {
                     return;
@@ -73,7 +62,7 @@ class StaffWeeklyScheduleRequest extends FormRequest
                     ->get()
                     ->contains(function (StaffWeeklySchedule $existing) use ($startMinutes, $endMinutes): bool {
                         $existingStart = $this->minutes((string) $existing->start_time);
-                        $existingEnd = $existing->ends_next_day ? 1440 : $this->minutes((string) $existing->end_time);
+                        $existingEnd = $this->minutes((string) $existing->end_time) + ($existing->ends_next_day ? 1440 : 0);
 
                         return $startMinutes < $existingEnd && $endMinutes > $existingStart;
                     });
@@ -83,12 +72,5 @@ class StaffWeeklyScheduleRequest extends FormRequest
                 }
             },
         ];
-    }
-
-    private function minutes(string $time): int
-    {
-        [$hour, $minute] = array_map('intval', explode(':', substr($time, 0, 5)));
-
-        return ($hour * 60) + $minute;
     }
 }

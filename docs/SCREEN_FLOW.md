@@ -8,17 +8,17 @@ The interface should use separate dashboards for admin, staff, and customer. Aut
 
 ## Route Groups
 
-- Public: unauthenticated pages for landing, service browsing, login, and registration.
-- Auth: login, registration, password reset, logout, and authenticated redirects.
+- Public: unauthenticated pages for landing, service browsing, and sign-in.
+- Auth: Google customer provisioning/sign-in, password login/setup/reset for eligible existing accounts, logout, and authenticated redirects.
 - Admin: full management access.
 - Staff: daily operations access.
-- Customer: appointment request, status, history, feedback, and profile access.
+- Customer: confirmed booking, status, history, feedback, and profile access.
 
 Planned route prefixes:
 
 - `/`
 - `/login`
-- `/register`
+- `/profile` for shared account settings
 - `/admin`
 - `/staff`
 - `/customer`
@@ -49,7 +49,7 @@ Purpose:
 Primary actions:
 
 - Login.
-- Register.
+- Sign in.
 - Book an available appointment after authentication.
 
 Main data:
@@ -70,7 +70,7 @@ Purpose:
 Primary actions:
 
 - View service details.
-- Register or login to request an appointment.
+- Sign in to book an available appointment; new customers use Google to create their account.
 
 Main data:
 
@@ -79,35 +79,21 @@ Main data:
 
 ## Auth Screens
 
-### Login
+### Sign In And Customer Registration
 
 Access: guest users.
 
 Purpose:
 
-- Authenticate with a verified email and password or Google OAuth. Unknown verified Google accounts and public registrations become customers; privileged emails must be pre-authorized.
+- Customers select Google sign-in. The first successful sign-in with an unknown verified Google email provisions a customer account; returning customers use the same path.
+- A provisioned customer who created a password after linked-Google reauthentication may instead use verified email/password login.
+- Pre-authorized staff and administrators use email/password login and the password-setup or reset flow when needed.
+- No public email/password registration route is exposed; password setup never provisions a new customer.
 
 Post-login redirect:
 
 - Admin users go to `/admin/dashboard`.
 - Staff users go to `/staff/dashboard`.
-- Customer users go to `/customer/appointments`.
-
-### Register
-
-Access: guest users.
-
-Purpose:
-
-- Allow customers to register with name, email, optional phone, and password, then require email verification before workspace access. Google remains available as an alternative from the login screen.
-
-Rules:
-
-- Public registration creates customer accounts only.
-- Admin and staff accounts should be created by admin users.
-
-Post-registration redirect:
-
 - Customer users go to `/customer/appointments`.
 
 ## Admin Screens
@@ -144,20 +130,17 @@ Route group: `/admin/appointments`
 
 Purpose:
 
-- Manage all confirmed customer bookings and historical appointment requests.
+- Manage confirmed customer and admin bookings plus historical appointment outcomes.
 
 Screens:
 
-- Calendar-only weekly schedule with Bookings and Availability modes.
-- In-page confirmed appointment modal opened from Add appointment or an available therapist/time cell.
-- Appointment detail.
-- Create appointment.
-- Service queue plus appointment detail, reschedule, and cancellation controls.
-- Mark completed or no-show.
+- Calendar-only weekly schedule with Bookings and Availability modes and an in-page confirmed appointment form.
+- Appointment detail with reschedule, cancellation, completion, and no-show controls.
+- Service queue integrated with the appointment workspace.
 
 Main data:
 
-- Appointment number, customer, service, staff, requested time, scheduled time, status, notes.
+- Appointment number, customer, service, staff, scheduled time, quoted charge, status, and notes.
 
 Primary actions:
 
@@ -207,9 +190,9 @@ Purpose:
 
 Screens:
 
-- Staff list.
+- Staff list with a protected-superadmin-only account form.
 - Staff detail.
-- Create/edit staff account.
+- Staff edit workspace.
 - Weekly schedule editor.
 - Schedule exceptions.
 - Staff-service assignments.
@@ -220,7 +203,7 @@ Main data:
 
 Primary actions:
 
-- Create staff.
+- Protected super administrator: create staff access.
 - Assign services.
 - Edit schedule.
 - Add schedule exception.
@@ -255,22 +238,23 @@ Route group: `/admin/transactions`
 
 Purpose:
 
-- Manage manual payment and service transaction records.
+- Manage the single charge and cumulative payment record linked to each visit.
 
 Screens:
 
-- Transaction list.
-- Create transaction.
+- Transaction list with contextual payment recording.
 - Transaction detail.
+- Transaction edit workspace.
 
 Main data:
 
-- Transaction number, customer, appointment, service, amount, payment status, payment method, recorded by, date.
+- Transaction number, customer, appointment, service, total charge, amount paid, open balance, derived payment status, latest payment method, recorder, and date.
 
 Primary actions:
 
 - Record payment.
-- Update payment status.
+- Correct a charge with an audit reason.
+- Fully refund or void a transaction with an audit reason.
 - View customer transaction history.
 
 ### Promotions
@@ -347,29 +331,6 @@ Primary actions:
 - Filter report.
 - Export CSV.
 
-### Settings
-
-Route group: `/admin/settings`
-
-Purpose:
-
-- Manage basic application settings.
-
-Screens:
-
-- Business profile.
-- User account management.
-- System defaults.
-
-Main data:
-
-- Business contact information, operating assumptions, default payment methods, user status.
-
-Primary actions:
-
-- Update business details.
-- Activate/deactivate user accounts.
-
 ## Staff Screens
 
 Staff navigation uses sidebar modules focused on daily operations.
@@ -410,15 +371,12 @@ Rules:
 - Staff can view assigned appointments.
 - Staff appointment and transaction workspaces are read-only.
 - Staff availability is read-only and maintained by admin.
-- Staff cannot access admin-only settings.
+- Staff cannot access protected-superadmin user management.
 
 Primary actions:
 
-- Confirm appointment.
-- Reschedule appointment.
-- Mark completed.
-- Mark no-show.
-- Record transaction.
+- Open an assigned appointment detail.
+- Review the confirmed schedule, customer contact details, and customer notes needed for service delivery.
 
 ### Staff Customers
 
@@ -439,7 +397,8 @@ Main data:
 
 Rules:
 
-- Staff can view operational customer information.
+- Staff can view operational customer information only when the customer has an appointment assigned to that staff profile.
+- Counts, history, feedback, and direct detail access use the same assignment scope; unrelated customers return 403/404.
 - Staff should not manage system-level user settings.
 
 ### Staff Transactions
@@ -452,14 +411,13 @@ Purpose:
 
 Screens:
 
-- Create transaction from appointment.
-- Read-only transaction list and detail for assigned appointments.
+- Read-only transaction list for assigned appointments.
 - Transaction detail.
 
 Primary actions:
 
-- Record payment.
-- Update payment status where allowed.
+- Filter and search related transaction records.
+- Open an authorized transaction detail.
 
 ### Staff Feedback
 
@@ -566,7 +524,7 @@ Rules:
 
 ### Profile
 
-Route: `/customer/profile`
+Route: `/profile`
 
 Purpose:
 
@@ -579,14 +537,15 @@ Main data:
 Primary actions:
 
 - Update profile.
+- View the verified Google email linked to the customer account.
 - Change an existing password through the auth flow.
-- Reconfirm a linked Google identity to create a first password and enable conventional email/password login.
+- Reconfirm the linked Google identity to create a first password and enable verified email/password login.
 
 ## Primary User Journeys
 
 ### Customer Appointment Booking
 
-1. Customer registers or logs in.
+1. Customer signs in with Google to create the account, then uses Google or an optionally established password on later visits.
 2. Customer lands on My Appointments.
 3. Customer opens Book Appointment.
 4. Customer selects service and preferred date/time.
@@ -596,9 +555,10 @@ Primary actions:
 ### Service Completion And Payment
 
 1. Admin opens a ready confirmed appointment from the chronological service queue.
-2. Admin enters payment details and finishes the service.
-3. The completed status, audit log, and linked transaction are saved atomically.
-4. The transaction becomes part of customer history and RFM calculation input.
+2. Any prepayment or partial payment already exists on the appointment's single transaction.
+3. Admin optionally records the remaining payment and finishes the service.
+4. The completed status, appointment audit log, transaction, and payment adjustment are saved atomically.
+5. Net collected value becomes part of customer history, reports, and RFM calculation input.
 
 ### Feedback Submission
 
@@ -626,18 +586,19 @@ Primary actions:
 | Services management | Yes | View only if needed | View active services | View active services |
 | Staff management | Yes | No | No | No |
 | Customer records | Yes | Operational access | Own profile only | No |
-| Transactions | All | Allowed operational records | Own history if exposed | No |
-| Promotions | Yes | Review/apply if allowed | No | No |
+| Transactions | All | Assigned records read-only | Own history if exposed | No |
+| Promotions | Yes | No | No | No |
 | Feedback | All | Related view only | Own feedback only | No |
-| Reports | Yes | Limited operational reports | No | No |
-| Settings | Yes | No | Own profile only | No |
+| Reports | Yes | No | No | No |
+
+The Admin column covers both administrator roles. Protected super-administrator access is additionally required to create staff accounts and manage user access; ordinary administrators retain operational staff editing only.
 
 ## MVP Coverage Check
 
 - Appointment scheduling is covered by automated customer booking, admin appointment management, and staff read-only schedules.
 - Service and staff management are covered by admin modules.
 - Customer records are covered by admin customer screens and staff customer lookup.
-- Manual transactions are covered by admin and staff transaction screens.
+- Manual transaction recording is covered by admin screens; staff screens provide read-only operational context.
 - RFM promotion suggestions are covered by admin promotions.
 - Feedback and sentiment analytics are covered by customer feedback and admin feedback screens.
 - Reports and exports are covered by admin reports.

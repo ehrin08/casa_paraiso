@@ -9,11 +9,6 @@ use Illuminate\Validation\Rule;
 
 class PromotionSuggestionStatusRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->isAdmin() ?? false;
-    }
-
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */

@@ -37,6 +37,7 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_ADMIN,
                 'is_active' => true,
                 'password' => Hash::make('password'),
+                'email_verified_at' => now(),
             ],
         );
 
@@ -48,6 +49,7 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_STAFF,
                 'is_active' => true,
                 'password' => Hash::make('password'),
+                'email_verified_at' => now(),
             ],
         );
 
@@ -59,6 +61,7 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_STAFF,
                 'is_active' => true,
                 'password' => Hash::make('password'),
+                'email_verified_at' => now(),
             ],
         );
 
@@ -70,6 +73,7 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_CUSTOMER,
                 'is_active' => true,
                 'password' => Hash::make('password'),
+                'email_verified_at' => now(),
             ],
         );
 
@@ -81,6 +85,7 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_CUSTOMER,
                 'is_active' => true,
                 'password' => Hash::make('password'),
+                'email_verified_at' => now(),
             ],
         );
 
@@ -261,19 +266,23 @@ class DatabaseSeeder extends Seeder
         $gaiaTouch = $services->firstWhere('slug', 'gaia-touch');
         $tethysFlow = $services->firstWhere('slug', 'tethys-flow');
 
+        $customerConfirmedStart = now()->addDays(2)->setTime(14, 0);
         Appointment::updateOrCreate(
-            ['appointment_number' => 'APT-DEMO-PENDING'],
+            ['appointment_number' => 'APT-DEMO-AUTOBOOKED'],
             [
                 'customer_profile_id' => $customerProfile->id,
                 'service_id' => $gaiaTouch->id,
-                'staff_profile_id' => null,
+                'quoted_amount' => $gaiaTouch->price,
+                'staff_profile_id' => $staffProfile->id,
                 'preferred_staff_profile_id' => $staffProfile->id,
-                'requested_start_at' => now()->addDays(2)->setTime(14, 0),
-                'scheduled_start_at' => null,
-                'scheduled_end_at' => null,
-                'status' => Appointment::STATUS_PENDING,
+                'requested_start_at' => $customerConfirmedStart,
+                'scheduled_start_at' => $customerConfirmedStart,
+                'scheduled_end_at' => $customerConfirmedStart->copy()->addMinutes($gaiaTouch->duration_minutes),
+                'status' => Appointment::STATUS_CONFIRMED,
                 'customer_notes' => 'Prefers a quiet room if available.',
+                'confirmed_at' => now(),
                 'created_by' => $customer->id,
+                'updated_by' => $customer->id,
             ],
         );
 
@@ -283,6 +292,7 @@ class DatabaseSeeder extends Seeder
             [
                 'customer_profile_id' => $returningCustomerProfile->id,
                 'service_id' => $tethysFlow->id,
+                'quoted_amount' => $tethysFlow->price,
                 'staff_profile_id' => $staffProfile->id,
                 'requested_start_at' => $confirmedStart,
                 'scheduled_start_at' => $confirmedStart,
@@ -300,6 +310,7 @@ class DatabaseSeeder extends Seeder
             [
                 'customer_profile_id' => $returningCustomerProfile->id,
                 'service_id' => $gaiaTouch->id,
+                'quoted_amount' => $gaiaTouch->price,
                 'staff_profile_id' => $staffProfile->id,
                 'requested_start_at' => $completedStart,
                 'scheduled_start_at' => $completedStart,
@@ -308,7 +319,7 @@ class DatabaseSeeder extends Seeder
                 'confirmed_at' => $completedStart->copy()->subDay(),
                 'completed_at' => $completedStart->copy()->addMinutes($gaiaTouch->duration_minutes),
                 'created_by' => $admin->id,
-                'updated_by' => $staff->id,
+                'updated_by' => $admin->id,
             ],
         );
 
@@ -319,10 +330,11 @@ class DatabaseSeeder extends Seeder
                 'appointment_id' => $completedAppointment->id,
                 'service_id' => $gaiaTouch->id,
                 'amount' => $gaiaTouch->price,
+                'amount_paid' => $gaiaTouch->price,
                 'payment_status' => Transaction::PAYMENT_PAID,
                 'payment_method' => Transaction::METHOD_GCASH,
                 'paid_at' => $completedAppointment->completed_at,
-                'recorded_by' => $staff->id,
+                'recorded_by' => $admin->id,
                 'notes' => 'Demo completed appointment payment.',
             ],
         );

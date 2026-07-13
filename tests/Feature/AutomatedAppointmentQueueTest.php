@@ -55,16 +55,17 @@ class AutomatedAppointmentQueueTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $assignedStaff = StaffProfile::factory()->create();
-        $appointment = Appointment::factory()->for($assignedStaff, 'staffProfile')->create([
+        $service = Service::factory()->create(['price' => 499]);
+        $appointment = Appointment::factory()->for($service)->for($assignedStaff, 'staffProfile')->create([
             'status' => Appointment::STATUS_CONFIRMED,
+            'quoted_amount' => 499,
             'scheduled_start_at' => now()->subMinutes(30),
             'scheduled_end_at' => now()->addMinutes(30),
             'confirmed_at' => now()->subDay(),
         ]);
 
         $this->actingAs($admin)->post(route('admin.appointments.complete', $appointment, false), [
-            'amount' => 499,
-            'payment_status' => Transaction::PAYMENT_PAID,
+            'payment_amount' => 499,
             'payment_method' => Transaction::METHOD_CASH,
             'paid_at' => now()->toDateTimeString(),
             'notes' => 'Paid at reception.',
@@ -73,16 +74,17 @@ class AutomatedAppointmentQueueTest extends TestCase
         $this->assertSame(Appointment::STATUS_COMPLETED, $appointment->fresh()->status);
         $this->assertDatabaseHas('transactions', [
             'appointment_id' => $appointment->id,
+            'amount' => 499,
+            'amount_paid' => 499,
             'payment_status' => Transaction::PAYMENT_PAID,
             'recorded_by' => $admin->id,
         ]);
 
-        $this->actingAs($admin)->post(route('admin.appointments.complete', $appointment, false), [
-            'amount' => 499,
-            'payment_status' => Transaction::PAYMENT_UNPAID,
-        ])->assertSessionHasErrors('status');
+        $this->actingAs($admin)
+            ->post(route('admin.appointments.complete', $appointment, false))
+            ->assertSessionHasErrors('status');
 
-        $this->assertSame(1, $appointment->transactions()->count());
+        $this->assertSame(1, $appointment->transaction()->count());
     }
 
     public function test_customer_cancellation_releases_the_reserved_slot(): void
@@ -123,7 +125,7 @@ class AutomatedAppointmentQueueTest extends TestCase
         $this->assertTrue(collect($availability->json('dates.'.$start->toDateString()))->contains('time', '14:00'));
     }
 
-    public function test_admin_queue_orders_overdue_before_upcoming_and_no_show_creates_no_transaction(): void
+    public function test_admin_dashboard_lists_only_upcoming_confirmed_visits_and_no_show_creates_no_transaction(): void
     {
         $admin = User::factory()->admin()->create();
         $staff = StaffProfile::factory()->create();
@@ -142,9 +144,10 @@ class AutomatedAppointmentQueueTest extends TestCase
             'scheduled_end_at' => now()->addHours(2),
         ]);
 
-        $this->actingAs($admin)->get(route('admin.appointments.index', absolute: false))
+        $this->actingAs($admin)->get(route('admin.dashboard', absolute: false))
             ->assertOk()
-            ->assertSeeInOrder(['APT-QUEUE-OVERDUE', 'APT-QUEUE-UPCOMING']);
+            ->assertDontSee('APT-QUEUE-OVERDUE')
+            ->assertSee('APT-QUEUE-UPCOMING');
 
         $this->actingAs($admin)->patch(route('admin.appointments.outcome', $overdue, false), [
             'status' => Appointment::STATUS_NO_SHOW,
@@ -165,15 +168,13 @@ class AutomatedAppointmentQueueTest extends TestCase
             'scheduled_end_at' => now()->addHours(2),
         ]);
 
-        $this->actingAs($admin)->post(route('admin.appointments.complete', $appointment, false), [
-            'amount' => 499,
-            'payment_status' => Transaction::PAYMENT_UNPAID,
-        ])->assertSessionHasErrors('status');
+        $this->actingAs($admin)
+            ->post(route('admin.appointments.complete', $appointment, false))
+            ->assertSessionHasErrors('status');
 
-        $this->actingAs($staff)->post(route('admin.appointments.complete', $appointment, false), [
-            'amount' => 499,
-            'payment_status' => Transaction::PAYMENT_UNPAID,
-        ])->assertForbidden();
+        $this->actingAs($staff)
+            ->post(route('admin.appointments.complete', $appointment, false))
+            ->assertForbidden();
 
         $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->fresh()->status);
         $this->assertDatabaseCount('transactions', 0);

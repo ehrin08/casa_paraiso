@@ -1,16 +1,22 @@
 <?php
 
+$opensLabel = '1:00 PM';
+$closesLabel = '12:00 midnight';
+
 return [
     'business_name' => 'Casa Paraiso Body and Wellness Spa',
     'marketing_line' => 'Reserve your spot. You deserve this.',
     'business_hours' => [
         'summary' => 'Open every day',
-        'window' => '1:00 PM to 12:00 MN',
+        'window' => "{$opensLabel} to {$closesLabel}",
+        'opens_label' => $opensLabel,
+        'closes_label' => $closesLabel,
         'timezone' => 'Asia/Manila',
         'opens_at' => '13:00',
         'closes_at' => '00:00',
         'closes_next_day' => true,
         'slot_interval_minutes' => 30,
+        'availability_selection_minutes' => 60,
     ],
     'service_packages' => [
         [

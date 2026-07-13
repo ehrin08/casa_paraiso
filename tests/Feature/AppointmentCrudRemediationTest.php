@@ -9,6 +9,7 @@ use App\Models\CustomerProfile;
 use App\Models\Service;
 use App\Models\StaffProfile;
 use App\Models\StaffWeeklySchedule;
+use App\Models\Transaction;
 use App\Models\User;
 use App\Services\AppointmentNumberGenerator;
 use App\Services\AppointmentWorkflow;
@@ -70,7 +71,7 @@ class AppointmentCrudRemediationTest extends TestCase
         ]);
     }
 
-    public function test_admin_create_supports_pending_and_confirmed_and_rejects_terminal_outcomes(): void
+    public function test_admin_calendar_create_confirms_and_rejects_other_statuses(): void
     {
         $admin = User::factory()->admin()->create();
         $customer = CustomerProfile::factory()->create();
@@ -80,21 +81,20 @@ class AppointmentCrudRemediationTest extends TestCase
         $day = now()->addWeek()->startOfDay();
         $this->giveFullBusinessDay($staff, $day);
 
-        $pendingStart = $day->copy()->setTime(14, 0);
+        $confirmedStart = $day->copy()->setTime(16, 0);
         $this->actingAs($admin)
+            ->from(route('admin.appointments.index', absolute: false))
             ->post(route('admin.appointments.store', absolute: false), [
                 'customer_profile_id' => $customer->id,
                 'service_id' => $service->id,
-                'requested_start_at' => $pendingStart->toDateTimeString(),
+                'staff_profile_id' => $staff->id,
+                'requested_start_at' => $confirmedStart->toDateTimeString(),
+                'scheduled_start_at' => $confirmedStart->toDateTimeString(),
                 'status' => Appointment::STATUS_PENDING,
             ])
-            ->assertRedirect();
+            ->assertRedirect(route('admin.appointments.index', absolute: false))
+            ->assertSessionHasErrors('status');
 
-        $pending = Appointment::query()->where('status', Appointment::STATUS_PENDING)->sole();
-        $this->assertNull($pending->staff_profile_id);
-        $this->assertNull($pending->scheduled_start_at);
-
-        $confirmedStart = $day->copy()->setTime(16, 0);
         $this->actingAs($admin)
             ->post(route('admin.appointments.store', absolute: false), [
                 'customer_profile_id' => $customer->id,
@@ -104,17 +104,15 @@ class AppointmentCrudRemediationTest extends TestCase
                 'scheduled_start_at' => $confirmedStart->toDateTimeString(),
                 'status' => Appointment::STATUS_CONFIRMED,
             ])
-            ->assertRedirect();
+            ->assertRedirect(route('admin.appointments.index', absolute: false));
 
         $confirmed = Appointment::query()->where('status', Appointment::STATUS_CONFIRMED)->sole();
         $this->assertSame($staff->id, $confirmed->staff_profile_id);
         $this->assertTrue($confirmed->scheduled_end_at->equalTo($confirmedStart->copy()->addHour()));
         $this->assertNotNull($confirmed->confirmed_at);
-        $this->assertNotSame($pending->appointment_number, $confirmed->appointment_number);
-
         foreach ([Appointment::STATUS_COMPLETED, Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW] as $terminalStatus) {
             $this->actingAs($admin)
-                ->from(route('admin.appointments.create', absolute: false))
+                ->from(route('admin.appointments.index', absolute: false))
                 ->post(route('admin.appointments.store', absolute: false), [
                     'customer_profile_id' => $customer->id,
                     'service_id' => $service->id,
@@ -123,11 +121,11 @@ class AppointmentCrudRemediationTest extends TestCase
                     'scheduled_start_at' => $day->copy()->setTime(18, 0)->toDateTimeString(),
                     'status' => $terminalStatus,
                 ])
-                ->assertRedirect(route('admin.appointments.create', absolute: false))
+                ->assertRedirect(route('admin.appointments.index', absolute: false))
                 ->assertSessionHasErrors('status');
         }
 
-        $this->assertDatabaseCount('appointments', 2);
+        $this->assertDatabaseCount('appointments', 1);
     }
 
     public function test_transition_matrix_exhaustively_matches_the_declared_lifecycle(): void
@@ -166,197 +164,6 @@ class AppointmentCrudRemediationTest extends TestCase
 
             $this->assertSame(in_array($targetStatus, Appointment::CREATION_STATUSES, true), $accepted);
         }
-    }
-
-    public function legacy_admin_updates_apply_outcomes_and_preserve_canonical_status_metadata(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $customer = CustomerProfile::factory()->create();
-        $service = Service::factory()->create(['duration_minutes' => 60]);
-        $staff = StaffProfile::factory()->create();
-        $staff->services()->attach($service);
-        $start = now()->addWeek()->setTime(14, 0, 0);
-        $this->giveFullBusinessDay($staff, $start);
-
-        $pending = Appointment::factory()->for($customer)->for($service)->create([
-            'status' => Appointment::STATUS_PENDING,
-            'requested_start_at' => $start,
-        ]);
-
-        $this->actingAs($admin)
-            ->patch(route('admin.appointments.update', $pending, false), $this->adminPayload($pending, [
-                'staff_profile_id' => $staff->id,
-                'scheduled_start_at' => $start->toDateTimeString(),
-                'status' => Appointment::STATUS_COMPLETED,
-            ]))
-            ->assertSessionHasErrors('status');
-        $this->assertSame(Appointment::STATUS_PENDING, $pending->fresh()->status);
-
-        $this->actingAs($admin)
-            ->patch(route('admin.appointments.update', $pending, false), $this->adminPayload($pending, [
-                'staff_profile_id' => $staff->id,
-                'scheduled_start_at' => $start->toDateTimeString(),
-                'status' => Appointment::STATUS_CONFIRMED,
-            ]))
-            ->assertRedirect(route('admin.appointments.show', $pending, false));
-
-        $confirmed = $pending->fresh();
-        $this->assertSame(Appointment::STATUS_CONFIRMED, $confirmed->status);
-        $this->assertNotNull($confirmed->confirmed_at);
-
-        $this->actingAs($admin)
-            ->patch(route('admin.appointments.update', $confirmed, false), $this->adminPayload($confirmed, [
-                'status' => Appointment::STATUS_COMPLETED,
-            ]))
-            ->assertRedirect(route('admin.appointments.show', $confirmed, false));
-
-        $completed = $confirmed->fresh();
-        $this->assertSame(Appointment::STATUS_COMPLETED, $completed->status);
-        $this->assertNotNull($completed->confirmed_at);
-        $this->assertNotNull($completed->completed_at);
-        $this->assertNull($completed->cancelled_at);
-
-        $this->actingAs($admin)
-            ->patch(route('admin.appointments.update', $completed, false), $this->adminPayload($completed, [
-                'status' => Appointment::STATUS_CONFIRMED,
-            ]))
-            ->assertSessionHasErrors('status');
-        $this->assertSame(Appointment::STATUS_COMPLETED, $completed->fresh()->status);
-
-        $cancelledPending = Appointment::factory()->for($customer)->for($service)->create([
-            'status' => Appointment::STATUS_PENDING,
-            'requested_start_at' => $start->copy()->addDay(),
-        ]);
-        $this->actingAs($admin)
-            ->patch(route('admin.appointments.update', $cancelledPending, false), $this->adminPayload($cancelledPending, [
-                'staff_profile_id' => $staff->id,
-                'scheduled_start_at' => $start->copy()->addDay()->toDateTimeString(),
-                'status' => Appointment::STATUS_CANCELLED,
-            ]))
-            ->assertRedirect(route('admin.appointments.show', $cancelledPending, false));
-
-        $cancelledPending->refresh();
-        $this->assertSame(Appointment::STATUS_CANCELLED, $cancelledPending->status);
-        $this->assertNull($cancelledPending->staff_profile_id);
-        $this->assertNull($cancelledPending->scheduled_start_at);
-        $this->assertNull($cancelledPending->scheduled_end_at);
-        $this->assertNull($cancelledPending->confirmed_at);
-        $this->assertNotNull($cancelledPending->cancelled_at);
-        $this->assertSame($admin->id, $cancelledPending->cancelled_by);
-    }
-
-    public function legacy_staff_can_record_an_outcome_after_the_requested_time_has_passed(): void
-    {
-        $staffUser = User::factory()->staff()->create();
-        $staff = StaffProfile::factory()->for($staffUser)->create();
-        $customer = CustomerProfile::factory()->create();
-        $service = Service::factory()->create();
-        $staff->services()->attach($service);
-        $start = now()->subDay()->setTime(14, 0, 0);
-        $appointment = $this->confirmedAppointment($customer, $service, $staff, $start);
-
-        $this->actingAs($staffUser)
-            ->patch(route('staff.appointments.update', $appointment, false), [
-                'status' => Appointment::STATUS_COMPLETED,
-                'internal_notes' => 'Service completed normally.',
-            ])
-            ->assertRedirect(route('staff.appointments.show', $appointment, false));
-
-        $appointment->refresh();
-        $this->assertSame(Appointment::STATUS_COMPLETED, $appointment->status);
-        $this->assertSame('Service completed normally.', $appointment->internal_notes);
-        $this->assertNotNull($appointment->completed_at);
-    }
-
-    public function legacy_staff_reschedule_control_rechecks_availability_and_rolls_back_overlap(): void
-    {
-        $staffUser = User::factory()->staff()->create();
-        $staff = StaffProfile::factory()->for($staffUser)->create();
-        $customer = CustomerProfile::factory()->create();
-        $service = Service::factory()->create(['duration_minutes' => 60]);
-        $staff->services()->attach($service);
-        $day = now()->addWeek()->startOfDay();
-        $this->giveFullBusinessDay($staff, $day);
-        $appointment = $this->confirmedAppointment($customer, $service, $staff, $day->copy()->setTime(14, 0));
-        $blocker = $this->confirmedAppointment($customer, $service, $staff, $day->copy()->setTime(16, 0));
-
-        $this->actingAs($staffUser)
-            ->get(route('staff.appointments.show', $appointment, false))
-            ->assertOk()
-            ->assertSee('Reschedule appointment')
-            ->assertSee('name="scheduled_start_at"', false);
-
-        $adjacentStart = $day->copy()->setTime(15, 0);
-        $this->actingAs($staffUser)
-            ->patch(route('staff.appointments.update', $appointment, false), [
-                'status' => Appointment::STATUS_CONFIRMED,
-                'scheduled_start_at' => $adjacentStart->toDateTimeString(),
-            ])
-            ->assertRedirect(route('staff.appointments.show', $appointment, false));
-
-        $appointment->refresh();
-        $this->assertTrue($appointment->scheduled_start_at->equalTo($adjacentStart));
-        $this->assertTrue($appointment->scheduled_end_at->equalTo($blocker->scheduled_start_at));
-
-        $this->actingAs($staffUser)
-            ->from(route('staff.appointments.show', $appointment, false))
-            ->patch(route('staff.appointments.update', $appointment, false), [
-                'status' => Appointment::STATUS_CONFIRMED,
-                'scheduled_start_at' => $blocker->scheduled_start_at->toDateTimeString(),
-            ])
-            ->assertRedirect(route('staff.appointments.show', $appointment, false))
-            ->assertSessionHasErrors('scheduled_start_at');
-
-        $this->assertTrue($appointment->fresh()->scheduled_start_at->equalTo($adjacentStart));
-    }
-
-    public function legacy_staff_rescheduling_enforces_opening_midnight_interval_and_future_boundaries(): void
-    {
-        $staffUser = User::factory()->staff()->create();
-        $staff = StaffProfile::factory()->for($staffUser)->create();
-        $customer = CustomerProfile::factory()->create();
-        $service = Service::factory()->create(['duration_minutes' => 60]);
-        $staff->services()->attach($service);
-        $day = now()->addWeek()->startOfDay();
-        $this->giveFullBusinessDay($staff, $day);
-        $appointment = $this->confirmedAppointment($customer, $service, $staff, $day->copy()->setTime(18, 0));
-
-        foreach ([
-            $day->copy()->setTime(12, 30),
-            $day->copy()->setTime(14, 15),
-            $day->copy()->setTime(23, 30),
-            now()->subDay()->setTime(14, 0, 0),
-        ] as $invalidStart) {
-            $originalStart = $appointment->fresh()->scheduled_start_at->copy();
-            $this->actingAs($staffUser)
-                ->patch(route('staff.appointments.update', $appointment, false), [
-                    'status' => Appointment::STATUS_CONFIRMED,
-                    'scheduled_start_at' => $invalidStart->toDateTimeString(),
-                ])
-                ->assertSessionHasErrors('scheduled_start_at');
-            $this->assertTrue($appointment->fresh()->scheduled_start_at->equalTo($originalStart));
-        }
-
-        $opening = $day->copy()->setTime(13, 0);
-        $this->actingAs($staffUser)
-            ->patch(route('staff.appointments.update', $appointment, false), [
-                'status' => Appointment::STATUS_CONFIRMED,
-                'scheduled_start_at' => $opening->toDateTimeString(),
-            ])
-            ->assertRedirect(route('staff.appointments.show', $appointment, false));
-        $this->assertTrue($appointment->fresh()->scheduled_start_at->equalTo($opening));
-
-        $midnightEnding = $day->copy()->setTime(23, 0);
-        $this->actingAs($staffUser)
-            ->patch(route('staff.appointments.update', $appointment, false), [
-                'status' => Appointment::STATUS_CONFIRMED,
-                'scheduled_start_at' => $midnightEnding->toDateTimeString(),
-            ])
-            ->assertRedirect(route('staff.appointments.show', $appointment, false));
-
-        $appointment->refresh();
-        $this->assertTrue($appointment->scheduled_start_at->equalTo($midnightEnding));
-        $this->assertTrue($appointment->scheduled_end_at->equalTo($day->copy()->addDay()->startOfDay()));
     }
 
     public function test_confirmed_scheduling_rejects_ineligible_therapists(): void
@@ -420,7 +227,7 @@ class AppointmentCrudRemediationTest extends TestCase
         $staff->delete();
 
         $this->actingAs($admin)
-            ->get(route('admin.appointments.edit', $appointment, false))
+            ->get(route('admin.appointments.show', $appointment, false))
             ->assertOk()
             ->assertSee($staff->user->name)
             ->assertSee('persistedStaffId', false);
@@ -437,6 +244,55 @@ class AppointmentCrudRemediationTest extends TestCase
         $this->assertSame($staff->id, $appointment->staff_profile_id);
         $this->assertSame('Historical assignment retained.', $appointment->internal_notes);
         $this->assertTrue($appointment->staffProfile->trashed());
+    }
+
+    public function test_linked_transaction_locks_appointment_customer_and_service_but_allows_operational_edits(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $customer = CustomerProfile::factory()->create();
+        $otherCustomer = CustomerProfile::factory()->create();
+        $service = Service::factory()->create(['duration_minutes' => 60]);
+        $otherService = Service::factory()->create(['duration_minutes' => 60]);
+        $staff = StaffProfile::factory()->create();
+        $staff->services()->attach([$service->id, $otherService->id]);
+        $start = now()->addWeek()->setTime(14, 0, 0);
+        $this->giveFullBusinessDay($staff, $start);
+        $appointment = $this->confirmedAppointment($customer, $service, $staff, $start);
+
+        Transaction::factory()->for($admin, 'recorder')->create([
+            'customer_profile_id' => $customer->id,
+            'appointment_id' => $appointment->id,
+            'service_id' => $service->id,
+            'amount' => $appointment->quoted_amount,
+            'amount_paid' => 0,
+            'payment_status' => Transaction::PAYMENT_UNPAID,
+            'payment_method' => null,
+            'paid_at' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.appointments.update', $appointment, false), $this->adminPayload($appointment, [
+                'customer_profile_id' => $otherCustomer->id,
+            ]))
+            ->assertSessionHasErrors('customer_profile_id');
+
+        $this->actingAs($admin)
+            ->patch(route('admin.appointments.update', $appointment, false), $this->adminPayload($appointment->fresh(), [
+                'service_id' => $otherService->id,
+            ]))
+            ->assertSessionHasErrors('service_id');
+
+        $appointment->refresh();
+        $this->assertSame($customer->id, $appointment->customer_profile_id);
+        $this->assertSame($service->id, $appointment->service_id);
+
+        $this->actingAs($admin)
+            ->patch(route('admin.appointments.update', $appointment, false), $this->adminPayload($appointment, [
+                'internal_notes' => 'Therapist prepared the requested room.',
+            ]))
+            ->assertRedirect(route('admin.appointments.show', $appointment, false));
+
+        $this->assertSame('Therapist prepared the requested room.', $appointment->fresh()->internal_notes);
     }
 
     public function test_terminal_appointment_structure_is_immutable_but_notes_remain_editable(): void
@@ -506,7 +362,7 @@ class AppointmentCrudRemediationTest extends TestCase
         $this->assertDatabaseHas('appointments', [
             'customer_profile_id' => $customer->id,
             'appointment_number' => 'APT-RETRY-SUCCEEDED',
-            'status' => Appointment::STATUS_PENDING,
+            'status' => Appointment::STATUS_CONFIRMED,
         ]);
     }
 

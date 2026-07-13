@@ -1,15 +1,9 @@
 @php $modalName = $modalName ?? null; @endphp
-<form method="POST" action="{{ $action }}" @class(['grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]', 'casa-modal-form' => $modalName])>
-    @csrf
-    @if ($method !== 'POST')
-        @method($method)
-    @endif
-    @if ($modalName)<input type="hidden" name="_modal" value="{{ $modalName }}">@endif
-
+<x-form-shell :action="$action" :method="$method" :modal-name="$modalName" @class(['grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]', 'casa-modal-form' => $modalName])>
     <x-app-card>
         <div class="border-b border-casa-border pb-5">
             <p class="casa-section-label">{{ __('Service details') }}</p>
-            <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Treatment information') }}</h2>
+            <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ __('Treatment information') }}</h2>
         </div>
 
         <div class="mt-5 grid gap-5">
@@ -41,9 +35,9 @@
 
             <label class="flex items-start gap-3 rounded-2xl border border-casa-border bg-casa-bg p-4">
                 <input type="hidden" name="is_active" value="0">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $service->is_active)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
+                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $service->is_active)) class="mt-1 rounded border-casa-border text-casa-palm shadow-sm focus:ring-casa-brass">
                 <span>
-                    <span class="block text-sm font-bold text-casa-text">{{ __('Active in catalog') }}</span>
+                    <span class="block text-sm font-bold text-casa-ink">{{ __('Active in catalog') }}</span>
                     <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Active services can be used by upcoming staff assignment and appointment workflows.') }}</span>
                 </span>
             </label>
@@ -54,17 +48,12 @@
     <aside class="space-y-4">
         <x-app-card data-modal-actions>
             <p class="casa-section-label">{{ __('Generated fields') }}</p>
-            <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Slug is automatic') }}</h2>
+            <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ __('Slug is automatic') }}</h2>
             <p class="mt-3 text-sm leading-6 text-casa-muted">
                 {{ __('The system generates a unique URL slug from the service name, including a suffix when names repeat.') }}
             </p>
         </x-app-card>
 
-        <x-app-card>
-            <div class="flex flex-col gap-3">
-                <button type="submit" class="casa-button-primary w-full">{{ $submitLabel }}</button>
-                @if ($modalName)<button type="button" class="casa-button-secondary w-full" x-on:click="$dispatch('close-modal', '{{ $modalName }}')">{{ __('Cancel') }}</button>@else<a href="{{ route('admin.services.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>@endif
-            </div>
-        </x-app-card>
+        <x-form-actions :submit-label="$submitLabel" :modal-name="$modalName" :cancel-url="route('admin.services.index')" />
     </aside>
-</form>
+</x-form-shell>

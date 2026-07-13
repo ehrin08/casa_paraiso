@@ -21,6 +21,7 @@ class ProfileUpdateRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'address' => ['nullable', 'string', 'max:2000'],
             'contact_preference' => ['nullable', Rule::in(array_keys(CustomerProfile::CONTACT_PREFERENCES))],
+            'duplicate_reviewed' => ['sometimes', 'boolean'],
         ];
     }
 }

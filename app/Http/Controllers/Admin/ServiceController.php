@@ -57,7 +57,20 @@ class ServiceController extends Controller
 
     public function create(): View
     {
-        return view('admin.services.create', [
+        return view('admin.shared.form-workspace', [
+            'page' => [
+                'eyebrow' => __('Service catalog'),
+                'title' => __('Add service'),
+                'description' => __('Create a treatment record with pricing and duration before it becomes available for staff assignment.'),
+                'backUrl' => route('admin.services.index'),
+                'backLabel' => __('Back to services'),
+            ],
+            'form' => [
+                'partial' => 'admin.services.partials.form',
+                'action' => route('admin.services.store'),
+                'method' => 'POST',
+                'submitLabel' => __('Create service'),
+            ],
             'service' => new Service(['is_active' => true]),
         ]);
     }
@@ -86,7 +99,20 @@ class ServiceController extends Controller
 
     public function edit(Service $service): View
     {
-        return view('admin.services.edit', [
+        return view('admin.shared.form-workspace', [
+            'page' => [
+                'eyebrow' => __('Service catalog'),
+                'title' => __('Edit service'),
+                'description' => __('Update treatment details while keeping appointment history connected to this service record.'),
+                'backUrl' => route('admin.services.show', $service),
+                'backLabel' => __('View service'),
+            ],
+            'form' => [
+                'partial' => 'admin.services.partials.form',
+                'action' => route('admin.services.update', $service),
+                'method' => 'PATCH',
+                'submitLabel' => __('Save changes'),
+            ],
             'service' => $service,
         ]);
     }

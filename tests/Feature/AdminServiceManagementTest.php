@@ -156,6 +156,6 @@ class AdminServiceManagementTest extends TestCase
             ->assertOk()
             ->assertSee('Aromatherapy Massage')
             ->assertSee('aromatherapy-massage')
-            ->assertSee('Ready for staff assignment');
+            ->assertSee('Assigned providers');
     }
 }

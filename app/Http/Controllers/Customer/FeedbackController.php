@@ -43,15 +43,10 @@ class FeedbackController extends Controller
             ->values();
 
         $feedback = Feedback::query()
-            ->with(['service', 'appointment'])
-            ->leftJoin('services as feedback_services', 'feedback_services.id', '=', 'feedback.service_id')
-            ->select('feedback.*')
+            ->forIndex()
             ->where('customer_profile_id', $customerProfile?->id ?? 0)
-            ->when(in_array($sentiment, Feedback::SENTIMENT_LABELS, true), fn ($query) => $query->where('feedback.sentiment_label', $sentiment))
-            ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
-                $query->where('feedback_services.name', 'like', "%{$search}%")
-                    ->orWhere('feedback.comment', 'like', "%{$search}%");
-            }))
+            ->withSentiment($sentiment)
+            ->searchIndex($search)
             ->orderBy($sorts[$sort], $direction)
             ->orderByDesc('feedback.submitted_at')
             ->paginate(10)

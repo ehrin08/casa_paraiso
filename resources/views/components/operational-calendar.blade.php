@@ -10,8 +10,8 @@
 
 @php
     $isAdminCalendar = $role === 'admin';
-    $weeklyCreatePattern = $isAdminCalendar ? url('/admin/staff/__STAFF__/weekly-schedules/create') : '';
-    $exceptionCreatePattern = $isAdminCalendar ? url('/admin/staff/__STAFF__/schedule-exceptions/create') : '';
+    $weeklyCreatePattern = $isAdminCalendar ? route('admin.staff.weekly-schedules.create', ['staff' => '__STAFF__']) : '';
+    $exceptionCreatePattern = $isAdminCalendar ? route('admin.staff.schedule-exceptions.create', ['staff' => '__STAFF__']) : '';
 @endphp
 
 <div
@@ -33,10 +33,10 @@
             <div class="space-y-3">
                 @if ($isAdminCalendar)
                     <div class="inline-flex rounded-xl border border-casa-border bg-casa-sand/55 p-1" role="group" aria-label="{{ __('Schedule mode') }}">
-                        <button type="button" class="min-h-10 rounded-lg px-4 text-xs font-extrabold uppercase tracking-[0.08em] transition" x-on:click="setMode('bookings')" x-bind:aria-pressed="mode === 'bookings'" x-bind:class="mode === 'bookings' ? 'bg-casa-palm text-white shadow-sm' : 'text-casa-muted hover:text-casa-cacao'">
+                        <button type="button" class="min-h-11 rounded-lg px-4 text-sm font-extrabold uppercase tracking-[0.08em] transition" x-on:click="setMode('bookings')" x-bind:aria-pressed="mode === 'bookings'" x-bind:class="mode === 'bookings' ? 'bg-casa-palm text-white shadow-sm' : 'text-casa-muted hover:text-casa-cacao'">
                             {{ __('Bookings') }}
                         </button>
-                        <button type="button" class="min-h-10 rounded-lg px-4 text-xs font-extrabold uppercase tracking-[0.08em] transition" x-on:click="setMode('availability')" x-bind:aria-pressed="mode === 'availability'" x-bind:class="mode === 'availability' ? 'bg-casa-cacao text-white shadow-sm' : 'text-casa-muted hover:text-casa-cacao'">
+                        <button type="button" class="min-h-11 rounded-lg px-4 text-sm font-extrabold uppercase tracking-[0.08em] transition" x-on:click="setMode('availability')" x-bind:aria-pressed="mode === 'availability'" x-bind:class="mode === 'availability' ? 'bg-casa-cacao text-white shadow-sm' : 'text-casa-muted hover:text-casa-cacao'">
                             {{ __('Availability') }}
                         </button>
                     </div>
@@ -47,8 +47,8 @@
                         <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
                     <div class="min-w-0 flex-1 text-center sm:min-w-44 sm:flex-none">
-                        <p class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Schedule week') }}</p>
-                        <p class="mt-1 font-display text-lg font-black text-casa-text" x-text="weekLabel"></p>
+                        <p class="text-sm font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Schedule week') }}</p>
+                        <p class="mt-1 font-display text-lg font-black text-casa-ink" x-text="weekLabel"></p>
                     </div>
                     <button type="button" class="casa-icon-button" x-on:click="nextWeek()" aria-label="{{ __('Next week') }}">
                         <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -61,7 +61,7 @@
                 @if ($isAdminCalendar)
                     <label class="block min-w-44">
                         <span class="casa-label">{{ __('Therapist') }}</span>
-                        <select class="casa-input mt-1.5" x-model="staffFilter" x-on:change="load()">
+                        <select class="casa-input mt-1.5" x-model="staffFilter" x-on:change="loadWeek()">
                             <option value="">{{ __('All therapists') }}</option>
                             @foreach ($staffProfiles as $staffProfile)
                                 <option value="{{ $staffProfile->id }}">{{ $staffProfile->user?->name }}</option>
@@ -70,7 +70,7 @@
                     </label>
                     <label class="block min-w-44" x-show="mode === 'bookings'">
                         <span class="casa-label">{{ __('Service') }}</span>
-                        <select class="casa-input mt-1.5" x-model="serviceFilter" x-on:change="load()">
+                        <select class="casa-input mt-1.5" x-model="serviceFilter" x-on:change="loadWeek()">
                             <option value="">{{ __('All services') }}</option>
                             @foreach ($services as $service)
                                 <option value="{{ $service->id }}">{{ $service->name }}</option>
@@ -78,15 +78,12 @@
                         </select>
                     </label>
                 @endif
-                <label class="block min-w-40" x-show="mode === 'bookings'">
-                    <span class="casa-label">{{ __('Status') }}</span>
-                    <select class="casa-input mt-1.5" x-model="statusFilter" x-on:change="load()">
-                        <option value="">{{ __('All statuses') }}</option>
-                        @foreach (\App\Models\Appointment::STATUSES as $status)
-                            <option value="{{ $status }}">{{ ucfirst(str_replace('_', ' ', $status)) }}</option>
-                        @endforeach
-                    </select>
-                </label>
+                    <label class="block min-w-40" x-show="mode === 'bookings'">
+                        <span class="casa-label">{{ __('Status') }}</span>
+                        <select class="casa-input mt-1.5" x-model="statusFilter" x-on:change="loadWeek()">
+                            <x-appointment-status-options :all-label="__('All statuses')" />
+                        </select>
+                    </label>
             </div>
         </div>
 
@@ -106,8 +103,8 @@
                     x-bind:class="selectedDate === day.date ? 'border-casa-palm bg-casa-palm text-white shadow-sm' : day.isToday ? 'border-casa-brass bg-casa-sand/65 text-casa-cacao' : 'border-casa-border bg-casa-paper text-casa-muted hover:border-casa-brass'"
                     role="tab"
                 >
-                    <span class="block text-[0.62rem] font-extrabold uppercase tracking-[0.08em]" x-text="day.weekday"></span>
-                    <span class="mt-1 block text-xs font-bold sm:text-sm" x-text="day.label"></span>
+                    <span class="block text-sm font-extrabold uppercase tracking-[0.08em]" x-text="day.weekday"></span>
+                    <span class="mt-1 block text-sm font-bold sm:text-sm" x-text="day.label"></span>
                 </button>
             </template>
         </div>
@@ -119,12 +116,17 @@
         <div class="flex flex-col gap-2 border-b border-casa-border bg-casa-paper px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <p class="casa-section-label" x-text="mode === 'availability' ? '{{ __('Therapist coverage') }}' : '{{ __('Appointment timeline') }}'"></p>
-                <h2 class="mt-1 font-display text-xl font-black text-casa-text" x-text="selectedDateLabel"></h2>
+                <h2 class="mt-1 font-display text-xl font-black text-casa-ink" x-text="selectedDateLabel"></h2>
             </div>
-            <div class="flex flex-wrap items-center gap-2 text-xs font-bold text-casa-muted">
-                <span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-brass"></span>{{ __('Requested') }}</span>
-                <span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-palm"></span>{{ __('Confirmed') }}</span>
-                <span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-cacao"></span>{{ __('Unavailable') }}</span>
+            <div class="flex flex-wrap items-center gap-2 text-sm font-bold text-casa-muted" data-status-legend>
+                <template x-if="mode === 'bookings'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-palm/25 ring-1 ring-casa-palm"></span>{{ __('Available') }}</span></template>
+                <template x-if="mode === 'bookings'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-palm"></span>{{ __('Confirmed') }}</span></template>
+                <template x-if="mode === 'bookings'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-success"></span>{{ __('Completed') }}</span></template>
+                <template x-if="mode === 'bookings'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-danger"></span>{{ __('Cancelled') }}</span></template>
+                <template x-if="mode === 'bookings'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-danger"></span>{{ __('No-show') }}</span></template>
+                <template x-if="mode === 'availability'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-palm/25 ring-1 ring-casa-palm"></span>{{ __('Available') }}</span></template>
+                <template x-if="mode === 'availability'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-sand ring-1 ring-casa-cacao"></span>{{ __('Unavailable') }}</span></template>
+                <template x-if="mode === 'availability'"><span class="casa-filter-chip"><span class="me-1 size-2 rounded-full bg-casa-cacao"></span>{{ __('Confirmed booking') }}</span></template>
                 <x-status-badge x-show="loading">{{ __('Loading') }}</x-status-badge>
             </div>
         </div>
@@ -135,7 +137,8 @@
                     type="button"
                     class="casa-button-primary mb-4 w-full"
                     x-show="mode === 'bookings'"
-                    x-on:click="chooseBooking(null, { time: '13:00', label: '1:00 PM' })"
+                    x-bind:disabled="loading || !timeSlots.length"
+                    x-on:click="chooseBooking(null, timeSlots[0])"
                 >
                     {{ __('Add appointment on this day') }}
                 </button>
@@ -145,13 +148,13 @@
                     <a x-bind:href="event.detail_url || '#'" class="block rounded-2xl border border-casa-border bg-casa-paper p-4 shadow-sm transition hover:border-casa-brass">
                         <div class="flex items-start justify-between gap-3">
                             <div>
-                                <p class="text-xs font-extrabold uppercase tracking-[0.08em] text-casa-cacao" x-text="resourceName(event.resource_id)"></p>
-                                <p class="mt-1 font-bold text-casa-text" x-text="event.title"></p>
+                                <p class="text-sm font-extrabold uppercase tracking-[0.08em] text-casa-cacao" x-text="resourceName(event.resource_id)"></p>
+                                <p class="mt-1 font-bold text-casa-ink" x-text="event.title"></p>
                                 <p class="mt-1 text-sm text-casa-muted" x-text="event.subtitle"></p>
                             </div>
                             <span class="casa-badge border-casa-border bg-casa-sand/60 text-casa-cacao" x-text="statusLabel(event.status)"></span>
                         </div>
-                        <p class="mt-3 text-xs font-bold text-casa-muted" x-text="eventTimeRange(event)"></p>
+                        <p class="mt-3 text-sm font-bold text-casa-muted" x-text="eventTimeRange(event)"></p>
                     </a>
                 </template>
             </div>
@@ -161,11 +164,11 @@
         <div class="hidden overflow-x-auto lg:block" data-calendar-scroll>
             <div class="min-w-max">
                 <div class="sticky top-0 z-30 grid border-b border-casa-border bg-casa-paper" x-bind:style="`grid-template-columns:5.5rem repeat(${Math.max(resources.length, 1)}, minmax(13rem, 1fr))`">
-                    <div class="sticky start-0 z-40 border-e border-casa-border bg-casa-paper p-3 text-center text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Time') }}</div>
+                    <div class="sticky start-0 z-40 border-e border-casa-border bg-casa-paper p-3 text-center text-sm font-extrabold uppercase tracking-[0.12em] text-casa-muted">{{ __('Time') }}</div>
                     <template x-for="resource in resources" x-bind:key="resource.id">
                         <div class="border-e border-casa-border px-3 py-2 text-center">
-                            <p class="text-sm font-extrabold text-casa-text" x-text="resource.name"></p>
-                            <p class="mt-0.5 text-[0.68rem] font-bold text-casa-muted" x-text="resource.subtitle"></p>
+                            <p class="text-sm font-extrabold text-casa-ink" x-text="resource.name"></p>
+                            <p class="mt-0.5 text-sm font-bold text-casa-muted" x-text="resource.subtitle"></p>
                         </div>
                     </template>
                 </div>
@@ -173,7 +176,7 @@
                 <div class="grid" x-bind:style="`grid-template-columns:5.5rem repeat(${Math.max(resources.length, 1)}, minmax(13rem, 1fr))`">
                     <div class="sticky start-0 z-20 border-e border-casa-border bg-casa-paper">
                         <template x-for="slot in timeSlots" x-bind:key="slot.time">
-                            <div class="h-11 border-b border-casa-border/70 px-2 pt-1.5 text-end text-[0.68rem] font-bold text-casa-muted" x-text="slot.label"></div>
+                            <div class="h-11 border-b border-casa-border/70 px-2 pt-1.5 text-end text-sm font-bold text-casa-muted" x-text="slot.label"></div>
                         </template>
                     </div>
 
@@ -190,7 +193,7 @@
                                             x-bind:aria-label="`Create appointment for ${resource.name} on ${selectedDate} at ${slot.label}`"
                                         ></button>
                                         <button
-                                            x-show="mode === 'availability' && resource.id !== 'requests'"
+                                            x-show="mode === 'availability'"
                                             type="button"
                                             class="block h-full w-full transition hover:bg-casa-brass/10"
                                             x-on:click="chooseAvailability(resource, slot)"
@@ -203,7 +206,7 @@
                             <template x-for="event in backgroundEvents(resource.id)" x-bind:key="event.id">
                                 <a
                                     x-bind:href="event.detail_url || '#'"
-                                    class="absolute inset-x-1 z-10 overflow-hidden rounded-lg border px-2 py-1 text-[0.62rem] font-extrabold uppercase tracking-[0.04em]"
+                                    class="absolute inset-x-1 z-10 overflow-hidden rounded-lg border px-2 py-1 text-sm font-extrabold uppercase tracking-[0.04em]"
                                     x-bind:class="[backgroundClass(event), event.read_only ? 'pointer-events-none' : '']"
                                     x-bind:style="backgroundStyle(event)"
                                     x-bind:aria-label="`${event.title}, ${eventTimeRange(event)}`"
@@ -220,9 +223,9 @@
                                     x-bind:style="eventStyle(event)"
                                     x-bind:aria-label="`${statusLabel(event.status)}: ${event.title}, ${eventTimeRange(event)}`"
                                 >
-                                    <span class="block truncate text-[0.62rem] font-extrabold uppercase tracking-[0.06em]" x-text="statusLabel(event.status)"></span>
-                                    <span class="mt-1 block truncate text-xs font-extrabold" x-text="event.title"></span>
-                                    <span class="mt-0.5 block truncate text-[0.68rem] font-semibold opacity-75" x-text="event.subtitle"></span>
+                                    <span class="block truncate text-sm font-extrabold uppercase tracking-[0.06em]" x-text="statusLabel(event.status)"></span>
+                                    <span class="mt-1 block truncate text-sm font-extrabold" x-text="event.title"></span>
+                                    <span class="mt-0.5 block truncate text-sm font-semibold opacity-75" x-text="event.subtitle"></span>
                                 </a>
                             </template>
                         </div>
@@ -233,24 +236,24 @@
     </section>
 
     @if ($isAdminCalendar)
-        <x-modal name="calendar-availability-create" maxWidth="2xl" focusable>
+        <x-modal name="calendar-availability-create" :label="__('Choose availability type')" maxWidth="2xl" focusable>
             <div class="p-6">
                 <p class="casa-section-label">{{ __('Availability editor') }}</p>
-                <h2 class="mt-2 font-display text-2xl font-black text-casa-text">{{ __('How should this time apply?') }}</h2>
+                <h2 class="mt-2 font-display text-2xl font-black text-casa-ink">{{ __('How should this time apply?') }}</h2>
                 <p class="mt-2 text-sm leading-6 text-casa-muted" x-show="availabilitySelection">
-                    <span class="font-bold text-casa-text" x-text="availabilitySelection?.staffName"></span>
+                    <span class="font-bold text-casa-ink" x-text="availabilitySelection?.staffName"></span>
                     · <span x-text="availabilitySelection?.date"></span>
                     · <span x-text="availabilitySelection?.label"></span>
                 </p>
                 <div class="mt-6 grid gap-3 sm:grid-cols-2">
                     <a x-bind:href="availabilityUrl('weekly')" class="rounded-2xl border border-casa-border bg-casa-sand/50 p-5 transition hover:border-casa-palm hover:bg-casa-paper">
-                        <span class="text-xs font-extrabold uppercase tracking-[0.1em] text-casa-palm">{{ __('Repeat weekly') }}</span>
-                        <strong class="mt-2 block text-base text-casa-text">{{ __('Recurring shift') }}</strong>
+                        <span class="text-sm font-extrabold uppercase tracking-[0.1em] text-casa-palm">{{ __('Repeat weekly') }}</span>
+                        <strong class="mt-2 block text-base text-casa-ink">{{ __('Recurring shift') }}</strong>
                         <span class="mt-2 block text-sm leading-6 text-casa-muted">{{ __('Create normal working availability for this weekday.') }}</span>
                     </a>
                     <a x-bind:href="availabilityUrl('exception')" class="rounded-2xl border border-casa-border bg-casa-sand/50 p-5 transition hover:border-casa-cacao hover:bg-casa-paper">
-                        <span class="text-xs font-extrabold uppercase tracking-[0.1em] text-casa-cacao">{{ __('This date only') }}</span>
-                        <strong class="mt-2 block text-base text-casa-text">{{ __('Schedule exception') }}</strong>
+                        <span class="text-sm font-extrabold uppercase tracking-[0.1em] text-casa-cacao">{{ __('This date only') }}</span>
+                        <strong class="mt-2 block text-base text-casa-ink">{{ __('Schedule exception') }}</strong>
                         <span class="mt-2 block text-sm leading-6 text-casa-muted">{{ __('Add availability or block time for this one date.') }}</span>
                     </a>
                 </div>

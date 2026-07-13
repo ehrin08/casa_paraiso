@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\CustomerProfileFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -74,6 +75,39 @@ class CustomerProfile extends Model
         ])->save();
 
         $this->delete();
+    }
+
+    /**
+     * @param  array<int, string>  $counts
+     */
+    public function scopeForIndex(Builder $query, array $counts): Builder
+    {
+        return $query
+            ->with('user')
+            ->withCount($counts)
+            ->join('users', 'users.id', '=', 'customer_profiles.user_id')
+            ->select('customer_profiles.*');
+    }
+
+    public function scopeSearchIdentity(Builder $query, string $search): Builder
+    {
+        return $query->when($search !== '', fn (Builder $query) => $query->where(function (Builder $query) use ($search): void {
+            $query->where('customer_code', 'like', "%{$search}%")
+                ->orWhereHas('user', fn (Builder $userQuery) => $userQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%"));
+        }));
+    }
+
+    public function scopeAssignedToStaff(Builder $query, int $staffProfileId): Builder
+    {
+        return $query->whereHas(
+            'appointments',
+            fn (Builder $appointmentQuery) => $appointmentQuery
+                ->where('staff_profile_id', $staffProfileId)
+                ->whereIn('status', Appointment::ACTIVE_STATUSES),
+        );
     }
 
     public function user()

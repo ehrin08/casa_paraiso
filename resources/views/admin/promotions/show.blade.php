@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Promotion suggestion') }}</p>
-            <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ $suggestion->customerProfile?->user?->name }}</h1>
+            <h1 class="mt-2 font-display text-3xl font-black text-casa-ink">{{ $suggestion->customerProfile?->user?->name }}</h1>
             <p class="mt-2 text-sm text-casa-muted">{{ $suggestion->rfmSegment?->name ?: __('Unsegmented') }}</p>
         </div>
 
@@ -20,7 +20,7 @@
 
                 <div class="mt-6 rounded-2xl bg-casa-bg p-5">
                     <p class="casa-section-label">{{ __('Suggested offer') }}</p>
-                    <p class="mt-3 text-lg font-bold text-casa-text">{{ $suggestion->suggested_offer }}</p>
+                    <p class="mt-3 text-lg font-bold text-casa-ink">{{ $suggestion->suggested_offer }}</p>
                     @if ($suggestion->notes)
                         <p class="mt-4 whitespace-pre-line text-sm leading-6 text-casa-muted">{{ $suggestion->notes }}</p>
                     @endif
@@ -31,7 +31,7 @@
         <aside class="space-y-4">
             <x-app-card>
                 <p class="casa-section-label">{{ __('Review status') }}</p>
-                <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ ucfirst($suggestion->status) }}</h2>
+                <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ ucfirst($suggestion->status) }}</h2>
                 <form method="POST" action="{{ route('admin.promotions.update', $suggestion) }}" class="mt-5 space-y-4">
                     @csrf
                     @method('PATCH')

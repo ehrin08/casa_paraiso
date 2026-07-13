@@ -135,15 +135,85 @@ const addCalendarDays = (value, amount) => {
     return dateKey(date);
 };
 
+const focusAfterRender = (selector) => {
+    window.requestAnimationFrame(() => document.querySelector(selector)?.focus());
+};
+
+const calendarMonthParts = (value) => {
+    const [year, month] = value.split('-').map(Number);
+
+    return { year, month };
+};
+
+const calendarMonthLabel = (value) => {
+    const { year, month } = calendarMonthParts(value);
+
+    return new Date(year, month - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+};
+
+const shiftCalendarMonth = (value, amount) => {
+    const { year, month } = calendarMonthParts(value);
+    const date = new Date(year, month - 1 + amount, 1);
+
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+};
+
+const clockMinutes = (value) => {
+    const [hour, minute] = String(value || '').split(':').map(Number);
+
+    return Number.isInteger(hour) && Number.isInteger(minute) ? (hour * 60) + minute : null;
+};
+
+const longCalendarDateLabel = (value) => localDate(value).toLocaleDateString(undefined, {
+    weekday: 'long',
+    month: 'long',
+    day: 'numeric',
+});
+
+const calendarMonthControls = (afterMove) => ({
+    monthLabel() {
+        return calendarMonthLabel(this.month);
+    },
+
+    calendarMonthParts() {
+        return calendarMonthParts(this.month);
+    },
+
+    previousMonth() {
+        this.moveMonth(-1);
+    },
+
+    nextMonth() {
+        this.moveMonth(1);
+    },
+
+    moveMonth(amount) {
+        this.month = shiftCalendarMonth(this.month, amount);
+        afterMove.call(this);
+    },
+});
+
+const loadRemoteData = (state, request, handleSuccess, handleFailure) => {
+    state.loading = true;
+    state.error = '';
+
+    return request()
+        .then((response) => handleSuccess(response.data))
+        .catch(handleFailure)
+        .finally(() => {
+            state.loading = false;
+        });
+};
+
 const calendarMinutes = (value, selectedDate) => {
     if (!value) {
         return 0;
     }
 
-    const [hour, minute] = value.slice(11, 16).split(':').map(Number);
+    const minutes = clockMinutes(value.slice(11, 16)) || 0;
     const dayOffset = dateFromIso(value) > selectedDate ? 1440 : 0;
 
-    return (hour * 60) + minute + dayOffset;
+    return minutes + dayOffset;
 };
 
 window.operationalCalendar = (config) => ({
@@ -164,8 +234,10 @@ window.operationalCalendar = (config) => ({
     error: '',
     availabilitySelection: null,
     slotHeight: 44,
-    openingMinutes: 13 * 60,
-    closingMinutes: 24 * 60,
+    openingMinutes: null,
+    closingMinutes: null,
+    slotIntervalMinutes: null,
+    availabilitySelectionMinutes: null,
 
     init() {
         const today = dateKey(new Date());
@@ -175,7 +247,7 @@ window.operationalCalendar = (config) => ({
             this.selectedDate = today;
         }
 
-        this.load();
+        this.loadWeek();
     },
 
     get weekEnd() {
@@ -206,9 +278,13 @@ window.operationalCalendar = (config) => ({
     },
 
     get timeSlots() {
+        if (this.openingMinutes === null || this.closingMinutes === null || !this.slotIntervalMinutes) {
+            return [];
+        }
+
         const slots = [];
 
-        for (let minutes = this.openingMinutes; minutes < this.closingMinutes; minutes += 30) {
+        for (let minutes = this.openingMinutes; minutes < this.closingMinutes; minutes += this.slotIntervalMinutes) {
             const hour = Math.floor(minutes / 60) % 24;
             const minute = minutes % 60;
             const date = new Date(2000, 0, 1, hour, minute);
@@ -264,19 +340,19 @@ window.operationalCalendar = (config) => ({
         }
 
         this.mode = mode;
-        this.load();
+        this.loadWeek();
     },
 
     previousWeek() {
         this.weekStart = addCalendarDays(this.weekStart, -7);
         this.selectedDate = this.weekStart;
-        this.load();
+        this.loadWeek();
     },
 
     nextWeek() {
         this.weekStart = addCalendarDays(this.weekStart, 7);
         this.selectedDate = this.weekStart;
-        this.load();
+        this.loadWeek();
     },
 
     today() {
@@ -285,7 +361,7 @@ window.operationalCalendar = (config) => ({
         sunday.setDate(now.getDate() - now.getDay());
         this.weekStart = dateKey(sunday);
         this.selectedDate = dateKey(now);
-        this.load();
+        this.loadWeek();
     },
 
     moveSelectedDay(date, amount) {
@@ -293,27 +369,24 @@ window.operationalCalendar = (config) => ({
 
         if (nextDate < this.weekStart) {
             this.weekStart = addCalendarDays(this.weekStart, -7);
-            this.load();
+            this.loadWeek();
         } else if (nextDate >= this.weekEnd) {
             this.weekStart = addCalendarDays(this.weekStart, 7);
-            this.load();
+            this.loadWeek();
         }
 
         this.selectedDate = nextDate;
-        window.requestAnimationFrame(() => document.querySelector(`[data-operational-day="${nextDate}"]`)?.focus());
+        focusAfterRender(`[data-operational-day="${nextDate}"]`);
     },
 
     focusWeekBoundary(useEnd) {
         const date = addCalendarDays(this.weekStart, useEnd ? 6 : 0);
         this.selectedDate = date;
-        window.requestAnimationFrame(() => document.querySelector(`[data-operational-day="${date}"]`)?.focus());
+        focusAfterRender(`[data-operational-day="${date}"]`);
     },
 
-    load() {
-        this.loading = true;
-        this.error = '';
-
-        return window.axios.get(this.feedUrl, {
+    loadWeek() {
+        return loadRemoteData(this, () => window.axios.get(this.feedUrl, {
             params: {
                 mode: this.mode,
                 start: this.weekStart,
@@ -322,15 +395,27 @@ window.operationalCalendar = (config) => ({
                 service_id: this.serviceFilter || null,
                 status: this.statusFilter || null,
             },
-        }).then((response) => {
-            this.resources = response.data.resources || [];
-            this.events = response.data.events || [];
-        }).catch(() => {
+        }), (data) => {
+            const businessHours = data.business_hours || {};
+            const openingMinutes = clockMinutes(businessHours.opens_at);
+            const closingMinutes = clockMinutes(businessHours.closes_at);
+            const slotIntervalMinutes = Number.parseInt(businessHours.slot_interval_minutes, 10);
+            const availabilitySelectionMinutes = Number.parseInt(businessHours.availability_selection_minutes, 10);
+
+            if (openingMinutes === null || closingMinutes === null || !Number.isInteger(slotIntervalMinutes) || slotIntervalMinutes < 1 || !Number.isInteger(availabilitySelectionMinutes) || availabilitySelectionMinutes < 1) {
+                throw new Error('The schedule feed returned invalid business hours.');
+            }
+
+            this.openingMinutes = openingMinutes;
+            this.closingMinutes = closingMinutes + (businessHours.closes_next_day ? 1440 : 0);
+            this.slotIntervalMinutes = slotIntervalMinutes;
+            this.availabilitySelectionMinutes = availabilitySelectionMinutes;
+            this.resources = data.resources || [];
+            this.events = data.events || [];
+        }, () => {
             this.error = 'The schedule could not be loaded. Try refreshing this week.';
             this.resources = [];
             this.events = [];
-        }).finally(() => {
-            this.loading = false;
         });
     },
 
@@ -374,8 +459,8 @@ window.operationalCalendar = (config) => ({
     },
 
     eventStyle(event) {
-        const top = ((event.startMinutes - this.openingMinutes) / 30) * this.slotHeight;
-        const height = Math.max(((event.endMinutes - event.startMinutes) / 30) * this.slotHeight, 40);
+        const top = ((event.startMinutes - this.openingMinutes) / this.slotIntervalMinutes) * this.slotHeight;
+        const height = Math.max(((event.endMinutes - event.startMinutes) / this.slotIntervalMinutes) * this.slotHeight, 44);
         const width = 100 / event.laneCount;
 
         return `top:${top}px;height:${height}px;left:calc(${event.lane * width}% + 3px);width:calc(${width}% - 6px)`;
@@ -384,22 +469,20 @@ window.operationalCalendar = (config) => ({
     backgroundStyle(event) {
         const start = calendarMinutes(event.starts_at, this.selectedDate);
         const end = calendarMinutes(event.ends_at, this.selectedDate);
-        const top = ((start - this.openingMinutes) / 30) * this.slotHeight;
-        const height = Math.max(((end - start) / 30) * this.slotHeight, this.slotHeight);
+        const top = ((start - this.openingMinutes) / this.slotIntervalMinutes) * this.slotHeight;
+        const height = Math.max(((end - start) / this.slotIntervalMinutes) * this.slotHeight, this.slotHeight);
 
         return `top:${top}px;height:${height}px`;
     },
 
     eventClass(event) {
         return {
-            request: 'casa-calendar-event-request',
-            pending: 'casa-calendar-event-request',
             confirmed: 'casa-calendar-event-confirmed',
             completed: 'casa-calendar-event-completed',
             cancelled: 'casa-calendar-event-cancelled',
             no_show: 'casa-calendar-event-cancelled',
             booking_blocker: 'casa-calendar-event-blocker',
-        }[event.kind === 'booking_blocker' ? event.kind : event.status] || 'casa-calendar-event-request';
+        }[event.kind === 'booking_blocker' ? event.kind : event.status] || 'casa-calendar-event-confirmed';
     },
 
     backgroundClass(event) {
@@ -412,7 +495,7 @@ window.operationalCalendar = (config) => ({
     },
 
     slotCanCreate(resourceId, slot) {
-        if (resourceId === 'requests' || this.mode !== 'bookings') {
+        if (this.mode !== 'bookings') {
             return false;
         }
 
@@ -433,12 +516,18 @@ window.operationalCalendar = (config) => ({
             return;
         }
 
-        const time = slot?.time || '13:00';
+        const selectedSlot = slot || this.timeSlots[0];
+
+        if (!selectedSlot) {
+            return;
+        }
+
+        const time = selectedSlot.time;
         const startsAt = `${this.selectedDate}T${time}`;
 
         window.dispatchEvent(new CustomEvent('calendar-booking-selected', {
             detail: {
-                staffId: resource?.id === 'requests' ? '' : String(resource?.id || ''),
+                staffId: String(resource?.id || ''),
                 date: this.selectedDate,
                 time,
                 startsAt,
@@ -448,7 +537,7 @@ window.operationalCalendar = (config) => ({
     },
 
     chooseAvailability(resource, slot) {
-        if (this.mode !== 'availability' || resource.id === 'requests') {
+        if (this.mode !== 'availability') {
             return;
         }
 
@@ -469,7 +558,7 @@ window.operationalCalendar = (config) => ({
 
         const selection = this.availabilitySelection;
         const startMinutes = calendarMinutes(`${selection.date}T${selection.time}:00`, selection.date);
-        const endMinutes = Math.min(startMinutes + 60, 1440);
+        const endMinutes = Math.min(startMinutes + this.availabilitySelectionMinutes, this.closingMinutes);
         const endsNextDay = endMinutes >= 1440;
         const endHour = Math.floor(endMinutes / 60) % 24;
         const endMinute = endMinutes % 60;
@@ -502,19 +591,19 @@ window.customerAppointmentCalendar = (config) => ({
     error: '',
     weekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
 
+    ...calendarMonthControls(function () {
+        this.selectedDate = `${this.month}-01`;
+        this.loadMonth();
+    }),
+
     init() {
         const today = dateKey(new Date());
         this.selectedDate = today.slice(0, 7) === this.month ? today : `${this.month}-01`;
-        this.load();
-    },
-
-    get monthLabel() {
-        const [year, month] = this.month.split('-').map(Number);
-        return new Date(year, month - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        this.loadMonth();
     },
 
     get calendarDays() {
-        const [year, month] = this.month.split('-').map(Number);
+        const { year, month } = this.calendarMonthParts();
         const first = new Date(year, month - 1, 1);
         const gridStart = new Date(first);
         gridStart.setDate(first.getDate() - first.getDay());
@@ -542,27 +631,7 @@ window.customerAppointmentCalendar = (config) => ({
     },
 
     get selectedDateLabel() {
-        return localDate(this.selectedDate).toLocaleDateString(undefined, {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-        });
-    },
-
-    previousMonth() {
-        const [year, month] = this.month.split('-').map(Number);
-        const date = new Date(year, month - 2, 1);
-        this.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        this.selectedDate = `${this.month}-01`;
-        this.load();
-    },
-
-    nextMonth() {
-        const [year, month] = this.month.split('-').map(Number);
-        const date = new Date(year, month, 1);
-        this.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        this.selectedDate = `${this.month}-01`;
-        this.load();
+        return longCalendarDateLabel(this.selectedDate);
     },
 
     selectDate(date) {
@@ -577,25 +646,24 @@ window.customerAppointmentCalendar = (config) => ({
 
         if (nextMonth !== this.month) {
             this.month = nextMonth;
-            this.load();
+            this.loadMonth();
         }
 
-        window.requestAnimationFrame(() => document.querySelector(`[data-customer-calendar-day="${nextDate}"]`)?.focus());
+        focusAfterRender(`[data-customer-calendar-day="${nextDate}"]`);
     },
 
-    load() {
-        this.loading = true;
-        this.error = '';
-
-        return window.axios.get(this.feedUrl, { params: { month: this.month, status: this.statusFilter || null } })
-            .then((response) => {
-                this.events = response.data.events || [];
-            }).catch(() => {
+    loadMonth() {
+        return loadRemoteData(
+            this,
+            () => window.axios.get(this.feedUrl, { params: { month: this.month, status: this.statusFilter || null } }),
+            (data) => {
+                this.events = data.events || [];
+            },
+            () => {
                 this.error = 'Your appointment calendar could not be loaded. Try again.';
                 this.events = [];
-            }).finally(() => {
-                this.loading = false;
-            });
+            },
+        );
     },
 
     eventTime(event) {
@@ -607,7 +675,6 @@ window.adminAppointmentForm = (config) => ({
     availableUrl: config.availableUrl,
     appointmentId: config.appointmentId || '',
     serviceId: config.initialServiceId || '',
-    requestedStart: config.initialRequestedStart || '',
     scheduledStart: config.initialScheduledStart || '',
     staffId: config.initialStaffId || '',
     persistedServiceId: config.persistedServiceId || '',
@@ -629,7 +696,6 @@ window.adminAppointmentForm = (config) => ({
             return;
         }
 
-        this.requestedStart = selection.startsAt;
         this.scheduledStart = selection.startsAt;
         this.staffId = selection.staffId || '';
         this.refreshTherapists();
@@ -719,6 +785,11 @@ window.customerCalendarBooking = (config) => ({
     weekDays: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
     slotPreviewLimit: config.slotPreviewLimit || 2,
 
+    ...calendarMonthControls(function () {
+        this.resetSelection();
+        this.fetchAvailability();
+    }),
+
     init() {
         if (this.selectedSlot) {
             this.selectedDate = this.selectedSlot.slice(0, 10);
@@ -729,13 +800,8 @@ window.customerCalendarBooking = (config) => ({
         }
     },
 
-    get monthLabel() {
-        const [year, month] = this.month.split('-').map(Number);
-        return new Date(year, month - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    },
-
     get calendarDays() {
-        const [year, month] = this.month.split('-').map(Number);
+        const { year, month } = this.calendarMonthParts();
         const firstDay = new Date(year, month - 1, 1);
         const daysInMonth = new Date(year, month, 0).getDate();
         const days = [];
@@ -782,11 +848,7 @@ window.customerCalendarBooking = (config) => ({
             return 'Choose a highlighted date.';
         }
 
-        return new Date(`${this.selectedDate}T00:00:00`).toLocaleDateString(undefined, {
-            weekday: 'long',
-            month: 'long',
-            day: 'numeric',
-        });
+        return longCalendarDateLabel(this.selectedDate);
     },
 
     get selectedSlotLabel() {
@@ -807,8 +869,7 @@ window.customerCalendarBooking = (config) => ({
             this.staffId = '';
         }
 
-        this.selectedDate = '';
-        this.selectedSlot = '';
+        this.resetSelection();
         this.fetchAvailability();
     },
 
@@ -818,27 +879,13 @@ window.customerCalendarBooking = (config) => ({
     },
 
     staffChanged() {
-        this.selectedDate = '';
-        this.selectedSlot = '';
+        this.resetSelection();
         this.fetchAvailability();
     },
 
-    previousMonth() {
-        const [year, month] = this.month.split('-').map(Number);
-        const date = new Date(year, month - 2, 1);
-        this.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    resetSelection() {
         this.selectedDate = '';
         this.selectedSlot = '';
-        this.fetchAvailability();
-    },
-
-    nextMonth() {
-        const [year, month] = this.month.split('-').map(Number);
-        const date = new Date(year, month, 1);
-        this.month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-        this.selectedDate = '';
-        this.selectedSlot = '';
-        this.fetchAvailability();
     },
 
     selectDate(date) {
@@ -855,7 +902,7 @@ window.customerCalendarBooking = (config) => ({
             }
 
             this.selectDate(nextDate);
-            window.requestAnimationFrame(() => document.querySelector(`[data-booking-calendar-day="${nextDate}"]`)?.focus());
+            focusAfterRender(`[data-booking-calendar-day="${nextDate}"]`);
         };
 
         if (nextMonth !== this.month) {
@@ -879,33 +926,33 @@ window.customerCalendarBooking = (config) => ({
     },
 
     fetchAvailability() {
-        this.error = '';
         this.slotsByDate = {};
 
         if (!this.serviceId) {
+            this.error = '';
             return Promise.resolve();
         }
 
-        this.loading = true;
+        return loadRemoteData(
+            this,
+            () => window.axios.get(this.availabilityUrl, {
+                params: {
+                    service_id: this.serviceId,
+                    preferred_staff_profile_id: this.staffId || null,
+                    month: this.month,
+                },
+            }),
+            (data) => {
+                this.slotsByDate = data.dates || {};
 
-        return window.axios.get(this.availabilityUrl, {
-            params: {
-                service_id: this.serviceId,
-                preferred_staff_profile_id: this.staffId || null,
-                month: this.month,
+                if (this.selectedDate && !this.slotsByDate[this.selectedDate]) {
+                    this.resetSelection();
+                }
             },
-        }).then((response) => {
-            this.slotsByDate = response.data.dates || {};
-
-            if (this.selectedDate && !this.slotsByDate[this.selectedDate]) {
-                this.selectedDate = '';
-                this.selectedSlot = '';
-            }
-        }).catch(() => {
-            this.error = 'Availability could not be loaded. Try another service or month.';
-        }).finally(() => {
-            this.loading = false;
-        });
+            () => {
+                this.error = 'Availability could not be loaded. Try another service or month.';
+            },
+        );
     },
 });
 
@@ -994,16 +1041,18 @@ const shouldSkipNavigationUrl = (url) => {
         && Boolean(url.hash);
 };
 
+const hasNonSelfTarget = (element) => Boolean(element.target && element.target !== '_self');
+
+const isSameWindowLink = (link) => link instanceof HTMLAnchorElement
+    && !hasNonSelfTarget(link)
+    && !link.hasAttribute('download');
+
 const isFastLink = (link) => {
-    if (!(link instanceof HTMLAnchorElement) || link.hasAttribute('data-turbo')) {
+    if (!isSameWindowLink(link) || link.hasAttribute('data-turbo')) {
         return false;
     }
 
-    if (link.target && link.target !== '_self') {
-        return false;
-    }
-
-    if (link.hasAttribute('download') || link.hasAttribute('data-panel-link') || link.hasAttribute('data-no-turbo')) {
+    if (link.hasAttribute('data-panel-link') || link.hasAttribute('data-no-turbo')) {
         return false;
     }
 
@@ -1021,7 +1070,7 @@ const isFastGetForm = (form) => {
         return false;
     }
 
-    if (form.method.toLowerCase() !== 'get' || (form.target && form.target !== '_self')) {
+    if (form.method.toLowerCase() !== 'get' || hasNonSelfTarget(form)) {
         return false;
     }
 
@@ -1049,7 +1098,7 @@ const prepareFastNavigation = (root = document) => {
 };
 
 const shouldHandleLink = (link, event) => {
-    if (!link || event.defaultPrevented || isModifiedClick(event)) {
+    if (!isSameWindowLink(link) || event.defaultPrevented || isModifiedClick(event)) {
         return false;
     }
 
@@ -1057,11 +1106,7 @@ const shouldHandleLink = (link, event) => {
         return false;
     }
 
-    if (link.target && link.target !== '_self') {
-        return false;
-    }
-
-    if (link.hasAttribute('download') || link.hasAttribute('data-no-loading')) {
+    if (link.hasAttribute('data-no-loading')) {
         return false;
     }
 

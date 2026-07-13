@@ -106,14 +106,4 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasOne(CustomerProfile::class)->withTrashed();
     }
-
-    public function recordedTransactions()
-    {
-        return $this->hasMany(Transaction::class, 'recorded_by');
-    }
-
-    public function reviewedPromotionSuggestions()
-    {
-        return $this->hasMany(PromotionSuggestion::class, 'reviewed_by');
-    }
 }

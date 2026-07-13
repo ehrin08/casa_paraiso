@@ -63,10 +63,25 @@ class PromotionRuleController extends Controller
 
     public function create(Request $request): View
     {
-        return view('admin.promotion-rules.create', $this->formData(new PromotionRule([
-            'rfm_segment_id' => $request->integer('rfm_segment_id') ?: null,
-            'is_active' => true,
-        ])));
+        return view('admin.shared.form-workspace', [
+            'page' => [
+                'eyebrow' => __('Promotion configuration'),
+                'title' => __('Add promotion rule'),
+                'description' => __('Choose the segment and the exact offer administrators will review before use.'),
+                'backUrl' => route('admin.promotion-rules.index'),
+                'backLabel' => __('Back to rules'),
+            ],
+            'form' => [
+                'partial' => 'admin.promotion-rules.partials.form',
+                'action' => route('admin.promotion-rules.store'),
+                'method' => 'POST',
+                'submitLabel' => __('Create rule'),
+            ],
+            ...$this->formData(new PromotionRule([
+                'rfm_segment_id' => $request->integer('rfm_segment_id') ?: null,
+                'is_active' => true,
+            ])),
+        ]);
     }
 
     public function store(PromotionRuleRequest $request): RedirectResponse
@@ -82,7 +97,22 @@ class PromotionRuleController extends Controller
 
     public function edit(PromotionRule $promotionRule): View
     {
-        return view('admin.promotion-rules.edit', $this->formData($promotionRule));
+        return view('admin.shared.form-workspace', [
+            'page' => [
+                'eyebrow' => __('Promotion configuration'),
+                'title' => __('Edit promotion rule'),
+                'description' => __('Changes affect future generation; stored suggestions retain their original offer snapshot.'),
+                'backUrl' => route('admin.promotion-rules.index'),
+                'backLabel' => __('Back to rules'),
+            ],
+            'form' => [
+                'partial' => 'admin.promotion-rules.partials.form',
+                'action' => route('admin.promotion-rules.update', $promotionRule),
+                'method' => 'PATCH',
+                'submitLabel' => __('Save changes'),
+            ],
+            ...$this->formData($promotionRule),
+        ]);
     }
 
     public function update(PromotionRuleRequest $request, PromotionRule $promotionRule): RedirectResponse

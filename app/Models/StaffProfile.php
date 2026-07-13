@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\StaffProfileFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -29,14 +30,23 @@ class StaffProfile extends Model
         ];
     }
 
+    public function scopeEligibleForAppointments(Builder $query): Builder
+    {
+        return $query
+            ->where('is_bookable', true)
+            ->whereHas('user', fn (Builder $query) => $query->where('is_active', true));
+    }
+
+    public function scopeOfferingService(Builder $query, Service|int $service): Builder
+    {
+        $serviceId = $service instanceof Service ? $service->getKey() : $service;
+
+        return $query->whereHas('services', fn (Builder $query) => $query->whereKey($serviceId));
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function staffServices()
-    {
-        return $this->hasMany(StaffService::class);
     }
 
     public function services()
@@ -57,10 +67,5 @@ class StaffProfile extends Model
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
-    }
-
-    public function preferredAppointments()
-    {
-        return $this->hasMany(Appointment::class, 'preferred_staff_profile_id');
     }
 }

@@ -83,7 +83,7 @@ class IdentityAndEligibilityRemediationTest extends TestCase
         }
     }
 
-    public function test_staff_index_editor_keeps_an_inactive_assigned_service_selectable(): void
+    public function test_staff_edit_page_keeps_an_inactive_assigned_service_selectable(): void
     {
         $admin = User::factory()->admin()->create();
         $staffProfile = StaffProfile::factory()->create();
@@ -91,7 +91,7 @@ class IdentityAndEligibilityRemediationTest extends TestCase
         $staffProfile->services()->attach($service);
 
         $this->actingAs($admin)
-            ->get(route('admin.staff.index', absolute: false))
+            ->get(route('admin.staff.edit', $staffProfile, absolute: false))
             ->assertOk()
             ->assertSee('name="service_ids[]" value="'.$service->id.'"', false)
             ->assertSee($service->name)
@@ -340,6 +340,7 @@ class IdentityAndEligibilityRemediationTest extends TestCase
         $googleUser->user = ['verified_email' => true];
 
         $provider = Mockery::mock(Provider::class);
+        $provider->shouldReceive('redirectUrl')->andReturnSelf();
         $provider->shouldReceive('user')->once()->andReturn($googleUser);
         Socialite::shouldReceive('driver')->with('google')->once()->andReturn($provider);
     }

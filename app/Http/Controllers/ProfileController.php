@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\CustomerProfile;
 use App\Models\User;
+use App\Services\CustomerDuplicateDetector;
 use App\Services\PasswordSetupConfirmation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -32,10 +33,27 @@ class ProfileController extends Controller
     /**
      * Update the user's profile information.
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request, CustomerDuplicateDetector $duplicates): RedirectResponse
     {
         $data = $request->validated();
         $user = $request->user();
+
+        if ($user->isCustomer()) {
+            $warnings = $duplicates->likelyMatches(
+                $data['name'],
+                $data['phone'] ?? null,
+                $user->id,
+            );
+
+            if ($warnings !== [] && ! $request->boolean('duplicate_reviewed')) {
+                return back()
+                    ->withInput()
+                    ->with('duplicateCustomerWarnings', $warnings)
+                    ->withErrors([
+                        'duplicate_reviewed' => __('Review the possible customer match before saving this profile.'),
+                    ]);
+            }
+        }
 
         DB::transaction(function () use ($data, $user): void {
             $user->update([

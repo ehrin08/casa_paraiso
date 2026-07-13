@@ -2,11 +2,12 @@
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Admin module') }}</p>
-            <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('Customers') }}</h1>
+            <h1 class="mt-2 font-display text-3xl font-black text-casa-ink">{{ __('Customers') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">
                 {{ __('Review customer records, visit history, payments, feedback, and promotion context.') }}
             </p>
         </div>
+        <a href="{{ route('admin.customers.duplicates') }}" class="casa-button-secondary">{{ __('Review possible duplicates') }}</a>
     </x-slot>
 
     <div class="space-y-6">
@@ -17,18 +18,18 @@
         </section>
 
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Customer records') }}" title="{{ __('Profile list') }}" :count="$customers->total()" :reset-url="route('admin.customers.index')">
-                <form method="GET" action="{{ route('admin.customers.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
-                    <input type="hidden" name="sort" value="{{ $sort }}">
-                    <input type="hidden" name="direction" value="{{ $direction }}">
-                    <input type="search" name="q" value="{{ $search }}" class="casa-input" placeholder="{{ __('Search customers') }}" aria-label="{{ __('Search customers') }}">
-                    <select name="status" class="casa-input">
-                        <option value="">{{ __('All accounts') }}</option>
-                        <option value="active" @selected($status === 'active')>{{ __('Active') }}</option>
-                        <option value="inactive" @selected($status === 'inactive')>{{ __('Inactive') }}</option>
-                    </select>
-                    <button type="submit" class="casa-button-secondary">{{ __('Filter') }}</button>
-                </form>
+            <x-list-toolbar eyebrow="{{ __('Customer records') }}" title="{{ __('Profile list') }}" :count="$customers->total()" :reset-url="route('admin.customers.index')" default-sort="name" default-direction="asc">
+                <x-filter-form
+                    :action="route('admin.customers.index')"
+                    :sort="$sort"
+                    :direction="$direction"
+                    :search="$search"
+                    :search-placeholder="__('Search customers')"
+                    :search-label="__('Search customers')"
+                    class="sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]"
+                >
+                    <x-active-status-filter :value="$status" :all-label="__('All accounts')" />
+                </x-filter-form>
             </x-list-toolbar>
 
             <div class="mt-5">
@@ -39,7 +40,7 @@
                     />
                 @else
                     <x-table-shell>
-                        <thead class="bg-casa-bg text-left text-xs font-black uppercase tracking-[0.1em] text-casa-muted">
+                        <thead class="bg-casa-bg text-left text-sm font-black uppercase tracking-[0.1em] text-casa-muted">
                             <tr>
                                 <x-sortable-th sort="name">{{ __('Customer') }}</x-sortable-th>
                                 <th class="px-4 py-3">{{ __('Contact') }}</th>
@@ -52,10 +53,8 @@
                             @foreach ($customers as $customer)
                                 <tr class="casa-table-row">
                                     <td class="px-4 py-4">
-                                        <a href="{{ route('admin.customers.show', $customer) }}" class="font-bold text-casa-text hover:text-casa-primary">
-                                            {{ $customer->user->name }}
-                                        </a>
-                                        <p class="mt-1 text-xs text-casa-muted">{{ $customer->customer_code }}</p>
+                                        <p class="font-bold text-casa-ink">{{ $customer->user->name }}</p>
+                                        <p class="mt-1 text-sm text-casa-muted">{{ $customer->customer_code }}</p>
                                     </td>
                                     <td class="px-4 py-4 text-casa-muted">
                                         <p>{{ $customer->user->email }}</p>
@@ -70,7 +69,7 @@
                                         <x-status-badge>{{ $customer->contact_preference ?: __('Not set') }}</x-status-badge>
                                     </td>
                                     <td class="px-4 py-4">
-                                        <a href="{{ route('admin.customers.show', $customer) }}" class="font-bold text-casa-primary hover:text-casa-primary-dark">
+                                        <a href="{{ route('admin.customers.show', $customer) }}" class="font-bold text-casa-palm hover:text-casa-palm-dark">
                                             {{ __('Open') }}
                                         </a>
                                     </td>

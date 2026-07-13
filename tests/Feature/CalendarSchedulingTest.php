@@ -20,7 +20,7 @@ class CalendarSchedulingTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $staffUser = User::factory()->staff()->create();
-        StaffProfile::factory()->for($staffUser)->create();
+        $staffProfile = StaffProfile::factory()->for($staffUser)->create();
         $firstCustomer = User::factory()->customer()->create();
         $firstProfile = CustomerProfile::factory()->for($firstCustomer)->create();
         $secondCustomer = User::factory()->customer()->create();
@@ -30,11 +30,19 @@ class CalendarSchedulingTest extends TestCase
 
         Appointment::factory()->for($firstProfile)->for($service)->create([
             'appointment_number' => 'APT-OWN-CALENDAR',
+            'staff_profile_id' => $staffProfile->id,
+            'status' => Appointment::STATUS_CONFIRMED,
             'requested_start_at' => $start,
+            'scheduled_start_at' => $start,
+            'scheduled_end_at' => $start->copy()->addHour(),
         ]);
         Appointment::factory()->for($secondProfile)->for($service)->create([
             'appointment_number' => 'APT-OTHER-CALENDAR',
+            'staff_profile_id' => $staffProfile->id,
+            'status' => Appointment::STATUS_CONFIRMED,
             'requested_start_at' => $start,
+            'scheduled_start_at' => $start,
+            'scheduled_end_at' => $start->copy()->addHour(),
         ]);
 
         $customerResponse = $this->actingAs($firstCustomer)->getJson(route('customer.appointments.calendar', [
@@ -137,7 +145,7 @@ class CalendarSchedulingTest extends TestCase
         $this->assertFalse(collect($response->json('dates.'.$start->toDateString()))->contains('time', '14:00'));
     }
 
-    public function test_staff_calendar_hides_unassigned_pending_requests(): void
+    public function test_operational_calendars_hide_historical_pending_requests(): void
     {
         $admin = User::factory()->admin()->create();
         $firstUser = User::factory()->staff()->create();
@@ -180,7 +188,7 @@ class CalendarSchedulingTest extends TestCase
         ], false));
         $adminNumbers = collect($adminResponse->json('events'))->pluck('appointment_number')->filter();
 
-        $this->assertTrue($adminNumbers->contains('APT-PREFERS-SECOND'));
+        $this->assertFalse($adminNumbers->contains('APT-PREFERS-SECOND'));
     }
 
     public function test_availability_change_is_rolled_back_when_it_breaks_a_confirmed_booking(): void
@@ -276,7 +284,7 @@ class CalendarSchedulingTest extends TestCase
             ->get(route('admin.appointments.index', absolute: false))
             ->assertOk()
             ->assertSee('calendar-appointment-create', false)
-            ->assertSee(route('admin.appointments.calendar.store', absolute: false), false)
+            ->assertSee(route('admin.appointments.store', absolute: false), false)
             ->assertSee('calendar-booking-selected', false)
             ->assertSee('Confirmed reservation')
             ->assertSee('Add appointment on this day');
@@ -297,7 +305,7 @@ class CalendarSchedulingTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->post(route('admin.appointments.calendar.store', absolute: false), [
+            ->post(route('admin.appointments.store', absolute: false), [
                 '_modal' => 'calendar-appointment-create',
                 'customer_profile_id' => $customer->id,
                 'service_id' => $service->id,
@@ -348,7 +356,7 @@ class CalendarSchedulingTest extends TestCase
 
         $this->actingAs($admin)
             ->from(route('admin.appointments.index', absolute: false))
-            ->post(route('admin.appointments.calendar.store', absolute: false), [
+            ->post(route('admin.appointments.store', absolute: false), [
                 ...$base,
                 'status' => Appointment::STATUS_PENDING,
             ])
@@ -356,7 +364,7 @@ class CalendarSchedulingTest extends TestCase
 
         $this->actingAs($admin)
             ->from(route('admin.appointments.index', absolute: false))
-            ->post(route('admin.appointments.calendar.store', absolute: false), [
+            ->post(route('admin.appointments.store', absolute: false), [
                 ...$base,
                 'staff_profile_id' => $staff->id,
                 'status' => Appointment::STATUS_CONFIRMED,

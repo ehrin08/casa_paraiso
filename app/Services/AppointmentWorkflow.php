@@ -38,9 +38,10 @@ class AppointmentWorkflow
         string $field = 'scheduled_start_at',
         bool $mustBeFuture = true,
     ): void {
-        $timezone = (string) config('casa.business_hours.timezone', config('app.timezone'));
+        $businessHours = $this->scheduleWindows->businessHours();
+        $timezone = $businessHours['timezone'];
         $candidate = Carbon::instance($start)->setTimezone($timezone);
-        $interval = (int) config('casa.business_hours.slot_interval_minutes', 30);
+        $interval = $businessHours['slot_interval_minutes'];
         $messages = [];
 
         if ($mustBeFuture && $candidate->lte(now($timezone))) {
@@ -54,7 +55,9 @@ class AppointmentWorkflow
         }
 
         if (! $this->scheduleWindows->withinBusinessHours($candidate, $this->scheduledEnd($candidate, $service))) {
-            $messages[] = __('The full service must fit inside business hours (1:00 PM to 12:00 midnight).');
+            $messages[] = __('The full service must fit inside business hours (:window).', [
+                'window' => $businessHours['window'],
+            ]);
         }
 
         if ($messages !== []) {
@@ -110,26 +113,6 @@ class AppointmentWorkflow
     }
 
     /**
-     * Persist a new pending request with collision-safe number allocation.
-     *
-     * @param  array<string, mixed>  $attributes
-     */
-    public function createPending(array $attributes, ?int $changedBy = null, ?string $reason = null): Appointment
-    {
-        return $this->withAppointmentNumberRetry(function (string $number) use ($attributes, $changedBy, $reason): Appointment {
-            return DB::transaction(function () use ($attributes, $changedBy, $reason, $number): Appointment {
-                $appointment = new Appointment;
-                $appointment->fill([
-                    ...$attributes,
-                    'appointment_number' => $number,
-                ]);
-
-                return $this->applyStatus($appointment, Appointment::STATUS_PENDING, $changedBy, $reason);
-            }, 3);
-        });
-    }
-
-    /**
      * Atomically assign and confirm a customer-selected slot.
      *
      * @param  array<string, mixed>  $attributes
@@ -146,9 +129,8 @@ class AppointmentWorkflow
         return $this->withAppointmentNumberRetry(function (string $number) use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy): Appointment {
             return DB::transaction(function () use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy, $number): Appointment {
                 $candidateIds = StaffProfile::query()
-                    ->where('is_bookable', true)
-                    ->whereHas('user', fn ($query) => $query->where('is_active', true))
-                    ->whereHas('services', fn ($query) => $query->whereKey($service->id))
+                    ->eligibleForAppointments()
+                    ->offeringService($service)
                     ->orderBy('id')
                     ->pluck('id');
 
@@ -197,6 +179,7 @@ class AppointmentWorkflow
                     'requested_start_at' => $start,
                     'scheduled_start_at' => $start,
                     'scheduled_end_at' => $end,
+                    'quoted_amount' => $service->price,
                     'updated_by' => $changedBy,
                 ]);
 
@@ -247,13 +230,7 @@ class AppointmentWorkflow
         unset($dirtyAttributes['status']);
 
         return DB::transaction(function () use ($appointment, $status, $changedBy, $reason, $dirtyAttributes): Appointment {
-            $target = $appointment->exists
-                ? Appointment::query()->lockForUpdate()->findOrFail($appointment->id)
-                : $appointment;
-
-            if ($appointment->exists) {
-                $target->fill($dirtyAttributes);
-            }
+            $target = $this->lockedTarget($appointment, $dirtyAttributes);
 
             return $this->applyStatus($target, $status, $changedBy, $reason);
         }, 3);
@@ -291,13 +268,7 @@ class AppointmentWorkflow
                 ->lockForUpdate()
                 ->findOrFail($staffProfile->id);
 
-            $target = $appointment->exists
-                ? Appointment::query()->lockForUpdate()->findOrFail($appointment->id)
-                : $appointment;
-
-            if ($appointment->exists) {
-                $target->fill($dirtyAttributes);
-            }
+            $target = $this->lockedTarget($appointment, $dirtyAttributes);
 
             $end = $this->scheduledEnd($start, $service);
 
@@ -312,11 +283,63 @@ class AppointmentWorkflow
                 'staff_profile_id' => $lockedStaff->id,
                 'scheduled_start_at' => $start,
                 'scheduled_end_at' => $end,
+                'quoted_amount' => ! $target->exists
+                    || (int) $target->getOriginal('service_id') !== (int) $service->id
+                    || $target->quoted_amount === null
+                        ? $service->price
+                        : $target->quoted_amount,
                 'updated_by' => $changedBy,
             ]);
 
             return $this->applyStatus($target, Appointment::STATUS_CONFIRMED, $changedBy, $reason);
         }, 3);
+    }
+
+    /**
+     * @param  array<string, mixed>  $dirtyAttributes
+     */
+    private function lockedTarget(Appointment $appointment, array $dirtyAttributes): Appointment
+    {
+        if (! $appointment->exists) {
+            return $appointment;
+        }
+
+        $target = Appointment::query()->lockForUpdate()->findOrFail($appointment->id);
+        $this->assertLinkedTransactionIdentityUnchanged($target, $dirtyAttributes);
+        $target->fill($dirtyAttributes);
+
+        return $target;
+    }
+
+    /**
+     * A linked transaction snapshots the appointment's customer and service.
+     * Run this check after locking the appointment so a concurrent payment
+     * cannot be created between the identity check and the appointment update.
+     *
+     * @param  array<string, mixed>  $dirtyAttributes
+     */
+    private function assertLinkedTransactionIdentityUnchanged(Appointment $appointment, array $dirtyAttributes): void
+    {
+        $customerChanged = array_key_exists('customer_profile_id', $dirtyAttributes)
+            && (int) $appointment->customer_profile_id !== (int) $dirtyAttributes['customer_profile_id'];
+        $serviceChanged = array_key_exists('service_id', $dirtyAttributes)
+            && (int) $appointment->service_id !== (int) $dirtyAttributes['service_id'];
+
+        if ((! $customerChanged && ! $serviceChanged) || ! $appointment->transaction()->exists()) {
+            return;
+        }
+
+        $errors = [];
+
+        if ($customerChanged) {
+            $errors['customer_profile_id'] = __('The customer cannot be changed after a transaction is linked to this appointment.');
+        }
+
+        if ($serviceChanged) {
+            $errors['service_id'] = __('The service cannot be changed after a transaction is linked to this appointment.');
+        }
+
+        throw ValidationException::withMessages($errors);
     }
 
     private function applyStatus(Appointment $appointment, string $status, ?int $changedBy, ?string $reason): Appointment
@@ -397,7 +420,7 @@ class AppointmentWorkflow
             try {
                 return $callback($this->nextAppointmentNumber());
             } catch (QueryException $exception) {
-                if (! $this->isAppointmentNumberCollision($exception)) {
+                if (! UniqueConstraintViolation::forColumn($exception, 'appointment_number')) {
                     throw $exception;
                 }
             }
@@ -406,13 +429,5 @@ class AppointmentWorkflow
         throw ValidationException::withMessages([
             'appointment_number' => __('The appointment number could not be allocated. Please submit the appointment again.'),
         ]);
-    }
-
-    private function isAppointmentNumberCollision(QueryException $exception): bool
-    {
-        $message = strtolower($exception->getMessage());
-
-        return str_contains($message, 'appointment_number')
-            && (str_contains($message, 'unique') || str_contains($message, 'duplicate'));
     }
 }

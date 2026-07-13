@@ -21,8 +21,7 @@ class AppointmentCalendar
     {
         $staffProfiles = StaffProfile::query()
             ->with(['user', 'services', 'weeklySchedules', 'scheduleExceptions'])
-            ->where('is_bookable', true)
-            ->whereHas('user', fn (Builder $query) => $query->where('is_active', true))
+            ->eligibleForAppointments()
             ->when($filters['staff_profile_id'] ?? null, fn (Builder $query, int $id) => $query->whereKey($id))
             ->get()
             ->sortBy('user.name')
@@ -34,12 +33,6 @@ class AppointmentCalendar
             $events = $this->availabilityEvents($staffProfiles, $start, $end);
             $events = $events->concat($this->bookingBlockers($staffProfiles, $start, $end));
         } else {
-            $resources->prepend([
-                'id' => 'requests',
-                'name' => __('Pending requests'),
-                'subtitle' => __('Unassigned demand'),
-            ]);
-
             $query = $this->appointmentsInRange(Appointment::query(), $start, $end)
                 ->with(['customerProfile.user', 'service', 'staffProfile.user', 'preferredStaffProfile.user'])
                 ->when($filters['service_id'] ?? null, fn (Builder $query, int $id) => $query->where('service_id', $id))
@@ -102,17 +95,10 @@ class AppointmentCalendar
 
     private function appointmentsInRange(Builder $query, Carbon $start, Carbon $end): Builder
     {
-        return $query->where(function (Builder $query) use ($start, $end): void {
-            $query->where(function (Builder $query) use ($start, $end): void {
-                $query->where('status', Appointment::STATUS_PENDING)
-                    ->where('requested_start_at', '>=', $start)
-                    ->where('requested_start_at', '<', $end);
-            })->orWhere(function (Builder $query) use ($start, $end): void {
-                $query->where('status', '!=', Appointment::STATUS_PENDING)
-                    ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) >= ?', [$start])
-                    ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) < ?', [$end]);
-            });
-        });
+        return $query
+            ->whereIn('status', Appointment::ACTIVE_STATUSES)
+            ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) >= ?', [$start])
+            ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) < ?', [$end]);
     }
 
     /**
@@ -220,7 +206,7 @@ class AppointmentCalendar
             'staff_profile_id' => $staff->id,
             'starts_at' => $interval['start']->toIso8601String(),
             'ends_at' => $interval['end']->toIso8601String(),
-            'status' => $kind,
+            'status' => $kind === 'unavailable_exception' ? 'unavailable' : 'available',
             'title' => $title,
             'subtitle' => $subtitle,
             'detail_url' => $detailUrl,
@@ -286,18 +272,21 @@ class AppointmentCalendar
      */
     private function payload(Carbon $start, Carbon $end, Collection $resources, Collection $events, string $mode): array
     {
+        $businessHours = $this->scheduleWindows->businessHours();
+
         return [
             'range' => [
                 'start' => $start->toDateString(),
                 'end' => $end->toDateString(),
-                'timezone' => config('casa.business_hours.timezone', config('app.timezone')),
+                'timezone' => $businessHours['timezone'],
             ],
             'mode' => $mode,
             'business_hours' => [
-                'opens_at' => config('casa.business_hours.opens_at', '13:00'),
-                'closes_at' => config('casa.business_hours.closes_at', '00:00'),
-                'closes_next_day' => (bool) config('casa.business_hours.closes_next_day', true),
-                'slot_interval_minutes' => (int) config('casa.business_hours.slot_interval_minutes', 30),
+                'opens_at' => $businessHours['opens_at'],
+                'closes_at' => $businessHours['closes_at'],
+                'closes_next_day' => $businessHours['closes_next_day'],
+                'slot_interval_minutes' => $businessHours['slot_interval_minutes'],
+                'availability_selection_minutes' => $businessHours['availability_selection_minutes'],
             ],
             'resources' => $resources->values()->all(),
             'events' => $events->filter(fn (array $event) => $event['starts_at'] && $event['ends_at'])->values()->all(),

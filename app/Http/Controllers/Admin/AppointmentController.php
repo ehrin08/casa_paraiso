@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminAppointmentCompletionRequest;
 use App\Http\Requests\AdminAppointmentOutcomeRequest;
-use App\Http\Requests\AdminAppointmentStoreRequest;
 use App\Http\Requests\AdminAppointmentUpdateRequest;
 use App\Http\Requests\AdminCalendarAppointmentStoreRequest;
 use App\Http\Requests\AppointmentRequest;
@@ -16,24 +15,31 @@ use App\Models\StaffProfile;
 use App\Models\Transaction;
 use App\Services\AppointmentCompletion;
 use App\Services\AppointmentWorkflow;
+use App\Services\ScheduleWindowResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
 {
-    public function index(Request $request): View
+    public function index(Request $request, ScheduleWindowResolver $scheduleWindows): View
     {
+        $data = $request->validate([
+            'customer_profile_id' => ['nullable', 'integer', Rule::exists('customer_profiles', 'id')->whereNull('deleted_at')],
+        ]);
         $mode = in_array($request->query('mode'), ['bookings', 'availability'], true)
             ? (string) $request->query('mode')
             : 'bookings';
+        $defaultStart = $scheduleWindows->businessWindow(now()->addDay())['start'];
 
         $calendarAppointment = new Appointment([
-            'requested_start_at' => now()->addDay()->setTime(13, 0),
-            'scheduled_start_at' => now()->addDay()->setTime(13, 0),
+            'customer_profile_id' => $data['customer_profile_id'] ?? null,
+            'requested_start_at' => $defaultStart,
+            'scheduled_start_at' => $defaultStart,
             'status' => Appointment::STATUS_CONFIRMED,
         ]);
 
@@ -41,60 +47,35 @@ class AppointmentController extends Controller
             'mode' => $mode,
             'initialWeek' => now()->startOfWeek(Carbon::SUNDAY)->toDateString(),
             'summary' => [
-                'pending' => Appointment::query()->where('status', Appointment::STATUS_PENDING)->count(),
-                'confirmed' => Appointment::query()->where('status', Appointment::STATUS_CONFIRMED)->count(),
+                'today' => Appointment::query()
+                    ->where('status', Appointment::STATUS_CONFIRMED)
+                    ->whereDate('scheduled_start_at', today())
+                    ->count(),
+                'upcoming' => Appointment::query()
+                    ->where('status', Appointment::STATUS_CONFIRMED)
+                    ->where('scheduled_start_at', '>=', now())
+                    ->count(),
                 'completed' => Appointment::query()->where('status', Appointment::STATUS_COMPLETED)->count(),
             ],
             'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
             'staffProfiles' => StaffProfile::query()
                 ->with('user')
-                ->where('is_bookable', true)
-                ->whereHas('user', fn ($query) => $query->where('is_active', true))
+                ->eligibleForAppointments()
                 ->get()
                 ->sortBy('user.name'),
             'customers' => CustomerProfile::query()->with('user')->get()->sortBy('user.name')->values(),
             'calendarAppointment' => $calendarAppointment,
+            'openCreateModal' => isset($data['customer_profile_id']),
             'serviceQueue' => Appointment::query()
                 ->with(['customerProfile.user', 'service', 'staffProfile.user'])
                 ->where('status', Appointment::STATUS_CONFIRMED)
+                ->where('scheduled_start_at', '>=', now())
                 ->orderBy('scheduled_start_at')
                 ->get(),
         ]);
     }
 
-    public function create(Request $request): View
-    {
-        $data = $request->validate([
-            'customer_profile_id' => ['nullable', 'integer', 'exists:customer_profiles,id'],
-            'staff_profile_id' => ['nullable', 'integer', 'exists:staff_profiles,id'],
-            'requested_start_at' => ['nullable', 'date'],
-            'scheduled_start_at' => ['nullable', 'date'],
-            'status' => ['nullable', 'in:pending,confirmed'],
-        ]);
-        $scheduledStart = ! empty($data['scheduled_start_at']) ? Carbon::parse($data['scheduled_start_at']) : null;
-        $requestedStart = ! empty($data['requested_start_at'])
-            ? Carbon::parse($data['requested_start_at'])
-            : ($scheduledStart?->copy() ?? now()->addDay()->setTime(13, 0));
-
-        return view('admin.appointments.create', $this->formData(new Appointment([
-            'requested_start_at' => $requestedStart,
-            'scheduled_start_at' => $scheduledStart,
-            'status' => $data['status'] ?? ($scheduledStart && ! empty($data['staff_profile_id']) ? Appointment::STATUS_CONFIRMED : Appointment::STATUS_PENDING),
-            'customer_profile_id' => $data['customer_profile_id'] ?? null,
-            'staff_profile_id' => $data['staff_profile_id'] ?? null,
-        ])));
-    }
-
-    public function store(AdminAppointmentStoreRequest $request, AppointmentWorkflow $workflow): RedirectResponse
-    {
-        $appointment = $this->persistAppointment(new Appointment, $request, $workflow);
-
-        return redirect()
-            ->route('admin.appointments.show', $appointment)
-            ->with('status', 'appointment-created');
-    }
-
-    public function storeFromCalendar(AdminCalendarAppointmentStoreRequest $request, AppointmentWorkflow $workflow): RedirectResponse
+    public function store(AdminCalendarAppointmentStoreRequest $request, AppointmentWorkflow $workflow): RedirectResponse
     {
         $this->persistAppointment(new Appointment, $request, $workflow);
 
@@ -110,7 +91,8 @@ class AppointmentController extends Controller
             'service',
             'staffProfile.user',
             'preferredStaffProfile.user',
-            'transactions.recorder',
+            'transaction.recorder',
+            'transaction.adjustments.actor',
             'feedback',
             'statusLogs.changedBy',
         ]);
@@ -123,21 +105,15 @@ class AppointmentController extends Controller
                 'appointment_id' => $appointment->id,
                 'customer_profile_id' => $appointment->customer_profile_id,
                 'service_id' => $appointment->service_id,
-                'amount' => $appointment->service?->price,
-                'payment_status' => Transaction::PAYMENT_PAID,
+                'amount' => $appointment->quoted_amount ?? $appointment->service?->price,
+                'amount_paid' => 0,
+                'payment_status' => Transaction::PAYMENT_UNPAID,
                 'payment_method' => Transaction::METHOD_CASH,
                 'paid_at' => now(),
             ]),
             'transactionAppointments' => collect([$appointment]),
             ...$formData,
         ]);
-    }
-
-    public function edit(Appointment $appointment): View
-    {
-        $appointment->load(['customerProfile.user', 'service', 'staffProfile.user', 'preferredStaffProfile.user']);
-
-        return view('admin.appointments.edit', $this->formData($appointment));
     }
 
     public function update(AdminAppointmentUpdateRequest $request, Appointment $appointment, AppointmentWorkflow $workflow): RedirectResponse
@@ -187,8 +163,10 @@ class AppointmentController extends Controller
         $data = $request->validated();
         $service = Service::query()->findOrFail($data['service_id']);
         $status = $data['status'];
-        $requestedStart = Carbon::parse($data['requested_start_at']);
-        $scheduledStart = ! empty($data['scheduled_start_at']) ? Carbon::parse($data['scheduled_start_at']) : null;
+        $scheduledStart = ! empty($data['scheduled_start_at'])
+            ? Carbon::parse($data['scheduled_start_at'])
+            : null;
+        $requestedStart = $scheduledStart ?? Carbon::parse($data['requested_start_at']);
         $staffProfile = ! empty($data['staff_profile_id'])
             ? StaffProfile::withTrashed()->with('user')->findOrFail($data['staff_profile_id'])
             : null;
@@ -221,19 +199,6 @@ class AppointmentController extends Controller
             throw ValidationException::withMessages([
                 'preferred_staff_profile_id' => __('The preferred therapist must be active, bookable, and eligible for this service.'),
             ]);
-        }
-
-        $requestChanged = $isNew
-            || (int) $originalServiceId !== (int) $service->id
-            || ! $originalRequestedStart?->equalTo($requestedStart);
-
-        if ($isNew || ($status === Appointment::STATUS_PENDING && $requestChanged)) {
-            $workflow->assertBookableStart($requestedStart, $service, 'requested_start_at');
-        }
-
-        if ($status === Appointment::STATUS_PENDING) {
-            $staffProfile = null;
-            $scheduledStart = null;
         }
 
         if ($status === Appointment::STATUS_CONFIRMED) {
@@ -282,6 +247,9 @@ class AppointmentController extends Controller
             'requested_start_at' => $requestedStart,
             'scheduled_start_at' => $scheduledStart,
             'scheduled_end_at' => $scheduledEnd,
+            'quoted_amount' => $isNew || (int) $originalServiceId !== (int) $service->id
+                ? $service->price
+                : ($appointment->quoted_amount ?? $service->price),
             'customer_notes' => $data['customer_notes'] ?? null,
             'internal_notes' => $data['internal_notes'] ?? null,
             'created_by' => $appointment->created_by ?: $request->user()->id,
@@ -298,14 +266,6 @@ class AppointmentController extends Controller
                 $staffProfile,
                 $service,
                 $scheduledStart,
-                $request->user()->id,
-                $data['reason'] ?? null,
-            );
-        }
-
-        if ($isNew) {
-            return $workflow->createPending(
-                $appointment->getAttributes(),
                 $request->user()->id,
                 $data['reason'] ?? null,
             );
@@ -335,9 +295,8 @@ class AppointmentController extends Controller
 
         $therapists = StaffProfile::query()
             ->with(['user', 'services', 'weeklySchedules', 'scheduleExceptions'])
-            ->where('is_bookable', true)
-            ->whereHas('user', fn ($query) => $query->where('is_active', true))
-            ->whereHas('services', fn ($query) => $query->whereKey($service->id))
+            ->eligibleForAppointments()
+            ->offeringService($service)
             ->get()
             ->filter(fn (StaffProfile $staff) => $workflow->isStaffAvailable($staff, $service, $start, null, $appointment))
             ->sortBy('user.name')
@@ -360,8 +319,7 @@ class AppointmentController extends Controller
         $services = Service::query()->where('is_active', true)->orderBy('name')->get();
         $staffProfiles = StaffProfile::query()
             ->with(['user', 'services'])
-            ->where('is_bookable', true)
-            ->whereHas('user', fn ($query) => $query->where('is_active', true))
+            ->eligibleForAppointments()
             ->get();
 
         if ($appointment->customerProfile && ! $customers->contains('id', $appointment->customerProfile->id)) {

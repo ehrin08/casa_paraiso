@@ -2,13 +2,12 @@
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Admin module') }}</p>
-            <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('Reports') }}</h1>
+            <h1 class="mt-2 font-display text-3xl font-black text-casa-ink">{{ __('Reports') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">
                 {{ __('Filter operational records and export CSV files for management review.') }}
             </p>
         </div>
 
-        <a href="{{ route('admin.reports.export', request()->query()) }}" class="casa-button-primary" data-turbo="false">{{ __('Export CSV') }}</a>
     </x-slot>
 
     <div class="space-y-6">
@@ -23,7 +22,7 @@
             <div class="flex flex-col gap-3 border-b border-casa-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p class="casa-section-label">{{ __('Filters') }}</p>
-                    <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Report controls') }}</h2>
+                    <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ __('Report controls') }}</h2>
                 </div>
                 <button type="button" class="casa-button-secondary" @click="open = ! open">
                     <span x-text="open ? '{{ __('Hide filters') }}' : '{{ __('Show filters') }}'">
@@ -40,12 +39,20 @@
                     default => [],
                 };
                 $dateContext = match ($type) {
-                    'appointments' => __('Scheduled date when assigned; requested date otherwise.'),
+                    'appointments' => __('Scheduled date, with the original booking time retained for historical records.'),
                     'transactions' => __('Date payment was received.'),
                     'customers' => __('Date the customer profile was created.'),
                     'promotions' => __('Date the suggestion was generated.'),
                     'feedback' => __('Date feedback was submitted.'),
                 };
+                $defaultSort = match ($type) {
+                    'appointments' => 'schedule',
+                    'transactions' => 'paid_at',
+                    'customers' => 'name',
+                    'promotions' => 'created',
+                    'feedback' => 'submitted',
+                };
+                $defaultDirection = $type === 'customers' ? 'asc' : 'desc';
             @endphp
 
             <form method="GET" action="{{ route('admin.reports.index') }}" class="mt-5 grid gap-4 lg:grid-cols-6" x-show="open">
@@ -104,7 +111,7 @@
                     </select>
                 </div>
                 @endif
-                <p class="text-xs leading-5 text-casa-muted lg:col-span-6">{{ $dateContext }}</p>
+                <p class="text-sm leading-5 text-casa-muted lg:col-span-6">{{ $dateContext }}</p>
                 <div class="lg:col-span-6">
                     <button type="submit" class="casa-button-secondary">{{ __('Apply filters') }}</button>
                 </div>
@@ -112,7 +119,7 @@
         </x-app-card>
 
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Results') }}" title="{{ ucfirst($type) }}" :count="$records->total()" :reset-url="route('admin.reports.index', ['type' => $type])">
+            <x-list-toolbar eyebrow="{{ __('Results') }}" title="{{ ucfirst($type) }}" :count="$records->total()" :reset-url="route('admin.reports.index', ['type' => $type])" :default-sort="$defaultSort" :default-direction="$defaultDirection" :context-query-keys="['type']">
                 <a href="{{ route('admin.reports.export', request()->query()) }}" class="casa-button-secondary" data-turbo="false">{{ __('Export filtered CSV') }}</a>
             </x-list-toolbar>
 
@@ -121,7 +128,7 @@
                     <x-empty-state title="{{ __('No report rows') }}" description="{{ __('Try adjusting the date range or status filters.') }}" />
                 @else
                     <x-table-shell>
-                        <thead class="bg-casa-bg text-left text-xs font-black uppercase tracking-[0.1em] text-casa-muted">
+                        <thead class="bg-casa-bg text-left text-sm font-black uppercase tracking-[0.1em] text-casa-muted">
                             <tr>
                                 @if ($type === 'transactions')
                                     <x-sortable-th sort="number">{{ __('No.') }}</x-sortable-th>
@@ -165,14 +172,14 @@
                             @foreach ($records as $record)
                                 <tr class="casa-table-row">
                                     @if ($type === 'transactions')
-                                        <td class="px-4 py-4 font-semibold text-casa-text">{{ $record->transaction_number }}</td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">{{ $record->transaction_number }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->customerProfile?->user?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->service?->name }}</td>
-                                        <td class="px-4 py-4 font-semibold text-casa-text">PHP {{ number_format((float) $record->amount, 2) }}</td>
-                                        <td class="px-4 py-4"><x-status-badge>{{ ucfirst($record->payment_status) }}</x-status-badge></td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">PHP {{ number_format((float) $record->amount, 2) }}</td>
+                                        <td class="px-4 py-4"><x-status-badge :status="$record->payment_status">{{ ucfirst($record->payment_status) }}</x-status-badge></td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->paid_at?->format('M d, Y g:i A') ?: __('Not paid') }}</td>
                                     @elseif ($type === 'customers')
-                                        <td class="px-4 py-4 font-semibold text-casa-text">{{ $record->customer_code }}</td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">{{ $record->customer_code }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->user?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->user?->email }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->created_at?->format('M d, Y') }}</td>
@@ -182,23 +189,23 @@
                                         <td class="px-4 py-4 text-casa-muted">{{ trans_choice(':count feedback|:count feedback', $record->feedback_count) }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ trans_choice(':count promotion|:count promotions', $record->promotion_suggestions_count) }}</td>
                                     @elseif ($type === 'promotions')
-                                        <td class="px-4 py-4 font-semibold text-casa-text">{{ $record->customerProfile?->user?->name }}</td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">{{ $record->customerProfile?->user?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->rfmSegment?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->suggested_offer }}</td>
                                         <td class="px-4 py-4 text-casa-muted">R{{ $record->recency_days ?? 'N/A' }} F{{ $record->frequency_count ?? 0 }}</td>
-                                        <td class="px-4 py-4"><x-status-badge>{{ ucfirst($record->status) }}</x-status-badge></td>
+                                        <td class="px-4 py-4"><x-status-badge :status="$record->status">{{ ucfirst($record->status) }}</x-status-badge></td>
                                     @elseif ($type === 'feedback')
-                                        <td class="px-4 py-4 font-semibold text-casa-text">{{ $record->customerProfile?->user?->name }}</td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">{{ $record->customerProfile?->user?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->service?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->rating }}/5</td>
-                                        <td class="px-4 py-4"><x-status-badge>{{ ucfirst($record->sentiment_label) }}</x-status-badge></td>
+                                        <td class="px-4 py-4"><x-status-badge :status="$record->sentiment_label">{{ ucfirst($record->sentiment_label) }}</x-status-badge></td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->submitted_at?->format('M d, Y') }}</td>
                                     @else
-                                        <td class="px-4 py-4 font-semibold text-casa-text">{{ $record->appointment_number }}</td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">{{ $record->appointment_number }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->customerProfile?->user?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $record->service?->name }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ ($record->scheduled_start_at ?? $record->requested_start_at)?->format('M d, Y g:i A') }}</td>
-                                        <td class="px-4 py-4"><x-status-badge>{{ ucfirst(str_replace('_', ' ', $record->status)) }}</x-status-badge></td>
+                                        <td class="px-4 py-4"><x-status-badge :status="$record->status">{{ ucfirst(str_replace('_', ' ', $record->status)) }}</x-status-badge></td>
                                     @endif
                                 </tr>
                             @endforeach

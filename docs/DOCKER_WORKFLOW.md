@@ -160,7 +160,7 @@ MAIL_FROM_ADDRESS="ehrinjohn08@gmail.com"
 MAIL_FROM_NAME="${APP_NAME}"
 ```
 
-Laravel selects SMTP with automatic STARTTLS for port `587`. This mailer is global, so both password-reset and email-verification notifications will be delivered through Gmail. After saving the secret, clear cached configuration without displaying it:
+Laravel selects SMTP with automatic STARTTLS for port `587`. This mailer is global, so password-reset notifications for eligible customer and privileged accounts will be delivered through Gmail. After saving the secret, clear cached configuration without displaying it:
 
 ```powershell
 docker compose exec -T laravel.test php artisan optimize:clear
@@ -190,7 +190,7 @@ docker compose --profile tunnel up -d cloudflared
 docker compose logs cloudflared
 ```
 
-Copy the generated HTTPS URL into `APP_URL`, clear configuration again, and submit the forgot-password form through that public URL:
+Copy the generated HTTPS URL into `APP_URL`, clear configuration again, and submit the linked-Google customer password-setup flow or an eligible password-reset form through that public URL:
 
 ```env
 APP_URL=https://random-words.trycloudflare.com
@@ -254,28 +254,26 @@ php artisan optimize
 
 `php artisan optimize` caches Laravel configuration, events, routes, and Blade views. Run it on the Linux hosting environment, not during normal Windows/XAMPP development. Re-run it after deploying application, route, configuration, or view changes.
 
-## CRUD Remediation Verification And Recovery
+## Database Change Verification And Recovery
 
-Use the following sequence after deploying CRUD remediation code.
+The database safety gate applies in every non-testing environment: create an export and obtain explicit approval for the exact migration, seed, import, or repair before changing schema or data.
 
-The remediation adds `2026_07_12_020000_add_generation_key_to_promotion_suggestions.php`. This nullable unique key makes promotion generation idempotent without rewriting historical suggestions. Treat it as an approval-gated schema change in every non-testing environment.
+After an approved database change:
 
-1. Create a database export before applying migrations or data repairs.
-2. Obtain explicit approval for the exact migration or repair operation.
-3. Apply migrations with `php artisan migrate --force` only in the intended environment.
-4. Run the read-only integrity audit:
+1. Apply approved migrations with `php artisan migrate --force` only in the intended environment.
+2. Run the read-only integrity audit:
 
 ```powershell
 docker compose exec -T laravel.test php artisan casa:audit-crud-integrity
 ```
 
-5. Run the isolated Feature suite configured by `phpunit.xml` (the 2026-07-12 remediation baseline is 104 tests and 828 assertions):
+3. Run the isolated Feature suite configured by `phpunit.xml`:
 
 ```powershell
 docker compose exec -T laravel.test php artisan test --testsuite=Feature
 ```
 
-6. Run the remaining quality gates:
+4. Run the remaining quality gates:
 
 ```powershell
 docker compose exec -T laravel.test ./vendor/bin/pint --test
@@ -284,15 +282,9 @@ docker compose exec -T laravel.test php artisan view:cache
 docker compose exec -T laravel.test npm run build
 ```
 
-7. Verify the admin, staff, and customer workspaces in signed-in browser sessions, then inspect the browser console and `storage/logs/laravel.log` for new errors.
+5. Verify the admin, staff, and customer workspaces in signed-in browser sessions, then inspect the browser console and `storage/logs/laravel.log` for new errors.
 
-`composer validate` currently succeeds with an advisory that `laravel/socialite` is pinned to exact version `5.28`. Changing that dependency policy requires a separate Composer lockfile review and is not part of the CRUD remediation.
-
-The integrity audit reports orphaned operational relationships and inconsistent status metadata. It never modifies records. A non-zero exit code means the reported records require review before deployment.
-
-For current orphaned appointment findings and the approval-gated repair sequence, see `docs/CRUD_DATA_REPAIR_PLAN.md`.
-
-The approved local repair was completed on 2026-07-12 using `casa:repair-approved-appointment-references --execute`. The command performs a safe dry run unless `--execute` is supplied and refuses to proceed if appointment status, therapist eligibility, schedule coverage, overlap, or deleted-reference conditions have changed.
+The integrity audit never modifies records. A non-zero exit code means the reported records require review before deployment. The completed 2026-07-12 CRUD audit, approval, backup hash, repair commands, before/after values, and verification evidence are preserved in [CRUD_REMEDIATION_RECORD.md](CRUD_REMEDIATION_RECORD.md).
 
 ### Rollback
 

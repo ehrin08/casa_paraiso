@@ -27,9 +27,9 @@ class AppointmentController extends Controller
                 ->where('status', Appointment::STATUS_CONFIRMED)
                 ->where('scheduled_start_at', '>=', now())
                 ->count(),
-            'pending' => Appointment::query()
+            'cancelled' => Appointment::query()
                 ->where('customer_profile_id', $customerProfileId)
-                ->where('status', Appointment::STATUS_PENDING)
+                ->where('status', Appointment::STATUS_CANCELLED)
                 ->count(),
             'completed' => Appointment::query()
                 ->where('customer_profile_id', $customerProfileId)
@@ -49,8 +49,7 @@ class AppointmentController extends Controller
             'services' => Service::query()->with('staffProfiles.user')->where('is_active', true)->orderBy('name')->get(),
             'staffProfiles' => StaffProfile::query()
                 ->with(['user', 'services'])
-                ->where('is_bookable', true)
-                ->whereHas('user', fn ($query) => $query->where('is_active', true))
+                ->eligibleForAppointments()
                 ->get()
                 ->sortBy('user.name'),
         ]);

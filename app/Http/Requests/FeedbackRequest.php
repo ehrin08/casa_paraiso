@@ -8,11 +8,6 @@ use Illuminate\Validation\Rule;
 
 class FeedbackRequest extends FormRequest
 {
-    public function authorize(): bool
-    {
-        return $this->user()?->isCustomer() ?? false;
-    }
-
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */

@@ -53,7 +53,20 @@ class RfmSegmentController extends Controller
 
     public function create(): View
     {
-        return view('admin.rfm-segments.create', [
+        return view('admin.shared.form-workspace', [
+            'page' => [
+                'eyebrow' => __('Promotion configuration'),
+                'title' => __('Add RFM segment'),
+                'description' => __('Create a clear customer group using measurable visit and spending thresholds.'),
+                'backUrl' => route('admin.rfm-segments.index'),
+                'backLabel' => __('Back to segments'),
+            ],
+            'form' => [
+                'partial' => 'admin.rfm-segments.partials.form',
+                'action' => route('admin.rfm-segments.store'),
+                'method' => 'POST',
+                'submitLabel' => __('Create segment'),
+            ],
             'rfmSegment' => new RfmSegment(['is_active' => true]),
         ]);
     }
@@ -72,7 +85,20 @@ class RfmSegmentController extends Controller
 
     public function edit(RfmSegment $rfmSegment): View
     {
-        return view('admin.rfm-segments.edit', [
+        return view('admin.shared.form-workspace', [
+            'page' => [
+                'eyebrow' => __('Promotion configuration'),
+                'title' => __('Edit RFM segment'),
+                'description' => __('Changes affect future generation only; stored suggestion snapshots remain unchanged.'),
+                'backUrl' => route('admin.rfm-segments.index'),
+                'backLabel' => __('Back to segments'),
+            ],
+            'form' => [
+                'partial' => 'admin.rfm-segments.partials.form',
+                'action' => route('admin.rfm-segments.update', $rfmSegment),
+                'method' => 'PATCH',
+                'submitLabel' => __('Save changes'),
+            ],
             'rfmSegment' => $rfmSegment,
         ]);
     }

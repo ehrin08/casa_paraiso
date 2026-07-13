@@ -30,11 +30,21 @@ class Appointment extends Model
     ];
 
     /**
+     * Statuses exposed by active booking and operational workflows. Pending is
+     * retained only so historical records and status logs remain readable.
+     */
+    public const ACTIVE_STATUSES = [
+        self::STATUS_CONFIRMED,
+        self::STATUS_COMPLETED,
+        self::STATUS_CANCELLED,
+        self::STATUS_NO_SHOW,
+    ];
+
+    /**
      * Statuses that may be selected when creating an appointment internally.
      * Terminal outcomes require an existing confirmed schedule.
      */
     public const CREATION_STATUSES = [
-        self::STATUS_PENDING,
         self::STATUS_CONFIRMED,
     ];
 
@@ -46,7 +56,6 @@ class Appointment extends Model
      */
     public const STATUS_TRANSITIONS = [
         self::STATUS_PENDING => [
-            self::STATUS_PENDING,
             self::STATUS_CONFIRMED,
             self::STATUS_CANCELLED,
         ],
@@ -70,6 +79,7 @@ class Appointment extends Model
         'requested_start_at',
         'scheduled_start_at',
         'scheduled_end_at',
+        'quoted_amount',
         'status',
         'customer_notes',
         'internal_notes',
@@ -87,6 +97,7 @@ class Appointment extends Model
             'requested_start_at' => 'datetime',
             'scheduled_start_at' => 'datetime',
             'scheduled_end_at' => 'datetime',
+            'quoted_amount' => 'decimal:2',
             'confirmed_at' => 'datetime',
             'completed_at' => 'datetime',
             'cancelled_at' => 'datetime',
@@ -125,9 +136,9 @@ class Appointment extends Model
         return self::STATUS_TRANSITIONS[$this->status] ?? [];
     }
 
-    public function transactions()
+    public function transaction()
     {
-        return $this->hasMany(Transaction::class);
+        return $this->hasOne(Transaction::class);
     }
 
     public function feedback()
@@ -138,20 +149,5 @@ class Appointment extends Model
     public function statusLogs()
     {
         return $this->hasMany(AppointmentStatusLog::class);
-    }
-
-    public function cancelledBy()
-    {
-        return $this->belongsTo(User::class, 'cancelled_by');
-    }
-
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function updater()
-    {
-        return $this->belongsTo(User::class, 'updated_by');
     }
 }

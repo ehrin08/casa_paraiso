@@ -12,7 +12,7 @@ The MVP should support appointment scheduling, customer records, manual transact
 - Staff: reviews assigned appointments and customer details needed for daily operations through read-only workspaces.
 - Customer: books appointments, views booking status, cancels before the scheduled start, and submits feedback after service.
 
-Users authenticate with either a verified Google account or a verified email and password. Customers may self-register; staff and admin emails must be pre-authorized by the protected super administrator. Authenticated Google-only users may reconfirm their linked Google identity in Account Settings to create a password, while passwordless accounts without Google linkage use the reset-password flow.
+Customers self-register only through a verified Google account; the first Google sign-in provisions the customer account, and no public email/password registration is available. The protected super administrator may instead pre-authorize customer access. After provisioning, a customer may reconfirm the linked Google identity in Account Settings to create a password and then use verified email/password login as an alternative to Google. Staff and admin accounts must be pre-authorized by the protected super administrator and retain email/password login plus password-setup and reset access.
 
 ## MVP Features
 
@@ -40,13 +40,16 @@ Users authenticate with either a verified Google account or a verified email and
 
 ### Customer Records
 
-- Admin and staff can view customer profiles, appointment history, transaction history, feedback history, and promotion-relevant behavior.
+- Administrators can view full customer profiles, appointment, transaction, feedback, and promotion-relevant history.
+- Staff have read-only access to operational customer details and histories related to their assigned appointments; promotion behavior remains admin-only.
 - Customer records should support accurate real-time booking, records, and transaction management.
+- Exact email matches reuse the existing account. Similar names or normalized phone numbers require administrator review but do not automatically merge or block legitimate shared contact details.
 
 ### Manual Transactions
 
 - Admin records service transactions manually, including through the atomic finish-service workflow.
-- Transaction records should include customer, appointment or service reference, amount, payment status, payment method, transaction date, and staff/admin recorder.
+- Each appointment has at most one transaction record. Prepayments and partial payments update that record, while an append-only adjustment history preserves payment, correction, full-refund, and void events.
+- Transaction records should include the visit charge, cumulative amount paid, derived balance and payment status, payment method, transaction date, and admin recorder. Customer and service references come from the linked appointment.
 - Online payment gateway integration is not part of the MVP.
 
 ### RFM Promotion Suggestions
@@ -56,7 +59,7 @@ Users authenticate with either a verified Google account or a verified email and
   - Frequency: how often the customer books or completes services.
   - Monetary: how much the customer has spent.
 - Promotion output should be admin-visible suggestions, not automatic customer discounts.
-- Admin or staff should review promotion suggestions before applying or contacting customers.
+- Admin should review promotion suggestions before applying or contacting customers.
 - RFM logic should be rule-based and application-driven to avoid external service dependencies.
 
 ### Feedback And Sentiment Analytics

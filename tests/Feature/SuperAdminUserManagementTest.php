@@ -22,20 +22,18 @@ class SuperAdminUserManagementTest extends TestCase
         $this->actingAs($superAdmin)->get('/admin/users')->assertOk();
     }
 
-    public function test_super_admin_can_preprovision_staff_without_password(): void
+    public function test_generic_user_access_does_not_duplicate_staff_provisioning(): void
     {
         $superAdmin = User::factory()->create(['email' => config('auth.super_admin_email'), 'role' => User::ROLE_SUPER_ADMIN]);
 
-        $this->actingAs($superAdmin)->post('/admin/users', [
+        $this->actingAs($superAdmin)->from('/admin/users')->post('/admin/users', [
             'name' => 'New Therapist',
             'email' => 'therapist@example.com',
             'role' => User::ROLE_STAFF,
             'is_active' => '1',
-        ])->assertRedirect();
+        ])->assertRedirect('/admin/users')->assertSessionHasErrors('role');
 
-        $staff = User::where('email', 'therapist@example.com')->firstOrFail();
-        $this->assertNull($staff->password);
-        $this->assertNotNull($staff->staffProfile);
+        $this->assertDatabaseMissing('users', ['email' => 'therapist@example.com']);
     }
 
     public function test_protected_super_admin_cannot_be_updated(): void

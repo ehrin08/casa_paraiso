@@ -43,8 +43,8 @@
             <div class="flex items-start gap-4 border-b border-casa-border pb-5">
                 <span class="grid size-11 shrink-0 place-items-center rounded-full bg-casa-cacao text-sm font-extrabold text-white">1</span>
                 <div>
-                    <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-casa-cacao">{{ __('Choose your care') }}</p>
-                    <h2 class="mt-1 font-editorial text-3xl font-semibold text-casa-text">{{ __('Treatment and therapist') }}</h2>
+                    <p class="text-sm font-extrabold uppercase tracking-[0.14em] text-casa-cacao">{{ __('Choose your care') }}</p>
+                    <h2 class="mt-1 font-editorial text-3xl font-semibold text-casa-ink">{{ __('Treatment and therapist') }}</h2>
                     <p class="mt-2 text-sm leading-6 text-casa-muted">{{ __('Choose a treatment first. A therapist preference is optional and filters the calendar to that person’s open times.') }}</p>
                 </div>
             </div>
@@ -60,13 +60,13 @@
                             x-bind:aria-pressed="String(serviceId) === '{{ $service->id }}'"
                             x-bind:class="String(serviceId) === '{{ $service->id }}'
                                 ? 'border-casa-palm bg-casa-palm text-white shadow-md'
-                                : 'border-casa-border bg-casa-sand/40 text-casa-text hover:border-casa-brass hover:bg-casa-paper'"
+                                : 'border-casa-border bg-casa-sand/40 text-casa-ink hover:border-casa-brass hover:bg-casa-paper'"
                         >
-                            <span class="block text-[0.65rem] font-extrabold uppercase tracking-[0.1em]" x-bind:class="String(serviceId) === '{{ $service->id }}' ? 'text-white/70' : 'text-casa-cacao'">
+                            <span class="block text-sm font-extrabold uppercase tracking-[0.1em]" x-bind:class="String(serviceId) === '{{ $service->id }}' ? 'text-white/70' : 'text-casa-cacao'">
                                 {{ $service->duration_minutes }} {{ __('minutes') }} · PHP {{ number_format((float) $service->price, 2) }}
                             </span>
                             <strong class="mt-2 block text-base font-extrabold">{{ $service->name }}</strong>
-                            <span class="mt-2 block text-xs leading-5" x-bind:class="String(serviceId) === '{{ $service->id }}' ? 'text-white/75' : 'text-casa-muted'">{{ $service->description }}</span>
+                            <span class="mt-2 block text-sm leading-5" x-bind:class="String(serviceId) === '{{ $service->id }}' ? 'text-white/75' : 'text-casa-muted'">{{ $service->description }}</span>
                         </button>
                     @endforeach
                 </div>
@@ -82,8 +82,8 @@
                             <option x-bind:value="staff.id" x-text="`${staff.name} · ${staff.specialization}`"></option>
                         </template>
                     </select>
-                    <p class="mt-2 text-xs leading-5 text-casa-muted" x-show="!serviceId">{{ __('Choose a treatment to see eligible therapists.') }}</p>
-                    <p class="mt-2 text-xs leading-5 text-casa-muted" x-show="serviceId">{{ __('No preference gives the spa team more flexibility. A selected preference is considered but not guaranteed.') }}</p>
+                    <p class="mt-2 text-sm leading-5 text-casa-muted" x-show="!serviceId">{{ __('Choose a treatment to see eligible therapists.') }}</p>
+                    <p class="mt-2 text-sm leading-5 text-casa-muted" x-show="serviceId">{{ __('No preference gives the spa team more flexibility. A selected preference is considered but not guaranteed.') }}</p>
                     <x-input-error class="mt-2" :messages="$errors->get('preferred_staff_profile_id')" />
                 </div>
             </div>
@@ -105,24 +105,24 @@
             <div class="flex items-start gap-4 border-b border-casa-border pb-5">
                 <span class="grid size-11 shrink-0 place-items-center rounded-full bg-casa-palm text-sm font-extrabold text-white">2</span>
                 <div>
-                    <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-casa-palm">{{ __('Choose your time') }}</p>
-                    <h2 class="mt-1 font-editorial text-3xl font-semibold text-casa-text">{{ __('Available calendar') }}</h2>
-                    <p class="mt-2 text-sm leading-6 text-casa-muted">{{ __('Highlighted dates have at least one open 30-minute start time within 1:00 PM to 12:00 midnight.') }}</p>
+                    <p class="text-sm font-extrabold uppercase tracking-[0.14em] text-casa-palm">{{ __('Choose your time') }}</p>
+                    <h2 class="mt-1 font-editorial text-3xl font-semibold text-casa-ink">{{ __('Available calendar') }}</h2>
+                    <p class="mt-2 text-sm leading-6 text-casa-muted">{{ __('Highlighted dates have at least one open :interval-minute start time within :window.', ['interval' => config('casa.business_hours.slot_interval_minutes'), 'window' => config('casa.business_hours.window')]) }}</p>
                 </div>
             </div>
 
             <div class="mt-6 rounded-2xl border border-casa-border bg-casa-sand/45 p-3 sm:p-5">
                 <div class="flex items-center justify-between gap-4">
                     <button type="button" class="casa-icon-button" x-on:click="previousMonth()" aria-label="{{ __('Previous month') }}">
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <x-nav-icon name="chevron-left" />
                     </button>
-                    <h3 class="font-editorial text-2xl font-semibold text-casa-text sm:text-3xl" x-text="monthLabel"></h3>
+                    <h3 class="font-editorial text-2xl font-semibold text-casa-ink sm:text-3xl" x-text="monthLabel()"></h3>
                     <button type="button" class="casa-icon-button" x-on:click="nextMonth()" aria-label="{{ __('Next month') }}">
-                        <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m9 18 6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <x-nav-icon name="chevron-right" />
                     </button>
                 </div>
 
-                <div class="mt-5 grid grid-cols-7 gap-1.5 text-center text-[0.62rem] font-extrabold uppercase tracking-[0.08em] text-casa-muted sm:gap-2 sm:text-xs">
+                <div class="mt-5 grid grid-cols-7 gap-1.5 text-center text-sm font-extrabold uppercase tracking-[0.08em] text-casa-muted sm:gap-2 sm:text-sm">
                     <template x-for="dayName in weekDays" x-bind:key="dayName"><span x-text="dayName"></span></template>
                 </div>
 
@@ -130,11 +130,11 @@
                     <template x-for="day in calendarDays" x-bind:key="day.key">
                         <button
                             type="button"
-                            class="relative min-h-12 rounded-xl border px-1.5 py-2 text-center text-xs font-extrabold transition sm:min-h-24 sm:rounded-2xl sm:px-2 sm:py-3 sm:text-left sm:text-sm"
+                            class="relative min-h-12 rounded-xl border px-1.5 py-2 text-center text-sm font-extrabold transition sm:min-h-24 sm:rounded-2xl sm:px-2 sm:py-3 sm:text-left sm:text-sm"
                             x-bind:class="day.date === selectedDate
                                 ? 'border-casa-palm bg-casa-palm text-white shadow-md'
                                 : day.available
-                                    ? 'border-casa-brass bg-casa-paper text-casa-text hover:border-casa-palm'
+                                    ? 'border-casa-brass bg-casa-paper text-casa-ink hover:border-casa-palm'
                                     : 'border-casa-border/70 bg-casa-paper/45 text-casa-muted/40'"
                             x-bind:disabled="!day.available"
                             x-on:click="selectDate(day.date)"
@@ -163,8 +163,8 @@
             <div class="mt-5 rounded-2xl border border-casa-border bg-casa-paper p-4 sm:p-5" aria-live="polite">
                 <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <div>
-                        <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-casa-cacao">{{ __('Available start times') }}</p>
-                        <p class="mt-1 text-sm font-semibold text-casa-text" x-text="selectedDateLabel"></p>
+                        <p class="text-sm font-extrabold uppercase tracking-[0.12em] text-casa-cacao">{{ __('Available start times') }}</p>
+                        <p class="mt-1 text-sm font-semibold text-casa-ink" x-text="selectedDateLabel"></p>
                     </div>
                     <x-status-badge x-show="loading">{{ __('Loading') }}</x-status-badge>
                 </div>
@@ -176,7 +176,7 @@
                     <template x-for="slot in selectedDateSlots" x-bind:key="slot.starts_at">
                         <button
                             type="button"
-                            class="min-h-11 rounded-xl border px-3 py-2 text-xs font-extrabold uppercase tracking-[0.055em] transition sm:text-sm"
+                            class="min-h-11 rounded-xl border px-3 py-2 text-sm font-extrabold uppercase tracking-[0.055em] transition sm:text-sm"
                             x-bind:class="selectedSlot === slot.starts_at ? 'border-casa-palm bg-casa-palm text-white shadow-md' : 'border-casa-border bg-casa-sand/45 text-casa-cacao hover:border-casa-brass'"
                             x-on:click="chooseSlot(slot)"
                             x-bind:aria-pressed="selectedSlot === slot.starts_at"
@@ -194,7 +194,7 @@
                 <div class="mt-5">
                     <x-input-label for="requested_start_at_fallback" :value="__('Preferred date and time')" />
                     <x-text-input id="requested_start_at_fallback" name="requested_start_at" type="datetime-local" class="mt-2" :value="old('requested_start_at', now()->addDay()->setTime(14, 0)->format('Y-m-d\TH:i'))" required />
-                    <p class="mt-2 text-xs leading-5 text-casa-muted">{{ __('JavaScript is off, so the server will verify this time when you book.') }}</p>
+                    <p class="mt-2 text-sm leading-5 text-casa-muted">{{ __('JavaScript is off, so the server will verify this time when you book.') }}</p>
                 </div>
             </noscript>
         </section>
@@ -203,8 +203,8 @@
             <div class="flex items-start gap-4 border-b border-casa-border pb-5">
                 <span class="grid size-11 shrink-0 place-items-center rounded-full bg-casa-brass text-sm font-extrabold text-casa-charcoal">3</span>
                 <div>
-                    <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-casa-cacao">{{ __('Prepare your visit') }}</p>
-                    <h2 class="mt-1 font-editorial text-3xl font-semibold text-casa-text">{{ __('Anything we should know?') }}</h2>
+                    <p class="text-sm font-extrabold uppercase tracking-[0.14em] text-casa-cacao">{{ __('Prepare your visit') }}</p>
+                    <h2 class="mt-1 font-editorial text-3xl font-semibold text-casa-ink">{{ __('Anything we should know?') }}</h2>
                 </div>
             </div>
             <div class="mt-6">
@@ -217,25 +217,25 @@
 
     <aside class="space-y-4 xl:sticky xl:top-6 xl:self-start">
         <div class="casa-dark-panel rounded-[24px] p-6 shadow-casa-card">
-            <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.14em] text-casa-brass-light">{{ __('Your booking') }}</p>
+            <p class="text-sm font-extrabold uppercase tracking-[0.14em] text-casa-brass-light">{{ __('Your booking') }}</p>
             <h2 class="mt-3 font-editorial text-3xl font-semibold text-white">{{ __('Your reserved moment of care.') }}</h2>
             <p class="mt-4 text-sm leading-7 text-white/65">{{ __('The system rechecks therapist availability and confirms your reserved schedule when you book.') }}</p>
             <div class="casa-divider my-6"></div>
             <dl class="space-y-4">
                 <div>
-                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Treatment') }}</dt>
+                    <dt class="text-sm font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Treatment') }}</dt>
                     <dd class="mt-1.5 text-sm font-bold text-white" x-text="selectedService ? `${selectedService.name} · ${selectedService.duration} min` : '{{ __('No treatment selected') }}'"></dd>
                 </div>
                 <div>
-                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Therapist preference') }}</dt>
+                    <dt class="text-sm font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Therapist preference') }}</dt>
                     <dd class="mt-1.5 text-sm font-bold text-white" x-text="selectedStaff?.name || '{{ __('No preference') }}'"></dd>
                 </div>
                 <div>
-                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Selected time') }}</dt>
+                    <dt class="text-sm font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Selected time') }}</dt>
                     <dd class="mt-1.5 text-sm font-bold text-white" x-text="selectedSlotLabel || '{{ __('No time selected') }}'"></dd>
                 </div>
                 <div>
-                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Booking status') }}</dt>
+                    <dt class="text-sm font-extrabold uppercase tracking-[0.12em] text-white/60">{{ __('Booking status') }}</dt>
                     <dd class="mt-1.5 text-sm font-bold text-white">{{ __('Confirmed when booked') }}</dd>
                 </div>
             </dl>
@@ -243,14 +243,13 @@
 
         <x-app-card>
             <button type="submit" class="casa-button-primary w-full" x-bind:disabled="!serviceId || !selectedSlot">{{ __('Confirm booking') }}</button>
-            <a href="{{ route('customer.appointments.index') }}" class="casa-button-secondary mt-3 w-full">{{ __('Cancel') }}</a>
-            <p class="mt-4 text-center text-xs leading-5 text-casa-muted">{{ __('A successful booking immediately reserves the assigned therapist and time.') }}</p>
+            <p class="mt-4 text-center text-sm leading-5 text-casa-muted">{{ __('A successful booking immediately reserves the assigned therapist and time.') }}</p>
         </x-app-card>
 
         <x-app-card>
-            <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-casa-cacao">{{ __('Visit hours') }}</p>
-            <p class="mt-2 text-sm font-bold text-casa-text">{{ __('Open every day') }}</p>
-            <p class="mt-1 text-sm text-casa-muted">{{ __('1:00 PM to 12:00 midnight') }}</p>
+            <p class="text-sm font-extrabold uppercase tracking-[0.12em] text-casa-cacao">{{ __('Visit hours') }}</p>
+            <p class="mt-2 text-sm font-bold text-casa-ink">{{ config('casa.business_hours.summary') }}</p>
+            <p class="mt-1 text-sm text-casa-muted">{{ config('casa.business_hours.window') }}</p>
         </x-app-card>
     </aside>
 </form>

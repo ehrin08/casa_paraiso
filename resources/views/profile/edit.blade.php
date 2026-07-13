@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <p class="casa-section-label">Account settings</p>
-            <h1 class="mt-2 font-display text-3xl font-black text-casa-text">Profile</h1>
+            <h1 class="mt-2 font-display text-3xl font-black text-casa-ink">Profile</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">Keep your contact details and sign-in security current.</p>
         </div>
     </x-slot>
@@ -12,6 +12,10 @@
             <div class="casa-nav-control casa-nav-control-active">Profile details</div>
             @if ($user->isCustomer())
                 <a href="#delete-account" class="casa-nav-control">Delete account</a>
+                <form method="POST" action="{{ route('logout') }}" data-turbo="false">
+                    @csrf
+                    <button type="submit" class="casa-nav-control w-full">Log out</button>
+                </form>
             @endif
         </aside>
         <div class="space-y-4">

@@ -3,12 +3,10 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <meta name="description" content="Casa Paraiso Body and Wellness Spa offers signature full-body massage packages and request-first appointments every day from 1:00 PM to 12:00 MN.">
+        <meta name="description" content="{{ config('casa.business_name') }} offers signature full-body massage packages with real-time confirmed booking {{ strtolower(config('casa.business_hours.summary')) }} from {{ config('casa.business_hours.window') }}.">
 
         <title>{{ config('app.name', 'Casa Paraiso') }}</title>
 
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=cormorant-garamond:600,700|manrope:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
@@ -33,23 +31,19 @@
                     </a>
 
                     <nav class="hidden items-center gap-7 text-sm font-bold text-casa-muted lg:flex" aria-label="Public navigation">
-                        <a href="#treatments" class="transition hover:text-casa-cacao">Treatments</a>
-                        <a href="#how-it-works" class="transition hover:text-casa-cacao">How it works</a>
-                        <a href="#visit" class="transition hover:text-casa-cacao">Visit hours</a>
+                        <a href="#treatments" class="inline-flex min-h-11 items-center transition hover:text-casa-cacao">Treatments</a>
+                        <a href="#how-it-works" class="inline-flex min-h-11 items-center transition hover:text-casa-cacao">How it works</a>
+                        <a href="#visit" class="inline-flex min-h-11 items-center transition hover:text-casa-cacao">Visit hours</a>
                     </nav>
 
-                    @if (Route::has('login'))
-                        <nav class="flex items-center gap-2 sm:gap-3" aria-label="Account navigation">
-                            @auth
-                                <a href="{{ $homeUrl }}" class="casa-button-primary">{{ __('Open workspace') }}</a>
-                            @else
-                                <a href="{{ route('login') }}" class="hidden min-h-11 items-center px-2 text-sm font-bold text-casa-muted transition hover:text-casa-cacao sm:inline-flex">{{ __('Log in') }}</a>
-                                @if (Route::has('register'))
-                                    <a href="{{ route('login') }}" class="casa-button-primary">{{ __('Reserve') }}</a>
-                                @endif
-                            @endauth
-                        </nav>
-                    @endif
+                    <nav class="flex items-center gap-2 sm:gap-3" aria-label="Account navigation">
+                        @auth
+                            <a href="{{ $homeUrl }}" class="casa-button-primary">{{ __('Open workspace') }}</a>
+                        @else
+                            <a href="{{ route('login') }}" class="hidden min-h-11 items-center px-2 text-sm font-bold text-casa-muted transition hover:text-casa-cacao sm:inline-flex">{{ __('Log in') }}</a>
+                            <a href="{{ route('login') }}" class="casa-button-primary">{{ __('Reserve') }}</a>
+                        @endauth
+                    </nav>
                 </div>
             </header>
 
@@ -63,14 +57,14 @@
                                 Let the day<br><span class="italic text-casa-cacao">soften here.</span>
                             </h1>
                             <p class="mt-7 max-w-xl text-base leading-8 text-casa-muted sm:text-lg">
-                                Thoughtful full-body massage rituals, prepared around your pace and confirmed with care by our spa team.
+                                Thoughtful full-body massage rituals with clear, real-time appointment availability.
                             </p>
 
                             <div class="mt-8 flex flex-col gap-3 sm:flex-row">
                                 @auth
                                     <a href="{{ $homeUrl }}" class="casa-button-primary">{{ __('Open your workspace') }}</a>
                                 @else
-                                    <a href="{{ route('login') }}" class="casa-button-primary">{{ __('Request an appointment') }}</a>
+                                    <a href="{{ route('login') }}" class="casa-button-primary">{{ __('Book an appointment') }}</a>
                                     <a href="#treatments" class="casa-button-secondary">{{ __('Explore treatments') }}</a>
                                 @endauth
                             </div>
@@ -81,16 +75,16 @@
 
                             <dl class="mt-9 grid max-w-xl grid-cols-2 gap-px overflow-hidden rounded-2xl border border-casa-border bg-casa-border sm:grid-cols-3">
                                 <div class="bg-casa-paper p-4">
-                                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.13em] text-casa-muted">Open</dt>
-                                    <dd class="mt-1.5 text-sm font-bold text-casa-text">Every day</dd>
+                                    <dt class="text-sm font-extrabold uppercase tracking-[0.13em] text-casa-muted">Open</dt>
+                                    <dd class="mt-1.5 text-sm font-bold text-casa-ink">{{ $businessHours['summary'] }}</dd>
                                 </div>
                                 <div class="bg-casa-paper p-4">
-                                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.13em] text-casa-muted">Hours</dt>
-                                    <dd class="mt-1.5 text-sm font-bold text-casa-text">1 PM–12 MN</dd>
+                                    <dt class="text-sm font-extrabold uppercase tracking-[0.13em] text-casa-muted">Hours</dt>
+                                    <dd class="mt-1.5 text-sm font-bold text-casa-ink">{{ $businessHours['window'] }}</dd>
                                 </div>
                                 <div class="col-span-2 bg-casa-paper p-4 sm:col-span-1">
-                                    <dt class="text-[0.65rem] font-extrabold uppercase tracking-[0.13em] text-casa-muted">From</dt>
-                                    <dd class="mt-1.5 text-sm font-bold text-casa-text">PHP {{ number_format($startingRate, 2) }}</dd>
+                                    <dt class="text-sm font-extrabold uppercase tracking-[0.13em] text-casa-muted">From</dt>
+                                    <dd class="mt-1.5 text-sm font-bold text-casa-ink">PHP {{ number_format($startingRate, 2) }}</dd>
                                 </div>
                             </dl>
                         </div>
@@ -107,8 +101,8 @@
                                 </picture>
                             </div>
                             <div class="absolute -bottom-5 start-4 max-w-[17rem] rounded-2xl border border-white/55 bg-casa-paper/94 p-4 shadow-casa-lift backdrop-blur sm:start-8 sm:p-5">
-                                <p class="text-[0.65rem] font-extrabold uppercase tracking-[0.14em] text-casa-cacao">Request-first care</p>
-                                <p class="mt-2 text-sm font-semibold leading-6 text-casa-text">Choose your preferred visit. Our team confirms the final schedule.</p>
+                                <p class="text-sm font-extrabold uppercase tracking-[0.14em] text-casa-cacao">Real-time reservation</p>
+                                <p class="mt-2 text-sm font-semibold leading-6 text-casa-ink">Your time and therapist are reserved as soon as booking succeeds.</p>
                             </div>
                         </div>
                     </div>
@@ -121,7 +115,7 @@
                                 <p class="casa-eyebrow">Signature treatments</p>
                                 <h2 class="mt-5 font-editorial text-5xl font-semibold leading-none text-casa-ink sm:text-6xl">Four ways to return to yourself.</h2>
                             </div>
-                            <p class="max-w-2xl text-sm leading-7 text-casa-muted lg:justify-self-end sm:text-base">Each ritual keeps its time, inclusions, and price clear before you request a visit. Add-ons can be coordinated with our team during confirmation.</p>
+                            <p class="max-w-2xl text-sm leading-7 text-casa-muted lg:justify-self-end sm:text-base">Each ritual keeps its time, inclusions, and price clear before you book. Add-ons can be coordinated directly with our team.</p>
                         </div>
 
                         <div class="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -129,14 +123,14 @@
                                 <article class="casa-editorial-card group flex min-h-full flex-col p-6 transition duration-200 hover:-translate-y-1 hover:border-casa-brass/55 sm:p-7">
                                     <div class="flex items-start justify-between gap-4">
                                         <span class="font-editorial text-4xl font-semibold text-casa-brass/70">{{ str_pad((string) ($loop->index + 1), 2, '0', STR_PAD_LEFT) }}</span>
-                                        <span class="rounded-full border border-casa-border bg-casa-sand/55 px-3 py-1.5 text-[0.65rem] font-extrabold uppercase tracking-[0.1em] text-casa-muted">{{ $package['duration_label'] }}</span>
+                                        <span class="rounded-full border border-casa-border bg-casa-sand/55 px-3 py-1.5 text-sm font-extrabold uppercase tracking-[0.1em] text-casa-muted">{{ $package['duration_label'] }}</span>
                                     </div>
                                     <h3 class="mt-8 font-editorial text-3xl font-semibold text-casa-cacao">{{ $package['name'] }}</h3>
                                     <p class="mt-2 text-xl font-extrabold text-casa-palm">PHP {{ number_format((float) $package['price'], 2) }}</p>
                                     <p class="mt-5 text-sm leading-7 text-casa-muted">{{ $package['description'] }}</p>
                                     <div class="mt-6 flex flex-wrap gap-2">
                                         @foreach ($package['includes'] as $include)
-                                            <span class="rounded-full border border-casa-border bg-casa-paper px-3 py-1.5 text-[0.68rem] font-bold text-casa-muted">{{ $include }}</span>
+                                            <span class="rounded-full border border-casa-border bg-casa-paper px-3 py-1.5 text-sm font-bold text-casa-muted">{{ $include }}</span>
                                         @endforeach
                                     </div>
                                 </article>
@@ -156,21 +150,21 @@
 
                         <div>
                             <p class="casa-eyebrow">A considered booking flow</p>
-                            <h2 class="mt-5 max-w-2xl font-editorial text-5xl font-semibold leading-[0.98] text-casa-ink sm:text-6xl">Simple to request.<br>Personal to confirm.</h2>
-                            <p class="mt-6 max-w-xl text-sm leading-7 text-casa-muted sm:text-base">A request starts the conversation. Your booking becomes final after the team checks the service, therapist, and schedule.</p>
+                            <h2 class="mt-5 max-w-2xl font-editorial text-5xl font-semibold leading-[0.98] text-casa-ink sm:text-6xl">Simple to book.<br>Clear to follow.</h2>
+                            <p class="mt-6 max-w-xl text-sm leading-7 text-casa-muted sm:text-base">Choose an available visit and the system reserves an eligible therapist immediately—no waiting for manual confirmation.</p>
 
                             <ol class="mt-9 space-y-4">
                                 <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-2xl border border-casa-border bg-casa-paper p-5">
                                     <span class="grid size-12 place-items-center rounded-full bg-casa-cacao text-sm font-extrabold text-white">01</span>
-                                    <span><strong class="block text-base text-casa-text">Choose your ritual and preferred time.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Available dates and times are shown from active staff schedules.</span></span>
+                                    <span><strong class="block text-base text-casa-ink">Choose your ritual and time.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Available starts come directly from active therapist schedules.</span></span>
                                 </li>
                                 <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-2xl border border-casa-border bg-casa-paper p-5">
                                     <span class="grid size-12 place-items-center rounded-full bg-casa-palm text-sm font-extrabold text-white">02</span>
-                                    <span><strong class="block text-base text-casa-text">Our team checks every detail.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Staff review availability and arrange the final therapist and schedule.</span></span>
+                                    <span><strong class="block text-base text-casa-ink">Availability is checked again.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Eligibility, working hours, and booking overlaps are verified before saving.</span></span>
                                 </li>
                                 <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-2xl border border-casa-border bg-casa-paper p-5">
                                     <span class="grid size-12 place-items-center rounded-full bg-casa-brass text-sm font-extrabold text-casa-charcoal">03</span>
-                                    <span><strong class="block text-base text-casa-text">Return to your account for confirmation.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Your appointment status and wellness history stay organized in one place.</span></span>
+                                    <span><strong class="block text-base text-casa-ink">Your visit is confirmed.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">The reserved therapist, appointment status, and history stay organized in your account.</span></span>
                                 </li>
                             </ol>
                         </div>
@@ -193,14 +187,14 @@
                             <p class="mt-6 max-w-2xl text-sm leading-7 text-white/62">Add-ons are shown for reference and can be coordinated with staff while your appointment is being confirmed.</p>
                         </div>
 
-                        <aside class="rounded-[28px] bg-casa-paper p-7 text-casa-text sm:p-9">
+                        <aside class="rounded-[28px] bg-casa-paper p-7 text-casa-ink sm:p-9">
                             <p class="casa-eyebrow">Visit hours</p>
-                            <h2 class="mt-5 font-editorial text-5xl font-semibold leading-none text-casa-cacao">{{ $businessHours['summary'] ?? __('Open every day') }}</h2>
-                            <p class="mt-5 text-2xl font-extrabold text-casa-palm">{{ $businessHours['window'] ?? __('1:00 PM to 12:00 MN') }}</p>
+                            <h2 class="mt-5 font-editorial text-5xl font-semibold leading-none text-casa-cacao">{{ $businessHours['summary'] }}</h2>
+                            <p class="mt-5 text-2xl font-extrabold text-casa-palm">{{ $businessHours['window'] }}</p>
                             <div class="casa-divider my-7"></div>
                             <p class="font-editorial text-3xl font-semibold italic leading-tight text-casa-cacao">{{ config('casa.marketing_line') }}</p>
                             @guest
-                                <a href="{{ route('login') }}" class="casa-button-primary mt-7 w-full">{{ __('Request your visit') }}</a>
+                                <a href="{{ route('login') }}" class="casa-button-primary mt-7 w-full">{{ __('Book your visit') }}</a>
                             @endguest
                         </aside>
                     </div>
@@ -211,17 +205,17 @@
                         <div class="grid gap-4 md:grid-cols-3">
                             <article class="casa-card p-6 sm:p-7">
                                 <x-nav-icon name="calendar" class="size-6 text-casa-cacao" />
-                                <h2 class="mt-5 text-lg font-extrabold text-casa-text">Clear appointment status</h2>
-                                <p class="mt-3 text-sm leading-7 text-casa-muted">Requests, confirmed visits, and completed care remain easy to follow.</p>
+                                <h2 class="mt-5 text-lg font-extrabold text-casa-ink">Clear appointment status</h2>
+                                <p class="mt-3 text-sm leading-7 text-casa-muted">Confirmed visits, changes, and completed care remain easy to follow.</p>
                             </article>
                             <article class="casa-card p-6 sm:p-7">
                                 <x-nav-icon name="team" class="size-6 text-casa-cacao" />
-                                <h2 class="mt-5 text-lg font-extrabold text-casa-text">Staff-guided scheduling</h2>
-                                <p class="mt-3 text-sm leading-7 text-casa-muted">The spa team checks availability before every booking becomes final.</p>
+                                <h2 class="mt-5 text-lg font-extrabold text-casa-ink">Reliable scheduling</h2>
+                                <p class="mt-3 text-sm leading-7 text-casa-muted">Every booking rechecks therapist eligibility, working hours, and existing reservations.</p>
                             </article>
                             <article class="casa-card p-6 sm:p-7">
                                 <x-nav-icon name="feedback" class="size-6 text-casa-cacao" />
-                                <h2 class="mt-5 text-lg font-extrabold text-casa-text">Care that keeps listening</h2>
+                                <h2 class="mt-5 text-lg font-extrabold text-casa-ink">Care that keeps listening</h2>
                                 <p class="mt-3 text-sm leading-7 text-casa-muted">Completed visits can be reviewed through thoughtful service feedback.</p>
                             </article>
                         </div>
@@ -233,8 +227,8 @@
                 <div class="mx-auto flex max-w-[90rem] flex-col gap-6 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
                     <img src="{{ asset('images/casa_paraiso_logo.jpg') }}" alt="Casa Paraiso Body and Wellness Spa" class="h-14 w-52 object-cover object-center">
                     <div class="text-sm leading-6 text-casa-muted md:text-right">
-                        <p class="font-bold text-casa-text">Open every day · 1:00 PM to 12:00 MN</p>
-                        <p>Reservations are confirmed by the Casa Paraiso team.</p>
+                        <p class="font-bold text-casa-ink">{{ $businessHours['summary'] }} · {{ $businessHours['window'] }}</p>
+                        <p>Available appointments are confirmed and reserved in real time.</p>
                     </div>
                 </div>
             </footer>

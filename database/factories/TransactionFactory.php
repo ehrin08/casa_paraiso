@@ -16,16 +16,19 @@ class TransactionFactory extends Factory
 {
     public function definition(): array
     {
+        $amount = fake()->randomFloat(2, 600, 2500);
+
         return [
             'transaction_number' => 'TRX-'.fake()->unique()->numerify('######'),
             'customer_profile_id' => CustomerProfile::factory(),
             'appointment_id' => Appointment::factory(),
             'service_id' => Service::factory(),
-            'amount' => fake()->randomFloat(2, 600, 2500),
+            'amount' => $amount,
+            'amount_paid' => $amount,
             'payment_status' => Transaction::PAYMENT_PAID,
             'payment_method' => Transaction::METHOD_CASH,
             'paid_at' => now(),
-            'recorded_by' => User::factory()->staff(),
+            'recorded_by' => User::factory()->admin(),
             'notes' => fake()->optional()->sentence(),
         ];
     }

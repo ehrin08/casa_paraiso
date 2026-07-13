@@ -5,7 +5,7 @@
     'confirmTitle',
     'confirmMessage',
     'confirmButton' => null,
-    'buttonClass' => 'font-bold text-casa-muted hover:text-casa-primary',
+    'buttonClass' => 'font-bold text-casa-muted hover:text-casa-palm',
     'modalWidth' => 'md',
 ])
 
@@ -19,7 +19,7 @@
         {{ $label }}
     </button>
 
-    <x-modal :name="$modalName" :maxWidth="$modalWidth">
+    <x-modal :name="$modalName" :label="$confirmTitle" :maxWidth="$modalWidth">
         <form method="POST" action="{{ $action }}" class="p-6">
             @csrf
             @if ($spoofMethod !== 'POST')
@@ -27,7 +27,7 @@
             @endif
             {{ $slot }}
 
-            <h2 class="font-display text-xl font-black text-casa-text">{{ $confirmTitle }}</h2>
+            <h2 class="font-display text-xl font-black text-casa-ink">{{ $confirmTitle }}</h2>
             <p class="mt-3 text-sm leading-6 text-casa-muted">{{ $confirmMessage }}</p>
 
             <div class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

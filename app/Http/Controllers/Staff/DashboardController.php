@@ -43,6 +43,7 @@ class DashboardController extends Controller
             $todayAppointments = Appointment::query()
                 ->with(['customerProfile.user', 'service'])
                 ->where('staff_profile_id', $staffProfile->id)
+                ->whereIn('status', Appointment::ACTIVE_STATUSES)
                 ->whereDate('scheduled_start_at', $today)
                 ->orderBy('scheduled_start_at')
                 ->limit(6)

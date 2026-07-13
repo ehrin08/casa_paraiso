@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Staff;
 
 use App\Http\Controllers\Concerns\HandlesIndexSorting;
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\CustomerProfile;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -14,6 +15,9 @@ class CustomerController extends Controller
 
     public function index(Request $request): View
     {
+        $staffProfileId = (int) ($request->user()->staffProfile?->id ?? 0);
+        abort_unless($staffProfileId > 0, 403);
+
         $search = trim((string) $request->query('q'));
         $sorts = [
             'name' => 'users.name',
@@ -27,18 +31,21 @@ class CustomerController extends Controller
 
         $customers = CustomerProfile::query()
             ->with('user')
-            ->withCount(['appointments', 'feedback'])
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('customer_code', 'like', "%{$search}%")
-                        ->orWhereHas('user', fn ($userQuery) => $userQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhere('phone', 'like', "%{$search}%"));
-                });
-            })
+            ->withCount([
+                'appointments as appointments_count' => fn ($query) => $query
+                    ->where('staff_profile_id', $staffProfileId)
+                    ->whereIn('status', Appointment::ACTIVE_STATUSES),
+                'feedback as feedback_count' => fn ($query) => $query->whereHas(
+                    'appointment',
+                    fn ($appointmentQuery) => $appointmentQuery
+                        ->where('staff_profile_id', $staffProfileId)
+                        ->whereIn('status', Appointment::ACTIVE_STATUSES),
+                ),
+            ])
+            ->assignedToStaff($staffProfileId)
             ->join('users', 'users.id', '=', 'customer_profiles.user_id')
             ->select('customer_profiles.*')
+            ->searchIdentity($search)
             ->orderBy($sorts[$sort], $direction)
             ->orderBy('users.name')
             ->paginate(10)
@@ -52,19 +59,44 @@ class CustomerController extends Controller
         ]);
     }
 
-    public function show(CustomerProfile $customer): View
+    public function show(Request $request, CustomerProfile $customer): View
     {
+        $staffProfileId = (int) ($request->user()->staffProfile?->id ?? 0);
+
+        abort_unless(
+            $staffProfileId > 0 && $customer->appointments()
+                ->where('staff_profile_id', $staffProfileId)
+                ->whereIn('status', Appointment::ACTIVE_STATUSES)
+                ->exists(),
+            403,
+        );
+
         $customer->load([
             'user',
             'appointments' => fn ($query) => $query
+                ->where('staff_profile_id', $staffProfileId)
+                ->whereIn('status', Appointment::ACTIVE_STATUSES)
                 ->with(['service', 'staffProfile.user'])
-                ->latest('requested_start_at')
+                ->latest('scheduled_start_at')
                 ->limit(10),
             'feedback' => fn ($query) => $query
+                ->whereHas('appointment', fn ($appointmentQuery) => $appointmentQuery
+                    ->where('staff_profile_id', $staffProfileId)
+                    ->whereIn('status', Appointment::ACTIVE_STATUSES))
                 ->with(['service', 'appointment'])
                 ->latest('submitted_at')
                 ->limit(8),
-        ])->loadCount(['appointments', 'feedback']);
+        ])->loadCount([
+            'appointments' => fn ($query) => $query
+                ->where('staff_profile_id', $staffProfileId)
+                ->whereIn('status', Appointment::ACTIVE_STATUSES),
+            'feedback' => fn ($query) => $query->whereHas(
+                'appointment',
+                fn ($appointmentQuery) => $appointmentQuery
+                    ->where('staff_profile_id', $staffProfileId)
+                    ->whereIn('status', Appointment::ACTIVE_STATUSES),
+            ),
+        ]);
 
         return view('staff.customers.show', [
             'customer' => $customer,

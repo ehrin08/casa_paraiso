@@ -5,12 +5,22 @@ namespace App\Services;
 use App\Exceptions\StaffScheduleConflictException;
 use App\Models\Appointment;
 use App\Models\StaffProfile;
+use Closure;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class StaffScheduleConflictGuard
 {
     public function __construct(private readonly ScheduleWindowResolver $scheduleWindows) {}
+
+    public function preservingFutureCoverage(StaffProfile $staffProfile, Closure $mutation): void
+    {
+        DB::transaction(function () use ($staffProfile, $mutation): void {
+            $mutation();
+            $this->assertFutureAppointmentsRemainCovered($staffProfile);
+        });
+    }
 
     public function assertFutureAppointmentsRemainCovered(StaffProfile $staffProfile): void
     {

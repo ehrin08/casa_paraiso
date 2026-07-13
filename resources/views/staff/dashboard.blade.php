@@ -2,8 +2,8 @@
     <x-slot name="header">
         <div>
             <p class="casa-eyebrow">{{ __('Staff workspace') }}</p>
-            <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('Daily dashboard') }}</h1>
-            <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">{{ __('See today’s assigned care, requests waiting for action, and recently completed services.') }}</p>
+            <h1 class="mt-2 font-display text-3xl font-black text-casa-ink">{{ __('Daily dashboard') }}</h1>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">{{ __('See today’s assigned care, upcoming visits, and recently completed services.') }}</p>
         </div>
 
         <div class="flex flex-wrap gap-3">
@@ -24,7 +24,7 @@
                 <div class="flex flex-col gap-3 border-b border-casa-border pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <p class="casa-section-label">{{ __('Service flow') }}</p>
-                        <h2 class="mt-2 text-xl font-extrabold text-casa-text">{{ __('Today’s appointments') }}</h2>
+                        <h2 class="mt-2 text-xl font-extrabold text-casa-ink">{{ __('Today’s appointments') }}</h2>
                     </div>
                     <x-status-badge tone="success">{{ trans_choice(':count assigned|:count assigned', $summary['assignedToday'] ?? 0) }}</x-status-badge>
                 </div>
@@ -34,7 +34,7 @@
                         <x-empty-state title="{{ __('No appointments assigned today') }}" description="{{ __('Confirmed visits for today will appear here when appointments are scheduled.') }}" />
                     @else
                         <x-table-shell aria-label="{{ __('Today appointments') }}">
-                            <thead class="text-left text-xs font-black uppercase tracking-[0.1em] text-casa-muted">
+                            <thead class="text-left text-sm font-black uppercase tracking-[0.1em] text-casa-muted">
                                 <tr>
                                     <th class="px-4 py-3">{{ __('No.') }}</th>
                                     <th class="px-4 py-3">{{ __('Time') }}</th>
@@ -47,11 +47,11 @@
                             <tbody class="divide-y divide-casa-border text-sm">
                                 @foreach ($todayAppointments as $appointment)
                                     <tr class="casa-table-row">
-                                        <td class="px-4 py-4 font-semibold text-casa-text">{{ $appointment->appointment_number }}</td>
-                                        <td class="px-4 py-4 font-semibold text-casa-text">{{ $appointment->scheduled_start_at?->format('g:i A') }}</td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">{{ $appointment->appointment_number }}</td>
+                                        <td class="px-4 py-4 font-semibold text-casa-ink">{{ $appointment->scheduled_start_at?->format('g:i A') }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $appointment->customerProfile?->user?->name ?? __('Customer') }}</td>
                                         <td class="px-4 py-4 text-casa-muted">{{ $appointment->service?->name ?? __('Service') }}</td>
-                                        <td class="px-4 py-4"><x-status-badge tone="success">{{ __(ucfirst($appointment->status)) }}</x-status-badge></td>
+                                        <td class="px-4 py-4"><x-status-badge :status="$appointment->status">{{ __(ucfirst($appointment->status)) }}</x-status-badge></td>
                                         <td class="px-4 py-4"><a href="{{ route('staff.appointments.show', $appointment) }}" class="font-bold text-casa-cacao hover:text-casa-cacao-dark" data-panel-link data-turbo="false">{{ __('Open') }}</a></td>
                                     </tr>
                                 @endforeach
@@ -62,15 +62,15 @@
             </x-app-card>
 
             <aside class="casa-dark-panel rounded-[24px] p-6 shadow-casa-card">
-                <p class="text-[0.68rem] font-extrabold uppercase tracking-[0.16em] text-casa-brass-light">{{ __('Service rhythm') }}</p>
-                <h2 class="mt-4 text-2xl font-extrabold text-white">{{ __('Confirm. Care. Record.') }}</h2>
+                <p class="text-sm font-extrabold uppercase tracking-[0.16em] text-casa-brass-light">{{ __('Service rhythm') }}</p>
+                <h2 class="mt-4 text-2xl font-extrabold text-white">{{ __('Prepare. Care. Review.') }}</h2>
                 <p class="mt-4 text-sm leading-7 text-white/65">{{ __('Keep each visit moving through the same clear operational rhythm.') }}</p>
                 <ol class="mt-6 space-y-3">
-                    <li class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-4"><span class="font-extrabold text-casa-brass-light">01</span><span class="text-sm text-white/78">{{ __('Review the requested time and treatment.') }}</span></li>
+                    <li class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-4"><span class="font-extrabold text-casa-brass-light">01</span><span class="text-sm text-white/78">{{ __('Review the confirmed time and treatment.') }}</span></li>
                     <li class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-4"><span class="font-extrabold text-casa-brass-light">02</span><span class="text-sm text-white/78">{{ __('Open the customer context before service.') }}</span></li>
-                    <li class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-4"><span class="font-extrabold text-casa-brass-light">03</span><span class="text-sm text-white/78">{{ __('Complete the visit and record payment.') }}</span></li>
+                    <li class="flex gap-3 rounded-xl border border-white/10 bg-white/[0.06] p-4"><span class="font-extrabold text-casa-brass-light">03</span><span class="text-sm text-white/78">{{ __('Review the visit and payment record after service.') }}</span></li>
                 </ol>
-                <a href="{{ route('staff.transactions.index') }}" class="casa-button-secondary mt-6 w-full border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">{{ __('Open payments') }}</a>
+                <a href="{{ route('staff.transactions.index') }}" class="casa-button-secondary mt-6 w-full border-white/15 bg-white/10 text-white hover:bg-white/15 hover:text-white">{{ __('Review payments') }}</a>
             </aside>
         </section>
     </div>

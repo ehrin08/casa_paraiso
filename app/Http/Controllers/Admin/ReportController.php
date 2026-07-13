@@ -97,8 +97,9 @@ class ReportController extends Controller
             ->leftJoin('services as report_appointment_services', 'report_appointment_services.id', '=', 'appointments.service_id')
             ->select('appointments.*')
             ->selectRaw('COALESCE(appointments.scheduled_start_at, appointments.requested_start_at) as report_start_at')
+            ->whereIn('appointments.status', Appointment::ACTIVE_STATUSES)
             ->when(
-                in_array((string) $request->query('status'), Appointment::STATUSES, true),
+                in_array((string) $request->query('status'), Appointment::ACTIVE_STATUSES, true),
                 fn ($query) => $query->where('appointments.status', $request->query('status')),
             )
             ->when($search !== '', fn ($query) => $query->where(function ($query) use ($search): void {
@@ -258,8 +259,8 @@ class ReportController extends Controller
     private function summary(): array
     {
         return [
-            'appointments' => Appointment::query()->count(),
-            'revenue' => Transaction::query()->where('payment_status', Transaction::PAYMENT_PAID)->sum('amount'),
+            'appointments' => Appointment::query()->whereIn('status', Appointment::ACTIVE_STATUSES)->count(),
+            'revenue' => Transaction::query()->sum('amount_paid'),
             'customers' => CustomerProfile::query()->count(),
             'feedback' => Feedback::query()->count(),
         ];
@@ -271,7 +272,7 @@ class ReportController extends Controller
     private function csvHeader(string $type): array
     {
         return match ($type) {
-            'transactions' => ['Number', 'Customer', 'Service', 'Amount', 'Status', 'Method', 'Paid At'],
+            'transactions' => ['Number', 'Customer', 'Service', 'Charge', 'Paid', 'Open Balance', 'Status', 'Method', 'Paid At'],
             'customers' => ['Code', 'Name', 'Email', 'Phone', 'Joined At', 'Status', 'Appointments', 'Transactions', 'Feedback', 'Promotions'],
             'promotions' => ['Customer', 'Segment', 'Recency', 'Frequency', 'Monetary', 'Offer', 'Status'],
             'feedback' => ['Customer', 'Service', 'Rating', 'Sentiment', 'Submitted At', 'Comment'],
@@ -285,7 +286,7 @@ class ReportController extends Controller
     private function csvRow(string $type, mixed $record): array
     {
         $row = match ($type) {
-            'transactions' => [$record->transaction_number, $record->customerProfile?->user?->name, $record->service?->name, $record->amount, $record->payment_status, $record->payment_method, $record->paid_at?->toDateTimeString()],
+            'transactions' => [$record->transaction_number, $record->customerProfile?->user?->name, $record->service?->name, $record->amount, $record->amount_paid, $record->open_balance, $record->payment_status, $record->payment_method, $record->paid_at?->toDateTimeString()],
             'customers' => [$record->customer_code, $record->user?->name, $record->user?->email, $record->user?->phone, $record->created_at?->toDateTimeString(), $record->user?->is_active ? 'active' : 'inactive', $record->appointments_count, $record->transactions_count, $record->feedback_count, $record->promotion_suggestions_count],
             'promotions' => [$record->customerProfile?->user?->name, $record->rfmSegment?->name, $record->recency_days, $record->frequency_count, $record->monetary_total, $record->suggested_offer, $record->status],
             'feedback' => [$record->customerProfile?->user?->name, $record->service?->name, $record->rating, $record->sentiment_label, $record->submitted_at?->toDateTimeString(), $record->comment],
@@ -312,7 +313,7 @@ class ReportController extends Controller
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'status' => ['nullable', Rule::in([
-                ...Appointment::STATUSES,
+                ...Appointment::ACTIVE_STATUSES,
                 ...PromotionSuggestion::STATUSES,
                 'active',
                 'inactive',

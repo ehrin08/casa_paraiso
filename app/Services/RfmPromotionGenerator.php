@@ -57,7 +57,7 @@ class RfmPromotionGenerator
                 try {
                     $existing->update(['generation_key' => $generationKey]);
                 } catch (QueryException $exception) {
-                    if (! $this->isGenerationKeyCollision($exception)) {
+                    if (! UniqueConstraintViolation::forColumn($exception, 'generation_key')) {
                         throw $exception;
                     }
 
@@ -91,7 +91,8 @@ class RfmPromotionGenerator
     {
         $paidTransactions = Transaction::query()
             ->where('customer_profile_id', $customer->id)
-            ->where('payment_status', Transaction::PAYMENT_PAID)
+            ->whereIn('payment_status', Transaction::PAYMENT_RECEIVED_STATUSES)
+            ->where('amount_paid', '>', 0)
             ->whereHas('appointment', fn ($query) => $query->where('status', Appointment::STATUS_COMPLETED));
 
         $latestPaidAt = (clone $paidTransactions)->max('paid_at');
@@ -101,7 +102,7 @@ class RfmPromotionGenerator
                 ? (int) max(0, Carbon::parse($latestPaidAt)->diffInDays(now()))
                 : null,
             'frequency_count' => (clone $paidTransactions)->count(),
-            'monetary_total' => (float) (clone $paidTransactions)->sum('amount'),
+            'monetary_total' => (float) (clone $paidTransactions)->sum('amount_paid'),
         ];
     }
 
@@ -188,14 +189,5 @@ class RfmPromotionGenerator
             $metrics['frequency_count'],
             number_format($metrics['monetary_total'], 2, '.', ''),
         ]));
-    }
-
-    private function isGenerationKeyCollision(QueryException $exception): bool
-    {
-        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
-        $message = strtolower($exception->getMessage());
-
-        return in_array($sqlState, ['23000', '23505'], true)
-            && str_contains($message, 'generation_key');
     }
 }

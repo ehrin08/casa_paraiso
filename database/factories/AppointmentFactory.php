@@ -22,6 +22,7 @@ class AppointmentFactory extends Factory
             'appointment_number' => 'APT-'.fake()->unique()->numerify('######'),
             'customer_profile_id' => CustomerProfile::factory(),
             'service_id' => Service::factory(),
+            'quoted_amount' => fake()->randomFloat(2, 600, 2500),
             'staff_profile_id' => null,
             'preferred_staff_profile_id' => null,
             'requested_start_at' => $requestedStart,

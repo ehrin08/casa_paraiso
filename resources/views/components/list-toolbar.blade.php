@@ -3,7 +3,25 @@
     'title' => null,
     'count' => null,
     'resetUrl' => null,
+    'hasActiveFilters' => null,
+    'defaultSort' => null,
+    'defaultDirection' => null,
+    'contextQueryKeys' => [],
 ])
+
+@php
+    $requestedSort = request()->query('sort');
+    $requestedDirection = request()->query('direction');
+    $hasNonDefaultSort = filled($requestedSort)
+        && ($defaultSort === null || (string) $requestedSort !== (string) $defaultSort);
+    $hasNonDefaultDirection = filled($requestedDirection)
+        && ($defaultDirection === null || strtolower((string) $requestedDirection) !== strtolower((string) $defaultDirection));
+    $hasActiveFilters ??= collect(request()->query())
+        ->except(array_merge(['page', 'sort', 'direction'], (array) $contextQueryKeys))
+        ->contains(fn ($value) => filled($value))
+        || $hasNonDefaultSort
+        || $hasNonDefaultDirection;
+@endphp
 
 <div {{ $attributes->merge(['class' => 'casa-list-toolbar']) }}>
     <div class="min-w-0">
@@ -12,18 +30,18 @@
         @endif
 
         @if ($title)
-            <h2 class="mt-2 text-xl font-extrabold text-casa-text">{{ $title }}</h2>
+            <h2 class="mt-2 text-xl font-extrabold text-casa-ink">{{ $title }}</h2>
         @endif
 
-        @if ($count !== null || $resetUrl)
+        @if ($count !== null || ($resetUrl && $hasActiveFilters))
             <div class="mt-3 flex flex-wrap items-center gap-2">
                 @if ($count !== null)
                     <span class="casa-filter-chip">{{ trans_choice(':count record|:count records', (int) $count) }}</span>
                 @endif
 
-                @if ($resetUrl)
-                    <a href="{{ $resetUrl }}" class="casa-filter-chip hover:border-casa-gold hover:text-casa-primary">
-                        {{ __('Reset') }}
+                @if ($resetUrl && $hasActiveFilters)
+                    <a href="{{ $resetUrl }}" class="casa-filter-chip hover:border-casa-brass hover:text-casa-palm">
+                        {{ __('Clear filters') }}
                     </a>
                 @endif
             </div>

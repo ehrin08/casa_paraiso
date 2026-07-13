@@ -11,16 +11,36 @@ use Illuminate\Support\Collection;
 class ScheduleWindowResolver
 {
     /**
+     * @return array{summary: string, window: string, timezone: string, opens_at: string, closes_at: string, closes_next_day: bool, slot_interval_minutes: int, availability_selection_minutes: int}
+     */
+    public function businessHours(): array
+    {
+        $hours = config('casa.business_hours');
+
+        return [
+            'summary' => (string) $hours['summary'],
+            'window' => (string) $hours['window'],
+            'timezone' => (string) ($hours['timezone'] ?? config('app.timezone')),
+            'opens_at' => (string) $hours['opens_at'],
+            'closes_at' => (string) $hours['closes_at'],
+            'closes_next_day' => (bool) $hours['closes_next_day'],
+            'slot_interval_minutes' => (int) $hours['slot_interval_minutes'],
+            'availability_selection_minutes' => (int) $hours['availability_selection_minutes'],
+        ];
+    }
+
+    /**
      * @return array{start: Carbon, end: Carbon}
      */
     public function businessWindow(CarbonInterface $day): array
     {
-        $timezone = (string) config('casa.business_hours.timezone', config('app.timezone'));
+        $hours = $this->businessHours();
+        $timezone = $hours['timezone'];
         $date = Carbon::parse($day, $timezone)->toDateString();
-        $start = Carbon::createFromFormat('Y-m-d H:i', $date.' '.config('casa.business_hours.opens_at', '13:00'), $timezone);
-        $end = Carbon::createFromFormat('Y-m-d H:i', $date.' '.config('casa.business_hours.closes_at', '00:00'), $timezone);
+        $start = Carbon::createFromFormat('Y-m-d H:i', $date.' '.$hours['opens_at'], $timezone);
+        $end = Carbon::createFromFormat('Y-m-d H:i', $date.' '.$hours['closes_at'], $timezone);
 
-        if (config('casa.business_hours.closes_next_day', true) || $end->lte($start)) {
+        if ($hours['closes_next_day'] || $end->lte($start)) {
             $end->addDay();
         }
 
@@ -119,7 +139,7 @@ class ScheduleWindowResolver
      */
     public function intervalForDate(CarbonInterface $date, string $startTime, string $endTime, bool $endsNextDay = false): array
     {
-        $timezone = (string) config('casa.business_hours.timezone', config('app.timezone'));
+        $timezone = $this->businessHours()['timezone'];
         $day = Carbon::parse($date, $timezone)->toDateString();
         $start = Carbon::parse($day.' '.substr($startTime, 0, 8), $timezone);
         $end = Carbon::parse($day.' '.substr($endTime, 0, 8), $timezone);

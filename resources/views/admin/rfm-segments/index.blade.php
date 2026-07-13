@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Promotion configuration') }}</p>
-            <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('RFM segments') }}</h1>
+            <h1 class="mt-2 font-display text-3xl font-black text-casa-ink">{{ __('RFM segments') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">
                 {{ __('Define the recency, frequency, and spending thresholds used to group customers for review.') }}
             </p>
@@ -11,7 +11,9 @@
         <div class="flex flex-wrap gap-3">
             <a href="{{ route('admin.promotions.index') }}" class="casa-button-secondary">{{ __('Review queue') }}</a>
             <a href="{{ route('admin.promotion-rules.index') }}" class="casa-button-secondary">{{ __('Promotion rules') }}</a>
+        @if ($segments->isNotEmpty())
             <a href="{{ route('admin.rfm-segments.create') }}" class="casa-button-primary">{{ __('Add segment') }}</a>
+        @endif
         </div>
     </x-slot>
 
@@ -23,18 +25,18 @@
         </section>
 
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('RFM thresholds') }}" title="{{ __('Customer segments') }}" :count="$segments->total()" :reset-url="route('admin.rfm-segments.index')">
-                <form method="GET" action="{{ route('admin.rfm-segments.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
-                    <input type="hidden" name="sort" value="{{ $sort }}">
-                    <input type="hidden" name="direction" value="{{ $direction }}">
-                    <input type="search" name="q" value="{{ $search }}" class="casa-input" placeholder="{{ __('Search name or description') }}" aria-label="{{ __('Search RFM segments') }}">
-                    <select name="status" class="casa-input" aria-label="{{ __('Segment status') }}">
-                        <option value="">{{ __('All statuses') }}</option>
-                        <option value="active" @selected($status === 'active')>{{ __('Active') }}</option>
-                        <option value="inactive" @selected($status === 'inactive')>{{ __('Inactive') }}</option>
-                    </select>
-                    <button type="submit" class="casa-button-secondary">{{ __('Filter') }}</button>
-                </form>
+            <x-list-toolbar eyebrow="{{ __('RFM thresholds') }}" title="{{ __('Customer segments') }}" :count="$segments->total()" :reset-url="route('admin.rfm-segments.index')" default-sort="status" default-direction="desc">
+                <x-filter-form
+                    :action="route('admin.rfm-segments.index')"
+                    :sort="$sort"
+                    :direction="$direction"
+                    :search="$search"
+                    :search-placeholder="__('Search name or description')"
+                    :search-label="__('Search RFM segments')"
+                    class="sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]"
+                >
+                    <x-active-status-filter :value="$status" :label="__('Segment status')" />
+                </x-filter-form>
             </x-list-toolbar>
 
             <div class="mt-5">
@@ -44,7 +46,7 @@
                     </x-empty-state>
                 @else
                     <x-table-shell>
-                        <thead class="bg-casa-bg text-left text-xs font-black uppercase tracking-[0.1em] text-casa-muted">
+                        <thead class="bg-casa-bg text-left text-sm font-black uppercase tracking-[0.1em] text-casa-muted">
                             <tr>
                                 <x-sortable-th sort="name">{{ __('Segment') }}</x-sortable-th>
                                 <th class="px-4 py-3">{{ __('R / F / M thresholds') }}</th>
@@ -57,10 +59,10 @@
                             @foreach ($segments as $segment)
                                 <tr class="casa-table-row">
                                     <td class="px-4 py-4">
-                                        <p class="font-bold text-casa-text">{{ $segment->name }}</p>
-                                        <p class="mt-1 max-w-sm text-xs leading-5 text-casa-muted">{{ $segment->description ?: __('No description') }}</p>
+                                        <p class="font-bold text-casa-ink">{{ $segment->name }}</p>
+                                        <p class="mt-1 max-w-sm text-sm leading-5 text-casa-muted">{{ $segment->description ?: __('No description') }}</p>
                                     </td>
-                                    <td class="px-4 py-4 text-xs font-semibold text-casa-muted">
+                                    <td class="px-4 py-4 text-sm font-semibold text-casa-muted">
                                         <div class="flex flex-wrap gap-2" aria-label="{{ __('RFM threshold summary') }}">
                                             <span class="rounded-xl border border-casa-border bg-casa-bg px-2.5 py-1.5">R {{ $segment->recency_min_days ?? __('any') }} {{ __('to') }} {{ $segment->recency_max_days ?? __('any') }} {{ __('days') }}</span>
                                             <span class="rounded-xl border border-casa-border bg-casa-bg px-2.5 py-1.5">F {{ $segment->frequency_min ?? __('any') }} {{ __('to') }} {{ $segment->frequency_max ?? __('any') }}</span>
@@ -69,13 +71,13 @@
                                     </td>
                                     <td class="px-4 py-4 text-casa-muted">
                                         {{ trans_choice(':count rule|:count rules', $segment->promotion_rules_count) }}<br>
-                                        <span class="text-xs">{{ trans_choice(':count suggestion|:count suggestions', $segment->promotion_suggestions_count) }}</span>
+                                        <span class="text-sm">{{ trans_choice(':count suggestion|:count suggestions', $segment->promotion_suggestions_count) }}</span>
                                     </td>
                                     <td class="px-4 py-4"><x-status-badge :tone="$segment->is_active ? 'success' : 'dark'">{{ $segment->is_active ? __('Active') : __('Inactive') }}</x-status-badge></td>
                                     <td class="px-4 py-4">
                                         <div class="flex flex-wrap gap-3">
-                                            <a href="{{ route('admin.rfm-segments.edit', $segment) }}" class="font-bold text-casa-primary hover:text-casa-primary-dark">{{ __('Edit') }}</a>
-                                            <a href="{{ route('admin.promotion-rules.create', ['rfm_segment_id' => $segment->id]) }}" class="font-bold text-casa-primary hover:text-casa-primary-dark">{{ __('Add rule') }}</a>
+                                            <a href="{{ route('admin.rfm-segments.edit', $segment) }}" class="font-bold text-casa-palm hover:text-casa-palm-dark">{{ __('Edit') }}</a>
+                                            <a href="{{ route('admin.promotion-rules.create', ['rfm_segment_id' => $segment->id]) }}" class="font-bold text-casa-palm hover:text-casa-palm-dark">{{ __('Add rule') }}</a>
                                             <x-confirm-action
                                                 :action="route('admin.rfm-segments.toggle', $segment)"
                                                 method="PATCH"

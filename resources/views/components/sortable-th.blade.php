@@ -16,9 +16,9 @@
 @endphp
 
 <th {{ $attributes->merge(['class' => "px-4 py-3 {$alignment}"]) }}>
-    <a href="{{ request()->url().'?'.http_build_query($query) }}" class="inline-flex items-center gap-1.5 rounded-full text-casa-muted transition hover:text-casa-primary">
+    <a href="{{ request()->url().'?'.http_build_query($query) }}" class="inline-flex min-h-11 items-center gap-1.5 rounded-full text-casa-muted transition hover:text-casa-palm">
         <span>{{ $slot }}</span>
-        <span class="text-[0.65rem]" aria-hidden="true">
+        <span class="text-sm" aria-hidden="true">
             @if ($isActive)
                 {{ $currentDirection === 'asc' ? '▲' : '▼' }}
             @else

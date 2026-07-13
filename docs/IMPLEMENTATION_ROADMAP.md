@@ -54,7 +54,7 @@ Acceptance:
 
 Goal: keep the Laravel application foundation reproducible under Docker Compose.
 
-Authentication direction: support verified email/password customer registration and login alongside verified Google OAuth. Staff and administrators remain pre-authorized and establish passwords through a reset link.
+Authentication direction: use verified Google OAuth as the only public, self-service customer registration and provisioning path, with no public email/password registration. The protected super administrator may pre-authorize customer access. After provisioning, customers may reconfirm their linked Google identity to create a password and use verified email/password login. Staff and administrators remain pre-authorized and retain email/password login plus password-setup and reset access.
 
 Tasks:
 
@@ -78,9 +78,18 @@ docker compose exec -T laravel.test php artisan test
 Acceptance:
 
 - Laravel loads locally through Docker Compose.
-- Breeze login and registration pages render.
+- Google customer sign-in and password login for eligible existing accounts render; no public registration page is exposed.
 - Tailwind styles compile successfully.
 - Default tests pass.
+
+## Shared Database Verification For Phases 2-3
+
+After the access-control and database-foundation phases, rebuild the isolated local database and run the regression suite:
+
+```bash
+docker compose exec -T laravel.test php artisan migrate:fresh --seed
+docker compose exec -T laravel.test php artisan test
+```
 
 ## Phase 2: Roles, Redirects, And Access Control
 
@@ -94,21 +103,18 @@ Tasks:
   - Admin to `/admin/dashboard`.
   - Staff to `/staff/dashboard`.
   - Customer to `/customer/appointments`.
-- Restrict public registration to customer accounts only.
+- Provision a customer account on first verified Google sign-in.
+- Keep public email/password registration disabled.
+- Allow a provisioned customer to create a first password only after linked-Google reauthentication.
+- Retain password login, setup, and reset for pre-authorized staff and administrators.
 - Add middleware or policies for admin, staff, and customer access.
 - Seed one admin user and optional demo staff/customer users.
-
-Verification:
-
-```bash
-docker compose exec -T laravel.test php artisan migrate:fresh --seed
-docker compose exec -T laravel.test php artisan test
-```
 
 Acceptance:
 
 - Admin, staff, and customer users land on the correct pages after login.
-- Customer registration cannot create admin or staff accounts.
+- First-time verified Google sign-in creates a customer account unless the email already belongs to a pre-authorized role.
+- No public flow can provision a customer, admin, or staff account from an email/password registration form.
 - Users cannot access route groups outside their role.
 
 ## Phase 3: Database Schema, Models, And Seeders
@@ -132,18 +138,20 @@ Tasks:
   - Default promotion rules.
 - Add model-level constants or enums for all status values.
 
-Verification:
-
-```bash
-docker compose exec -T laravel.test php artisan migrate:fresh --seed
-docker compose exec -T laravel.test php artisan test
-```
-
 Acceptance:
 
 - All tables migrate successfully on a clean database.
 - Seeded users, real package services, staff schedules, and RFM rules exist.
 - Key relationships load correctly in tests.
+
+## Shared Verification For Phases 4-10
+
+After each feature phase from Phase 4 through Phase 10, run the same build and regression checks:
+
+```bash
+docker compose exec -T laravel.test npm run build
+docker compose exec -T laravel.test php artisan test
+```
 
 ## Phase 4: Layouts And Role Dashboards
 
@@ -160,18 +168,11 @@ Tasks:
   - `/customer/appointments`
 - Add reusable Tailwind components for page headers, buttons, forms, tables, badges, alerts, and empty states.
 
-Verification:
-
-```bash
-docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
-```
-
 Acceptance:
 
 - Each role sees only its own dashboard and navigation.
 - Admin and staff sidebar layouts support management workflows.
-- Customer sidebar layout prioritizes appointment status and request actions.
+- Customer sidebar layout prioritizes appointment status and booking actions.
 
 ## Phase 5: Services, Staff, Schedules, And Customers
 
@@ -190,13 +191,6 @@ Tasks:
 - Build staff customer lookup with limited operational access.
 - Build customer profile screen.
 
-Verification:
-
-```bash
-docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
-```
-
 Acceptance:
 
 - Admin can manage services, staff, staff schedules, and customer records.
@@ -209,12 +203,11 @@ Goal: implement automated confirmed booking, admin service queue, and atomic com
 
 Tasks:
 
-- Build customer appointment request form.
-- Build a customer month calendar for requests, confirmed visits, and history plus the appointment detail view.
+- Build the customer appointment booking form.
+- Build a customer month calendar for confirmed visits and history plus the appointment detail view.
 - Build an admin weekly resource calendar with Bookings and Availability modes plus detail/create screens.
-- Build a staff personal weekly calendar with assigned appointments, read-only availability, and eligible demand.
-- Implement status transitions:
-  - `pending`
+- Build a staff personal weekly calendar with assigned appointments and read-only availability.
+- Implement active status transitions while retaining `pending` only for historical audit display:
   - `confirmed`
   - `completed`
   - `cancelled`
@@ -227,16 +220,9 @@ Tasks:
 - Support services ending exactly at the 12:00 midnight boundary.
 - Record appointment status logs.
 
-Verification:
-
-```bash
-docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
-```
-
 Acceptance:
 
-- Customer can request an appointment.
+- Customer can book an available appointment and receive immediate confirmation.
 - Customer bookings confirm automatically; admin can reschedule, cancel, complete, or mark no-show.
 - Admin can create confirmed reservations directly from effective availability cells in the operational calendar.
 - The system blocks overlapping confirmed appointments for the same staff member.
@@ -245,14 +231,14 @@ Acceptance:
 
 ## Phase 7: Manual Transactions
 
-Goal: build manual transaction recording and payment status management.
+Goal: build one audited charge and cumulative payment record per visit.
 
 Tasks:
 
 - Build admin transaction list/create/detail screens.
 - Keep staff transaction history read-only and build admin completion/payment capture.
 - Generate unique transaction numbers.
-- Support payment statuses:
+- Enforce a unique nullable appointment link and derive normal payment statuses from charge and amount paid:
   - `unpaid`
   - `partial`
   - `paid`
@@ -264,19 +250,13 @@ Tasks:
   - Bank transfer
   - Other
 - Show transaction history on customer detail pages.
-
-Verification:
-
-```bash
-docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
-```
+- Preserve payments, corrections, full refunds, and voids in an append-only adjustment history.
 
 Acceptance:
 
-- Admin can record manual payments.
-- Transactions link to customers and appointments where applicable.
-- Paid completed transactions are available for RFM calculations.
+- Admin can record prepayments, partial payments, and completion payments without creating duplicate appointment transactions.
+- Linked transactions derive customer, service, and quoted charge from the appointment.
+- Net collected value from completed transactions is available for reports and RFM calculations.
 
 ## Phase 8: Feedback And Sentiment
 
@@ -294,13 +274,6 @@ Tasks:
   - Optional keyword rules may refine the label.
 - Build admin feedback list/detail and sentiment summary.
 - Build staff feedback view for related operational feedback.
-
-Verification:
-
-```bash
-docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
-```
 
 Acceptance:
 
@@ -328,18 +301,11 @@ Tasks:
   - `dismissed`
 - Ensure suggestions are admin-visible and not automatic discounts.
 
-Verification:
-
-```bash
-docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
-```
-
 Acceptance:
 
 - Admin can generate or view stored promotion suggestions.
 - Suggestions include RFM values and suggested offer.
-- Admin/staff can review, apply, or dismiss suggestions according to permissions.
+- Admin can review, apply, or dismiss suggestions.
 
 ## Phase 10: Reports, Exports, And Dashboard Summaries
 
@@ -356,13 +322,6 @@ Tasks:
 - Add filters for date range, status, service, staff, customer, payment status, promotion status, and sentiment where relevant.
 - Add CSV export for tabular reports.
 - Add dashboard summary cards using existing appointment, transaction, feedback, and promotion data.
-
-Verification:
-
-```bash
-docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
-```
 
 Acceptance:
 
@@ -411,7 +370,7 @@ The MVP is complete when:
 
 - Admin, staff, and customer authentication works.
 - Admin can manage services, staff, schedules, customers, transactions, promotions, feedback, and reports.
-- Staff can handle daily appointment and transaction workflows.
+- Staff can review assigned appointments, operational customer context, related transactions, and feedback.
 - Customers can book confirmed appointments, view status/history, cancel before the start, update profile, and submit feedback.
 - RFM promotion suggestions are stored and reviewable.
 - Feedback sentiment is classified without external AI services.

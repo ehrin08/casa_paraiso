@@ -4,7 +4,7 @@
 
 Define the MVP MariaDB/MySQL schema before Laravel migrations are scaffolded.
 
-This design supports customer login, staff scheduling, appointment requests, manual transactions, RFM promotion suggestions, feedback sentiment, and management reporting.
+This design supports customer login, staff scheduling, confirmed appointment booking, manual transactions, RFM promotion suggestions, feedback sentiment, and management reporting.
 
 ## Design Rules
 
@@ -19,7 +19,7 @@ This design supports customer login, staff scheduling, appointment requests, man
 
 ## Status Values
 
-- Appointment status: `pending`, `confirmed`, `completed`, `cancelled`, `no_show`
+- Active appointment status: `confirmed`, `completed`, `cancelled`, `no_show`; `pending` is retained only for historical records and audit-log rendering.
 - Payment status: `unpaid`, `partial`, `paid`, `refunded`, `void`
 - Sentiment label: `positive`, `neutral`, `negative`
 - Promotion suggestion status: `suggested`, `reviewed`, `applied`, `dismissed`
@@ -40,9 +40,9 @@ Key columns:
 - `id`
 - `name`
 - `email` unique
-- `google_id` nullable, unique; populated on first successful Google sign-in
+- `google_id` nullable, unique; required for customer access and populated on first successful Google sign-in
 - `email_verified_at` nullable
-- `password` nullable legacy field; password authentication is disabled
+- `password` nullable hash; initially null for Google-provisioned customers, then populated only after linked-Google reauthentication; also used by pre-authorized staff/admin accounts
 - `role`
 - `phone` nullable
 - `is_active` boolean default true
@@ -60,6 +60,13 @@ Relationships:
 - One user may have one staff profile.
 - One user may have one customer profile.
 - Admin users record transactions; staff may review records linked to their assigned appointments.
+
+Authentication rules:
+
+- First sign-in with an unknown verified Google email creates a customer user and profile.
+- Public email/password registration is disabled; Google OAuth is the only public, self-service customer provisioning path. The protected super administrator may pre-authorize customer access.
+- A provisioned customer may create a first password after linked-Google reauthentication and subsequently use verified email/password login.
+- Staff and admin users are pre-authorized by the protected super administrator and may establish or reset a password through the privileged account flow.
 
 ### `staff_profiles`
 
@@ -243,7 +250,7 @@ Relationships:
 
 ### `appointments`
 
-Customer appointment requests and confirmed bookings.
+Confirmed customer and admin bookings plus retained historical appointment records.
 
 Key columns:
 
@@ -251,6 +258,7 @@ Key columns:
 - `appointment_number` unique
 - `customer_profile_id` foreign key to `customer_profiles.id`
 - `service_id` foreign key to `services.id`
+- `quoted_amount` decimal(10,2), captured from the service at confirmation
 - `staff_profile_id` nullable foreign key to `staff_profiles.id`
 - `preferred_staff_profile_id` nullable foreign key to `staff_profiles.id`
 - `requested_start_at`
@@ -279,7 +287,8 @@ Indexes:
 
 Rules:
 
-- New customer bookings start as `confirmed`; historical and admin-created requests may remain `pending`.
+- New customer and admin bookings start as `confirmed`; active workflows cannot create or restore `pending`.
+- `requested_start_at` mirrors `scheduled_start_at` for confirmed bookings and remains only for compatibility with retained history.
 - A preferred therapist is a customer preference only; final assignment remains in `staff_profile_id`.
 - Customer booking locks eligible therapist rows, rechecks availability, assigns one therapist, and reserves capacity in one transaction.
 - An available preferred therapist is assigned first. Otherwise choose the therapist with the fewest future confirmed bookings, then the lowest profile ID.
@@ -291,7 +300,7 @@ Rules:
 Relationships:
 
 - Belongs to customer profile, service, and optionally staff profile.
-- Has many transactions.
+- Has at most one transaction.
 - Has one feedback record in the MVP.
 - Has many status logs.
 
@@ -324,7 +333,7 @@ Relationships:
 
 ### `transactions`
 
-Manual service payment and transaction records.
+One service charge and cumulative payment record per appointment.
 
 Key columns:
 
@@ -333,7 +342,8 @@ Key columns:
 - `customer_profile_id` foreign key to `customer_profiles.id`
 - `appointment_id` nullable foreign key to `appointments.id`
 - `service_id` nullable foreign key to `services.id`
-- `amount` decimal(10,2)
+- `amount` decimal(10,2), the current visit charge; any correction requires an adjustment record
+- `amount_paid` decimal(10,2), the cumulative net payment held
 - `payment_status`
 - `payment_method` nullable
 - `paid_at` nullable
@@ -345,24 +355,46 @@ Indexes:
 
 - Unique index on `transaction_number`
 - Index on `customer_profile_id`, `created_at`
-- Index on `appointment_id`
+- Unique nullable index on `appointment_id`
 - Index on `service_id`
 - Index on `payment_status`
 - Index on `recorded_by`
 
 Rules:
 
-- Use `payment_status = unpaid` when recording an unpaid service balance.
-- Use `payment_status = paid` when the full amount is received.
-- Use `payment_status = partial` when only part of the amount is received.
+- Derive `unpaid`, `partial`, and `paid` from `amount_paid` relative to `amount`; do not accept those statuses as manual form choices.
+- Reject negative payments and payments that would make `amount_paid` exceed `amount`.
+- Customer, service, and charge come from the linked appointment and cannot be changed through the payment form.
+- Prepayment and completion reuse the same transaction row. Completion without payment creates or retains an unpaid row.
+- `refunded` is a full refund and `void` invalidates the record; both require an audit reason.
+- Open balance is `amount - amount_paid` for non-refunded, non-void records.
 - Use only completed or confirmed appointments for normal service transactions.
-- Include completed, paid transactions in monetary RFM calculations by default.
+- Use net `amount_paid` from completed transactions for reporting and monetary RFM calculations.
 
 Relationships:
 
 - Belongs to customer profile.
 - Optionally belongs to appointment and service.
 - Belongs to recorder user.
+
+### `transaction_adjustments`
+
+Append-only audit history for payments, charge corrections, full refunds, and voids.
+
+Key columns:
+
+- `transaction_id` foreign key to `transactions.id`
+- `action`
+- `previous_amount`, `new_amount`
+- `previous_amount_paid`, `new_amount_paid`, `payment_delta`
+- `payment_method` nullable
+- `occurred_at`
+- `recorded_by` nullable foreign key to `users.id`
+- `reason`
+- `idempotency_key` nullable unique
+- `created_at`
+
+Adjustment rows are never edited or deleted by normal application workflows.
 
 ## RFM Promotions
 
@@ -452,7 +484,7 @@ Rules:
 
 - Store suggestions when RFM analysis is run.
 - Do not automatically apply discounts in the MVP.
-- Admin or staff must review, apply, or dismiss suggestions.
+- Admin must review, apply, or dismiss suggestions.
 - Keep old suggestions for audit and reporting.
 
 Relationships:
@@ -564,18 +596,19 @@ Use this order when creating Laravel migrations:
 9. `appointments`
 10. `appointment_status_logs`
 11. `transactions`
-12. `rfm_segments`
-13. `promotion_rules`
-14. `promotion_suggestions`
-15. `feedback`
+12. `transaction_adjustments`
+13. `rfm_segments`
+14. `promotion_rules`
+15. `promotion_suggestions`
+16. `feedback`
 
 ## Acceptance Scenarios
 
 - A customer account can instantly book an available service date/time.
 - The system atomically assigns the preferred available therapist or the least-booked eligible therapist.
 - The system can detect an overlapping confirmed appointment for the same staff member.
-- Admin can finish an appointment and atomically record its manual transaction.
+- Admin can prepay, partially pay, or finish an appointment while retaining exactly one linked transaction and an append-only adjustment history.
 - RFM calculations can use completed paid transactions to store promotion suggestions.
-- Admin or staff can review, apply, or dismiss promotion suggestions.
+- Admin can review, apply, or dismiss promotion suggestions.
 - Customer can submit one feedback record for a completed appointment.
 - Admin can filter reports by appointment, transaction, promotion, and feedback fields without direct database access.

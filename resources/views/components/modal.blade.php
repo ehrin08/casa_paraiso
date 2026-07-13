@@ -1,7 +1,8 @@
 @props([
     'name',
     'show' => false,
-    'maxWidth' => '2xl'
+    'maxWidth' => '2xl',
+    'label' => null,
 ])
 
 @php
@@ -38,7 +39,7 @@ $maxWidth = [
         class="fixed inset-0 z-[100] isolate overflow-y-auto px-4 py-6 sm:px-0"
         role="dialog"
         aria-modal="true"
-        aria-label="{{ str_replace('-', ' ', ucfirst($name)) }}"
+        aria-label="{{ $label ?: str_replace('-', ' ', ucfirst($name)) }}"
     >
         <div
             x-show="show"

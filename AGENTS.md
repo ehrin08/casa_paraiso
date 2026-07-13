@@ -80,7 +80,9 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 - Use Turbo Drive only for safe same-origin GET links and filter forms; keep state-changing forms, exports, and panel links on their existing Laravel request paths.
 - Appointment workspaces are calendar-only: customer month view, admin Bookings/Availability week view, and staff personal week view. Keep mutations on normal Laravel form routes and use the role-scoped JSON feeds only for calendar reads.
 - Treat 1:00 PM to 12:00 midnight in Asia/Manila as the hard booking window with 30-minute start intervals; `ends_next_day` represents midnight-ending staff windows.
-- Pending requests show demand but do not reserve capacity. Final confirmation must use the transactional appointment workflow, and therapist availability changes must remain guarded against future confirmed conflicts.
+- Active customer and admin booking paths create transactionally confirmed appointments; `pending` is historical-only and must not be accepted by active forms, filters, or calendar feeds. Therapist availability changes remain guarded against future confirmed conflicts.
+- Each appointment has at most one linked transaction. Prepayments and partial payments update that record, while payment, correction, full-refund, and void events are retained in an append-only adjustment history.
+- Staff customer, feedback, transaction, and appointment access must remain scoped to appointments assigned to the logged-in staff profile.
 - Use Laravel migrations and seeders as the primary database workflow.
 - Document setup, build, migration, seed, and deployment commands as the application is scaffolded.
 - Keep usability, security, and effectiveness visible in design and implementation decisions to support the ISO/IEC 25010 quality target.

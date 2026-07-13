@@ -6,6 +6,7 @@ use App\Http\Controllers\Concerns\HandlesIndexSorting;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\CustomerNoteRequest;
 use App\Models\CustomerProfile;
+use App\Services\CustomerDuplicateDetector;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -31,19 +32,8 @@ class CustomerController extends Controller
         $direction = $this->indexDirection($request);
 
         $customers = CustomerProfile::query()
-            ->with('user')
-            ->withCount(['appointments', 'transactions', 'feedback', 'promotionSuggestions'])
-            ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('customer_code', 'like', "%{$search}%")
-                        ->orWhereHas('user', fn ($userQuery) => $userQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhere('phone', 'like', "%{$search}%"));
-                });
-            })
-            ->join('users', 'users.id', '=', 'customer_profiles.user_id')
-            ->select('customer_profiles.*')
+            ->forIndex(['appointments', 'transactions', 'feedback', 'promotionSuggestions'])
+            ->searchIdentity($search)
             ->when($status === 'active', fn ($query) => $query->where('users.is_active', true))
             ->when($status === 'inactive', fn ($query) => $query->where('users.is_active', false))
             ->orderBy($sorts[$sort], $direction)
@@ -85,6 +75,13 @@ class CustomerController extends Controller
 
         return view('admin.customers.show', [
             'customer' => $customer,
+        ]);
+    }
+
+    public function duplicates(CustomerDuplicateDetector $duplicates): View
+    {
+        return view('admin.customers.duplicates', [
+            'duplicateGroups' => $duplicates->reviewGroups(),
         ]);
     }
 

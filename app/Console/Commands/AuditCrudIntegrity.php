@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Appointment;
 use App\Models\PromotionSuggestion;
 use App\Models\Transaction;
+use App\Services\ScheduleWindowResolver;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Query\Builder;
@@ -16,8 +17,10 @@ class AuditCrudIntegrity extends Command
 
     protected $description = 'Run a read-only audit for orphaned CRUD relationships and invalid status metadata.';
 
-    public function handle(): int
+    public function handle(ScheduleWindowResolver $scheduleWindows): int
     {
+        $slotInterval = $scheduleWindows->businessHours()['slot_interval_minutes'];
+
         $checks = [
             'Active appointments assigned to deleted or missing staff' => $this->activeAppointmentsWithUnavailableStaff(),
             'Pending requests preferring deleted or missing staff' => $this->pendingRequestsWithUnavailablePreference(),
@@ -50,15 +53,39 @@ class AuditCrudIntegrity extends Command
             'Cancelled appointments missing cancellation metadata' => Appointment::query()
                 ->where('status', Appointment::STATUS_CANCELLED)
                 ->whereNull('cancelled_at'),
-            'Scheduled appointments outside 30-minute start intervals' => Appointment::query()
+            "Scheduled appointments outside {$slotInterval}-minute start intervals" => Appointment::query()
                 ->whereNotNull('scheduled_start_at')
-                ->whereRaw('MINUTE(scheduled_start_at) MOD 30 <> 0'),
-            'Paid transactions missing method or paid date' => Transaction::query()
-                ->where('payment_status', Transaction::PAYMENT_PAID)
+                ->whereRaw('MOD(MINUTE(scheduled_start_at), ?) <> 0', [$slotInterval]),
+            'Received payments missing method or paid date' => Transaction::query()
+                ->whereIn('payment_status', Transaction::PAYMENT_RECEIVED_STATUSES)
+                ->where('amount_paid', '>', 0)
                 ->where(fn ($query) => $query->whereNull('payment_method')->orWhereNull('paid_at')),
             'Unpaid or void transactions retaining payment metadata' => Transaction::query()
                 ->whereIn('payment_status', [Transaction::PAYMENT_UNPAID, Transaction::PAYMENT_VOID])
                 ->where(fn ($query) => $query->whereNotNull('payment_method')->orWhereNotNull('paid_at')),
+            'Transactions with missing, negative, or excessive paid totals' => Transaction::query()
+                ->where(fn ($query) => $query
+                    ->whereNull('amount_paid')
+                    ->orWhere('amount_paid', '<', 0)
+                    ->orWhereColumn('amount_paid', '>', 'amount')),
+            'Transactions whose normal payment status is not derived from totals' => Transaction::query()
+                ->where(fn ($query) => $query
+                    ->where(fn ($query) => $query
+                        ->where('payment_status', Transaction::PAYMENT_UNPAID)
+                        ->where('amount_paid', '!=', 0))
+                    ->orWhere(fn ($query) => $query
+                        ->where('payment_status', Transaction::PAYMENT_PARTIAL)
+                        ->where(fn ($query) => $query
+                            ->where('amount_paid', '<=', 0)
+                            ->orWhereColumn('amount_paid', '>=', 'amount')))
+                    ->orWhere(fn ($query) => $query
+                        ->where('payment_status', Transaction::PAYMENT_PAID)
+                        ->whereColumn('amount_paid', '!=', 'amount'))),
+            'Appointments linked to duplicate transactions' => DB::table('transactions')
+                ->select('appointment_id')
+                ->whereNotNull('appointment_id')
+                ->groupBy('appointment_id')
+                ->havingRaw('COUNT(*) > 1'),
             'Promotion suggestions with inconsistent terminal timestamps' => PromotionSuggestion::query()
                 ->where(function ($query): void {
                     $query

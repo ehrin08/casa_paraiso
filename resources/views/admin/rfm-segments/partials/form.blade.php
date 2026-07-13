@@ -1,11 +1,8 @@
-<form method="POST" action="{{ $action }}" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-    @csrf
-    @if ($method !== 'POST') @method($method) @endif
-
+<x-form-shell :action="$action" :method="$method" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
     <x-app-card>
         <div class="border-b border-casa-border pb-5">
             <p class="casa-section-label">{{ __('Segment definition') }}</p>
-            <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Customer thresholds') }}</h2>
+            <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ __('Customer thresholds') }}</h2>
         </div>
 
         <div class="mt-5 grid gap-5">
@@ -29,10 +26,10 @@
                     <fieldset class="rounded-2xl border border-casa-border bg-casa-bg p-4">
                         <legend class="sr-only">{{ $threshold['title'] }}</legend>
                         <div class="flex items-start gap-3">
-                            <span class="grid size-9 shrink-0 place-items-center rounded-full bg-casa-primary text-sm font-black text-white">{{ $threshold['code'] }}</span>
+                            <span class="grid size-9 shrink-0 place-items-center rounded-full bg-casa-palm text-sm font-black text-white">{{ $threshold['code'] }}</span>
                             <div>
-                                <p class="font-bold text-casa-text">{{ $threshold['title'] }}</p>
-                                <p class="mt-1 text-xs leading-5 text-casa-muted">{{ $threshold['description'] }}</p>
+                                <p class="font-bold text-casa-ink">{{ $threshold['title'] }}</p>
+                                <p class="mt-1 text-sm leading-5 text-casa-muted">{{ $threshold['description'] }}</p>
                             </div>
                         </div>
                         <div class="mt-4 grid grid-cols-2 gap-3">
@@ -53,9 +50,9 @@
 
             <label class="flex items-start gap-3 rounded-2xl border border-casa-border bg-casa-bg p-4">
                 <input type="hidden" name="is_active" value="0">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $rfmSegment->is_active)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
+                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $rfmSegment->is_active)) class="mt-1 rounded border-casa-border text-casa-palm shadow-sm focus:ring-casa-brass">
                 <span>
-                    <span class="block text-sm font-bold text-casa-text">{{ __('Active for promotion generation') }}</span>
+                    <span class="block text-sm font-bold text-casa-ink">{{ __('Active for promotion generation') }}</span>
                     <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Inactive segments remain visible for audit history but cannot receive new suggestions.') }}</span>
                 </span>
             </label>
@@ -65,14 +62,9 @@
     <aside class="space-y-4">
         <x-app-card>
             <p class="casa-section-label">{{ __('Zero-visit customers') }}</p>
-            <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Use F = 0 explicitly') }}</h2>
+            <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ __('Use F = 0 explicitly') }}</h2>
             <p class="mt-3 text-sm leading-6 text-casa-muted">{{ __('A segment includes customers without a paid completed visit only when its minimum frequency is 0 and its maximum allows 0. Recency is then treated as unavailable.') }}</p>
         </x-app-card>
-        <x-app-card>
-            <div class="flex flex-col gap-3">
-                <button type="submit" class="casa-button-primary w-full">{{ $submitLabel }}</button>
-                <a href="{{ route('admin.rfm-segments.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>
-            </div>
-        </x-app-card>
+        <x-form-actions :submit-label="$submitLabel" :cancel-url="route('admin.rfm-segments.index')" />
     </aside>
-</form>
+</x-form-shell>

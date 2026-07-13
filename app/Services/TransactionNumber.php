@@ -38,7 +38,7 @@ class TransactionNumber
                     'transaction_number' => $this->next(),
                 ]);
             } catch (QueryException $exception) {
-                if (! $this->isTransactionNumberCollision($exception)) {
+                if (! UniqueConstraintViolation::forColumn($exception, 'transaction_number')) {
                     throw $exception;
                 }
 
@@ -47,14 +47,5 @@ class TransactionNumber
         }
 
         throw $lastException;
-    }
-
-    private function isTransactionNumberCollision(QueryException $exception): bool
-    {
-        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
-        $message = strtolower($exception->getMessage());
-
-        return in_array($sqlState, ['23000', '23505'], true)
-            && str_contains($message, 'transaction_number');
     }
 }

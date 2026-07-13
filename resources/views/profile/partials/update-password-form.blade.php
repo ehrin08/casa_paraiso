@@ -1,6 +1,6 @@
 <section>
     <header>
-        <h2 class="font-display text-lg font-black text-casa-text">
+        <h2 class="font-display text-lg font-black text-casa-ink">
             {{ filled($user->password) ? __('Update Password') : __('Set a Password') }}
         </h2>
 
@@ -53,7 +53,7 @@
             </p>
             <x-input-error :messages="$errors->get('google')" />
             <x-input-error :messages="$errors->updatePassword->get('password')" />
-            <a href="{{ route('profile.password.google') }}" class="inline-flex min-h-11 items-center rounded-xl bg-casa-primary px-4 py-2 text-sm font-bold text-white hover:bg-casa-primary-dark focus:outline-none focus:ring-4 focus:ring-casa-primary/20">
+            <a href="{{ route('profile.password.google') }}" class="inline-flex min-h-11 items-center rounded-xl bg-casa-palm px-4 py-2 text-sm font-bold text-white hover:bg-casa-palm-dark focus:outline-none focus:ring-4 focus:ring-casa-palm/20">
                 {{ __('Confirm with Google') }}
             </a>
         </div>
@@ -62,7 +62,7 @@
             <p class="text-sm leading-6 text-casa-muted">
                 {{ __('Use the secure reset-password flow to create a password for this account.') }}
             </p>
-            <a href="{{ route('password.request') }}" class="inline-flex min-h-11 items-center rounded-xl border border-casa-primary px-4 py-2 text-sm font-bold text-casa-primary hover:bg-casa-primary/5 focus:outline-none focus:ring-4 focus:ring-casa-primary/20">
+            <a href="{{ route('password.request') }}" class="inline-flex min-h-11 items-center rounded-xl border border-casa-palm px-4 py-2 text-sm font-bold text-casa-palm hover:bg-casa-palm/5 focus:outline-none focus:ring-4 focus:ring-casa-palm/20">
                 {{ __('Email a Password Setup Link') }}
             </a>
         </div>

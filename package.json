@@ -5,18 +5,20 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
-        "dev": "vite"
+        "dev": "vite",
+        "test:e2e": "playwright test"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.12.1",
+        "@fontsource-variable/cormorant-garamond": "^5.2.6",
+        "@fontsource-variable/manrope": "^5.2.8",
         "@hotwired/turbo": "^8.0.23",
+        "@playwright/test": "^1.61.1",
         "@tailwindcss/forms": "^0.5.11",
         "@tailwindcss/vite": "^4.3.2",
         "alpinejs": "^3.4.2",
-        "autoprefixer": "^10.4.2",
         "axios": "^1.11.0",
-        "concurrently": "^9.0.1",
         "laravel-vite-plugin": "^2.0.0",
-        "postcss": "^8.4.31",
         "tailwindcss": "^4.3.2",
         "vite": "^7.0.7"
     }

@@ -19,7 +19,6 @@ class AdminStaffManagementTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.staff.index'))->assertOk();
         $this->actingAs($admin)->get(route('admin.staff.edit', $staffProfile))->assertOk();
-        $this->actingAs($admin)->get(route('admin.staff.create'))->assertForbidden();
         $this->actingAs($admin)->post(route('admin.staff.store'), [])->assertForbidden();
     }
 

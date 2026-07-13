@@ -27,7 +27,12 @@ The signature visual is the **tropical canopy**: an arched image frame paired wi
 | Casa Ink | `#232620` | Primary text |
 | Casa Background | `#F5F0E7` | Application background |
 | Casa Muted | `#67675F` | Secondary text |
-| Casa Border | `#DCD2C2` | Borders and separators |
+| Casa Border | `#DCD2C2` | Decorative separators and low-emphasis card edges |
+| Casa Control Border | `#9C8C76` | Input, button, filter, and interactive boundaries |
+| Success | `#376B46` | Confirmed and successful states |
+| Warning | `#8A5A17` | Partial or attention-required states |
+| Danger | `#A23B32` | Cancelled, invalid, destructive, and error states |
+| Information | `#285F77` | Neutral operational information |
 
 Casa Brass is decorative and should not carry small text. Use Brass Light for meaningful text on dark surfaces. Success, warning, error, and information states must include text or icons rather than relying on color alone.
 
@@ -35,6 +40,7 @@ Casa Brass is decorative and should not carry small text. Use Brass Light for me
 
 - **Cormorant Garamond 600–700:** marketing heroes, customer lounge display moments, and short emotional statements.
 - **Manrope 400–800:** navigation, operational headings, body text, forms, tables, buttons, metrics, and captions.
+- Both families are bundled locally through Fontsource variable WOFF2 assets with `font-display: swap`; no remote font request or production Node runtime is required.
 - Body copy is 16px where space permits and never below 14px for meaningful content.
 - Uppercase text is limited to short labels with increased letter spacing.
 
@@ -68,6 +74,6 @@ Preserve established service names, prices, business hours, statuses, and the li
 ## Accessibility and Motion
 
 - Meet WCAG AA: 4.5:1 for normal text and 3:1 for large text and interface boundaries.
-- Every control needs a visible label or accessible name and a visible keyboard focus state.
+- Every control needs a visible label or accessible name and a visible keyboard focus state. Use the Casa Paper inner ring plus Deep Palm outer ring on both light and dark surfaces.
 - Keep motion between 160–220ms and use it only to explain navigation or state changes.
 - Honor `prefers-reduced-motion` and never make animation necessary to understand content.

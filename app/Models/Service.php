@@ -30,11 +30,6 @@ class Service extends Model
         ];
     }
 
-    public function staffServices()
-    {
-        return $this->hasMany(StaffService::class);
-    }
-
     public function staffProfiles()
     {
         return $this->belongsToMany(StaffProfile::class, 'staff_services')->withTimestamps();

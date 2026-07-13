@@ -6,7 +6,6 @@ use App\Models\Appointment;
 use App\Models\CustomerProfile;
 use App\Models\Service;
 use App\Models\StaffProfile;
-use App\Models\StaffWeeklySchedule;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,8 +28,10 @@ class InteractiveListControlsTest extends TestCase
             ->for($serviceA)
             ->create([
                 'appointment_number' => 'APT-200',
-                'status' => Appointment::STATUS_PENDING,
+                'status' => Appointment::STATUS_CONFIRMED,
                 'requested_start_at' => now()->addDays(2)->setTime(10, 0),
+                'scheduled_start_at' => now()->addDays(2)->setTime(10, 0),
+                'scheduled_end_at' => now()->addDays(2)->setTime(11, 0),
             ]);
 
         Appointment::factory()
@@ -40,6 +41,8 @@ class InteractiveListControlsTest extends TestCase
                 'appointment_number' => 'APT-100',
                 'status' => Appointment::STATUS_CONFIRMED,
                 'requested_start_at' => now()->addDays(3)->setTime(11, 0),
+                'scheduled_start_at' => now()->addDays(3)->setTime(11, 0),
+                'scheduled_end_at' => now()->addDays(3)->setTime(12, 0),
             ]);
 
         $this->actingAs($admin)
@@ -54,7 +57,8 @@ class InteractiveListControlsTest extends TestCase
                 'mode' => 'bookings',
                 'start' => $weekStart->toDateString(),
                 'end' => $weekStart->copy()->addDays(7)->toDateString(),
-                'status' => Appointment::STATUS_PENDING,
+                'status' => Appointment::STATUS_CONFIRMED,
+                'service_id' => $serviceA->id,
             ], false));
 
         $response->assertOk()->assertJsonPath('mode', 'bookings');
@@ -77,6 +81,7 @@ class InteractiveListControlsTest extends TestCase
                 'transaction_number' => 'TRX-PAID',
                 'payment_status' => Transaction::PAYMENT_PAID,
                 'amount' => 2000,
+                'amount_paid' => 2000,
             ]);
 
         Transaction::factory()
@@ -87,6 +92,7 @@ class InteractiveListControlsTest extends TestCase
                 'transaction_number' => 'TRX-UNPAID',
                 'payment_status' => Transaction::PAYMENT_UNPAID,
                 'amount' => 500,
+                'amount_paid' => 0,
             ]);
 
         $this->actingAs($admin)
@@ -134,57 +140,16 @@ class InteractiveListControlsTest extends TestCase
             ->assertSee('sort=price', false);
     }
 
-    public function test_staff_appointment_calendar_excludes_unassigned_pending_demand(): void
+    public function test_staff_appointment_workspace_uses_the_operational_calendar(): void
     {
         $staffUser = User::factory()->staff()->create();
-        $staffProfile = StaffProfile::factory()->for($staffUser)->create();
-        $customer = CustomerProfile::factory()->create();
-        $service = Service::factory()->create(['name' => 'Body Care']);
-        $staffProfile->services()->attach($service);
-
-        StaffWeeklySchedule::factory()->for($staffProfile)->create([
-            'day_of_week' => now()->addWeek()->dayOfWeek,
-            'start_time' => '09:00:00',
-            'end_time' => '17:00:00',
-        ]);
-
-        Appointment::factory()
-            ->for($customer)
-            ->for($service)
-            ->create([
-                'appointment_number' => 'APT-PENDING-QUEUE',
-                'status' => Appointment::STATUS_PENDING,
-                'requested_start_at' => now()->addWeek()->setTime(10, 0),
-            ]);
-
-        Appointment::factory()
-            ->for($customer)
-            ->for($service)
-            ->for($staffProfile, 'staffProfile')
-            ->create([
-                'appointment_number' => 'APT-COMPLETE-QUEUE',
-                'status' => Appointment::STATUS_COMPLETED,
-                'requested_start_at' => now()->addDays(3)->setTime(10, 0),
-            ]);
+        StaffProfile::factory()->for($staffUser)->create();
 
         $this->actingAs($staffUser)
             ->get(route('staff.appointments.index', absolute: false))
             ->assertOk()
             ->assertSee('data-operational-calendar', false)
             ->assertDontSee('casa-table-wrap', false);
-
-        $weekStart = now()->addWeek()->startOfDay();
-        $response = $this->actingAs($staffUser)
-            ->getJson(route('staff.appointments.calendar', [
-                'start' => $weekStart->toDateString(),
-                'end' => $weekStart->copy()->addDay()->toDateString(),
-                'status' => Appointment::STATUS_PENDING,
-            ], false));
-
-        $response->assertOk();
-        $numbers = collect($response->json('events'))->pluck('appointment_number')->filter();
-        $this->assertFalse($numbers->contains('APT-PENDING-QUEUE'));
-        $this->assertFalse($numbers->contains('APT-COMPLETE-QUEUE'));
     }
 
     public function test_customer_appointment_calendar_replaces_pagination_controls(): void

@@ -1,6 +1,6 @@
 # Google Authentication Setup
 
-Casa Paraiso uses Google OAuth for every customer, staff, admin, and super-admin login. Password login and manual registration are disabled.
+Casa Paraiso uses verified Google OAuth as the only public customer registration and provisioning path. No public email/password registration is available. After provisioning, a customer may reconfirm the linked Google identity to create a password and use verified email/password login. Pre-authorized staff and admin accounts retain email/password login plus password-setup and reset access.
 
 ## Google Cloud configuration
 
@@ -14,8 +14,10 @@ Casa Paraiso uses Google OAuth for every customer, staff, admin, and super-admin
 ## Access rules
 
 - `SUPER_ADMIN_EMAIL` must remain `ehrinjohn08@gmail.com` unless ownership is intentionally transferred through a reviewed deployment change.
-- Unknown verified Google emails become customers.
-- Staff and admin emails are pre-authorized from **Admin → User access** by the super admin.
+- First sign-in with an unknown verified Google email creates a customer account.
+- A verified Google email that already belongs to a pre-authorized role retains that role instead of creating a duplicate customer.
+- The protected super administrator pre-authorizes staff emails through **Admin → Team**, where their operational profile and eligible services are created with the account, and admin emails through **Admin → User access**. Their password setup and recovery are separate from public customer sign-in.
+- A customer may add a conventional password only after reauthenticating the linked Google identity; this setup does not create a new account.
 - The protected super admin cannot be demoted, deactivated, renamed to another email, or deleted through the application.
 
 ## Recovery and security

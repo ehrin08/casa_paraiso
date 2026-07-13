@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Admin schedule') }}</p>
-            <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('Bookings & therapist coverage') }}</h1>
+            <h1 class="mt-2 font-display text-3xl font-black text-casa-ink">{{ __('Bookings & therapist coverage') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">
                 {{ __('Run confirmed visits from the service queue and maintain therapist availability from one weekly calendar.') }}
             </p>
@@ -21,8 +21,8 @@
 
     <div class="space-y-5">
         <section class="grid gap-4 md:grid-cols-3">
-            <x-metric-card label="In queue" :value="$summary['confirmed']" meta="Confirmed services awaiting outcome" tone="gold" />
-            <x-metric-card label="Confirmed" :value="$summary['confirmed']" meta="Placed on therapist calendars" tone="green" />
+            <x-metric-card label="Today" :value="$summary['today']" meta="Confirmed visits scheduled today" tone="gold" />
+            <x-metric-card label="Upcoming" :value="$summary['upcoming']" meta="Future confirmed visits" tone="green" />
             <x-metric-card label="Completed" :value="$summary['completed']" meta="Finished services" tone="brown" />
         </section>
 
@@ -30,7 +30,7 @@
             <div class="flex flex-col gap-3 border-b border-casa-border pb-5 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <p class="casa-section-label">{{ __('Service queue') }}</p>
-                    <h2 class="mt-2 font-display text-2xl font-black text-casa-text">{{ __('Next visits to serve') }}</h2>
+                    <h2 class="mt-2 font-display text-2xl font-black text-casa-ink">{{ __('Next visits to serve') }}</h2>
                     <p class="mt-2 text-sm text-casa-muted">{{ __('Overdue and ready visits lead the queue, followed by upcoming confirmed appointments.') }}</p>
                 </div>
                 <span class="casa-filter-chip">{{ trans_choice(':count visit|:count visits', $serviceQueue->count()) }}</span>
@@ -44,13 +44,13 @@
                     @endphp
                     <article class="grid gap-4 rounded-2xl border p-4 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-center {{ $isOverdue ? 'border-casa-cacao/35 bg-casa-cacao/5' : ($hasStarted ? 'border-casa-palm/35 bg-casa-palm/5' : 'border-casa-border bg-casa-bg') }}">
                         <div>
-                            <p class="text-lg font-black text-casa-text">{{ $queuedAppointment->scheduled_start_at?->format('g:i A') }}</p>
-                            <p class="mt-1 text-xs font-bold uppercase tracking-[0.1em] text-casa-muted">{{ $queuedAppointment->scheduled_start_at?->format('M d') }}</p>
+                            <p class="text-lg font-black text-casa-ink">{{ $queuedAppointment->scheduled_start_at?->format('g:i A') }}</p>
+                            <p class="mt-1 text-sm font-bold uppercase tracking-[0.1em] text-casa-muted">{{ $queuedAppointment->scheduled_start_at?->format('M d') }}</p>
                         </div>
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
-                                <h3 class="truncate font-bold text-casa-text">{{ $queuedAppointment->customerProfile?->user?->name }}</h3>
-                                <span class="rounded-full px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.08em] {{ $isOverdue ? 'bg-casa-cacao text-white' : ($hasStarted ? 'bg-casa-palm text-white' : 'bg-casa-brass/15 text-casa-cacao') }}">
+                                <h3 class="truncate font-bold text-casa-ink">{{ $queuedAppointment->customerProfile?->user?->name }}</h3>
+                                <span class="rounded-full px-2.5 py-1 text-sm font-black uppercase tracking-[0.08em] {{ $isOverdue ? 'bg-casa-cacao text-white' : ($hasStarted ? 'bg-casa-palm text-white' : 'bg-casa-brass/15 text-casa-cacao') }}">
                                     {{ $isOverdue ? __('Overdue') : ($hasStarted ? __('Ready') : __('Upcoming')) }}
                                 </span>
                             </div>
@@ -89,11 +89,11 @@
         />
     </div>
 
-    <x-modal name="calendar-appointment-create" :show="old('_modal') === 'calendar-appointment-create'" maxWidth="5xl" focusable>
+    <x-modal name="calendar-appointment-create" :show="$openCreateModal || old('_modal') === 'calendar-appointment-create'" :label="__('Add confirmed appointment')" maxWidth="5xl" focusable>
         <div class="p-5">
             @include('admin.appointments.partials.form', [
                 'appointment' => $calendarAppointment,
-                'action' => route('admin.appointments.calendar.store'),
+                'action' => route('admin.appointments.store'),
                 'method' => 'POST',
                 'submitLabel' => __('Confirm appointment'),
                 'modalName' => 'calendar-appointment-create',

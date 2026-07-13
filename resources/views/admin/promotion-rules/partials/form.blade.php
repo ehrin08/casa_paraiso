@@ -1,11 +1,8 @@
-<form method="POST" action="{{ $action }}" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-    @csrf
-    @if ($method !== 'POST') @method($method) @endif
-
+<x-form-shell :action="$action" :method="$method" class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
     <x-app-card>
         <div class="border-b border-casa-border pb-5">
             <p class="casa-section-label">{{ __('Rule details') }}</p>
-            <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Segment offer') }}</h2>
+            <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ __('Segment offer') }}</h2>
         </div>
 
         <div class="mt-5 grid gap-5">
@@ -27,7 +24,7 @@
             <div>
                 <x-input-label for="suggested_offer" :value="__('Suggested offer')" />
                 <x-text-input id="suggested_offer" name="suggested_offer" type="text" class="mt-2" :value="old('suggested_offer', $promotionRule->suggested_offer)" required />
-                <p class="mt-2 text-xs leading-5 text-casa-muted">{{ __('Example: Free aromatherapy add-on on the next completed visit.') }}</p>
+                <p class="mt-2 text-sm leading-5 text-casa-muted">{{ __('Example: Free aromatherapy add-on on the next completed visit.') }}</p>
                 <x-input-error class="mt-2" :messages="$errors->get('suggested_offer')" />
             </div>
             <div>
@@ -37,9 +34,9 @@
             </div>
             <label class="flex items-start gap-3 rounded-2xl border border-casa-border bg-casa-bg p-4">
                 <input type="hidden" name="is_active" value="0">
-                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $promotionRule->is_active)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
+                <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $promotionRule->is_active)) class="mt-1 rounded border-casa-border text-casa-palm shadow-sm focus:ring-casa-brass">
                 <span>
-                    <span class="block text-sm font-bold text-casa-text">{{ __('Active for generation') }}</span>
+                    <span class="block text-sm font-bold text-casa-ink">{{ __('Active for generation') }}</span>
                     <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Only active rules on active segments can produce new review items.') }}</span>
                 </span>
             </label>
@@ -49,14 +46,9 @@
     <aside class="space-y-4">
         <x-app-card>
             <p class="casa-section-label">{{ __('Review-first workflow') }}</p>
-            <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('No automatic discount') }}</h2>
+            <h2 class="mt-2 font-display text-xl font-black text-casa-ink">{{ __('No automatic discount') }}</h2>
             <p class="mt-3 text-sm leading-6 text-casa-muted">{{ __('This rule creates a suggestion for an administrator to review. It does not change prices or contact customers automatically.') }}</p>
         </x-app-card>
-        <x-app-card>
-            <div class="flex flex-col gap-3">
-                <button type="submit" class="casa-button-primary w-full">{{ $submitLabel }}</button>
-                <a href="{{ route('admin.promotion-rules.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>
-            </div>
-        </x-app-card>
+        <x-form-actions :submit-label="$submitLabel" :cancel-url="route('admin.promotion-rules.index')" />
     </aside>
-</form>
+</x-form-shell>
