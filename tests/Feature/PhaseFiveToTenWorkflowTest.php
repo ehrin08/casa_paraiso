@@ -264,7 +264,7 @@ class PhaseFiveToTenWorkflowTest extends TestCase
 
         $this->actingAs($customerUser)
             ->patch(route('customer.appointments.cancel', $appointment, false))
-            ->assertRedirect(route('customer.appointments.show', $appointment, false));
+            ->assertRedirect(route('customer.appointments.history', absolute: false));
 
         $this->assertDatabaseHas('promotion_suggestions', [
             'id' => $voucher->id,

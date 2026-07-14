@@ -21,8 +21,8 @@ class AppointmentManagement
         $appointment->loadMissing(['addons', 'promotionSuggestion']);
         $service = Service::query()->findOrFail($data['service_id']);
         $status = $data['status'];
-        $requestedStart = Carbon::parse($data['requested_start_at']);
         $scheduledStart = ! empty($data['scheduled_start_at']) ? Carbon::parse($data['scheduled_start_at']) : null;
+        $requestedStart = $scheduledStart?->copy() ?? Carbon::parse($data['requested_start_at']);
         $staffProfile = ! empty($data['staff_profile_id'])
             ? StaffProfile::withTrashed()->with('user')->findOrFail($data['staff_profile_id'])
             : null;

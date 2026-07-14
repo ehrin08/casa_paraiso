@@ -33,7 +33,6 @@ class AppointmentController extends Controller
             : 'bookings';
 
         $calendarAppointment = new Appointment([
-            'requested_start_at' => now()->addDay()->setTime(13, 0),
             'scheduled_start_at' => now()->addDay()->setTime(13, 0),
             'status' => Appointment::STATUS_CONFIRMED,
         ]);
@@ -69,16 +68,12 @@ class AppointmentController extends Controller
         $data = $request->validate([
             'customer_profile_id' => ['nullable', 'integer', 'exists:customer_profiles,id'],
             'staff_profile_id' => ['nullable', 'integer', 'exists:staff_profiles,id'],
-            'requested_start_at' => ['nullable', 'date'],
             'scheduled_start_at' => ['nullable', 'date'],
         ]);
         $scheduledStart = ! empty($data['scheduled_start_at']) ? Carbon::parse($data['scheduled_start_at']) : null;
-        $requestedStart = ! empty($data['requested_start_at'])
-            ? Carbon::parse($data['requested_start_at'])
-            : ($scheduledStart?->copy() ?? now()->addDay()->setTime(13, 0));
+        $scheduledStart ??= now()->addDay()->setTime(13, 0);
 
         return view('admin.appointments.create', $this->formData(new Appointment([
-            'requested_start_at' => $requestedStart,
             'scheduled_start_at' => $scheduledStart,
             'status' => Appointment::STATUS_CONFIRMED,
             'customer_profile_id' => $data['customer_profile_id'] ?? null,

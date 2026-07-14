@@ -16,7 +16,6 @@
 
     <div class="space-y-6">
         @php
-            $weeklySchedulesByDay = $staffProfile->weeklySchedules->groupBy('day_of_week');
             $formatTime = fn ($time) => $time ? substr((string) $time, 0, 5) : null;
         @endphp
 
@@ -41,6 +40,15 @@
             ['label' => __('Appointments'), 'value' => $staffProfile->appointments_count, 'meta' => __('Linked bookings'), 'tone' => 'brown'],
             ['label' => __('Access'), 'value' => $staffProfile->user->is_active ? __('Active') : __('Inactive'), 'meta' => __('Login status'), 'tone' => 'dark'],
         ]" />
+
+        <x-weekly-roster
+            :feed-url="route('admin.staff-roster.show')"
+            :copy-url="route('admin.staff-roster.copy')"
+            :shift-url-pattern="url('/admin/staff-schedule-roster/__WEEK__/shifts')"
+            :publish-url-pattern="url('/admin/staff-schedule-roster/__WEEK__/publish')"
+            :initial-week="now()->startOfWeek(\Illuminate\Support\Carbon::SUNDAY)->toDateString()"
+            :staff-profile-id="$staffProfile->id"
+        />
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <x-app-card>
@@ -99,59 +107,7 @@
             </aside>
         </section>
 
-        <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.8fr)]">
-            <x-app-card>
-                <div class="flex flex-col gap-3 border-b border-casa-border pb-5 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                        <p class="casa-section-label">{{ __('Weekly schedule') }}</p>
-                        <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Recurring availability') }}</h2>
-                    </div>
-                    <a href="{{ route('admin.staff.weekly-schedules.create', $staffProfile) }}" class="casa-button-primary">{{ __('Add shift') }}</a>
-                </div>
-
-                <div class="mt-5 grid gap-4 md:grid-cols-2">
-                    @foreach (\App\Models\StaffWeeklySchedule::DAYS as $dayValue => $dayLabel)
-                        <div class="rounded-2xl border border-casa-border bg-casa-bg p-4">
-                            <div class="flex items-center justify-between gap-3">
-                                <h3 class="font-display text-lg font-black text-casa-text">{{ $dayLabel }}</h3>
-                                <x-status-badge>{{ trans_choice(':count shift|:count shifts', ($weeklySchedulesByDay[$dayValue] ?? collect())->count()) }}</x-status-badge>
-                            </div>
-
-                            <div class="mt-4 space-y-3">
-                                @forelse ($weeklySchedulesByDay[$dayValue] ?? [] as $weeklySchedule)
-                                    <div class="rounded-2xl bg-white p-4 shadow-sm">
-                                        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                            <div>
-                                                <p class="font-bold text-casa-text">
-                                                    {{ $formatTime($weeklySchedule->start_time) }} - {{ $weeklySchedule->ends_next_day ? __('12:00 midnight') : $formatTime($weeklySchedule->end_time) }}
-                                                </p>
-                                                <x-status-badge class="mt-2" :tone="$weeklySchedule->is_available ? 'success' : 'dark'">
-                                                    {{ $weeklySchedule->is_available ? __('Available') : __('Unavailable') }}
-                                                </x-status-badge>
-                                            </div>
-                                            <div class="flex gap-3 text-sm">
-                                                <a href="{{ route('admin.staff.weekly-schedules.edit', [$staffProfile, $weeklySchedule]) }}" class="font-bold text-casa-primary hover:text-casa-primary-dark">{{ __('Edit') }}</a>
-                                                <x-confirm-action
-                                                    :action="route('admin.staff.weekly-schedules.destroy', [$staffProfile, $weeklySchedule])"
-                                                    method="DELETE"
-                                                    label="{{ __('Remove') }}"
-                                                    confirm-title="{{ __('Remove weekly shift?') }}"
-                                                    confirm-message="{{ __('This recurring availability shift will no longer be used for future appointment availability.') }}"
-                                                    confirm-button="{{ __('Remove') }}"
-                                                    button-class="font-bold text-casa-muted hover:text-red-700"
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                @empty
-                                    <p class="text-sm leading-6 text-casa-muted">{{ __('No recurring shift set.') }}</p>
-                                @endforelse
-                            </div>
-                        </div>
-                    @endforeach
-                </div>
-            </x-app-card>
-
+        <section>
             <x-app-card>
                 <div class="flex flex-col gap-3 border-b border-casa-border pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>

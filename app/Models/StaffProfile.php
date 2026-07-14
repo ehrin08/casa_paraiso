@@ -64,6 +64,11 @@ class StaffProfile extends Model
         return $this->hasMany(StaffScheduleException::class);
     }
 
+    public function scheduleShifts()
+    {
+        return $this->hasMany(StaffScheduleShift::class);
+    }
+
     public function appointments()
     {
         return $this->hasMany(Appointment::class);

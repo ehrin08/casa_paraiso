@@ -25,6 +25,7 @@ return [
         'closes_at' => '00:00',
         'closes_next_day' => true,
         'slot_interval_minutes' => 30,
+        'customer_booking_lead_time_minutes' => 30,
     ],
     'service_packages' => [
         [

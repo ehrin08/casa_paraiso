@@ -1,8 +1,7 @@
 @php
     $modalName = $modalName ?? null;
     $fixedStatus = $fixedStatus ?? null;
-    $initialRequestedStart = old('requested_start_at', optional($appointment->requested_start_at)->format('Y-m-d\TH:i'));
-    $initialScheduledStart = old('scheduled_start_at', optional($appointment->scheduled_start_at)->format('Y-m-d\TH:i'));
+    $initialScheduledStart = old('scheduled_start_at', optional($appointment->scheduled_start_at ?? $appointment->requested_start_at)->format('Y-m-d\TH:i'));
     $staffNames = $staffProfiles->mapWithKeys(fn ($staff) => [(string) $staff->id => $staff->user?->name])->all();
     $initialAddonCodes = old('addon_codes', $appointment->addons->pluck('addon_code')->all());
     $availableTherapistsUrl = $availableTherapistsUrl ?? route('admin.appointments.available-therapists');
@@ -17,7 +16,6 @@
         availableUrl: @js($availableTherapistsUrl),
         appointmentId: @js($appointment->id),
         initialServiceId: @js((string) old('service_id', $appointment->service_id)),
-        initialRequestedStart: @js($initialRequestedStart),
         initialScheduledStart: @js($initialScheduledStart),
         initialStaffId: @js((string) old('staff_profile_id', $appointment->staff_profile_id)),
         persistedServiceId: @js($appointment->exists ? (string) $appointment->service_id : ''),
@@ -84,18 +82,10 @@
                 <x-input-error class="mt-3" :messages="$errors->get('addon_codes')" />
             </fieldset>
 
-            <div class="grid gap-5 sm:grid-cols-2">
-                <div>
-                    <x-input-label for="requested_start_at" :value="__('Requested time')" />
-                    <x-text-input id="requested_start_at" name="requested_start_at" type="datetime-local" class="mt-2" :value="$initialRequestedStart" x-model="requestedStart" required />
-                    <x-input-error class="mt-2" :messages="$errors->get('requested_start_at')" />
-                </div>
-
-                <div>
-                    <x-input-label for="scheduled_start_at" :value="__('Scheduled time')" />
-                    <x-text-input id="scheduled_start_at" name="scheduled_start_at" type="datetime-local" class="mt-2" :value="$initialScheduledStart" x-model="scheduledStart" x-on:change="refreshTherapists()" :required="(bool) $fixedStatus" />
-                    <x-input-error class="mt-2" :messages="$errors->get('scheduled_start_at')" />
-                </div>
+            <div>
+                <x-input-label for="scheduled_start_at" :value="__('Appointment time')" />
+                <x-text-input id="scheduled_start_at" name="scheduled_start_at" type="datetime-local" class="mt-2" :value="$initialScheduledStart" x-model="scheduledStart" x-on:change="refreshTherapists()" required />
+                <x-input-error class="mt-2" :messages="$errors->get('scheduled_start_at')" />
             </div>
 
             <div class="grid gap-5 sm:grid-cols-2">

@@ -67,7 +67,7 @@ class AppointmentAvailability
     /** @param array<int, string> $addonCodes */
     public function hasAvailableSlot(Service $service, Carbon $start, ?int $preferredStaffProfileId = null, array $addonCodes = []): bool
     {
-        if ($start->lte(now())) {
+        if ($start->lt($this->customerBookingCutoff())) {
             return false;
         }
 
@@ -108,7 +108,7 @@ class AppointmentAvailability
                 break;
             }
 
-            if ($slot->gt(now())) {
+            if ($slot->gte($this->customerBookingCutoff())) {
                 $availableStaffCount = $staffProfiles
                     ->filter(function (StaffProfile $staffProfile) use ($slot, $slotEnd, $confirmedByStaff): bool {
                         if (! $this->scheduleWindows->covers($staffProfile, $slot, $slotEnd)) {
@@ -136,5 +136,13 @@ class AppointmentAvailability
         }
 
         return $slots;
+    }
+
+    private function customerBookingCutoff(): Carbon
+    {
+        $timezone = (string) config('casa.business_hours.timezone', config('app.timezone'));
+        $leadTimeMinutes = max(0, (int) config('casa.business_hours.customer_booking_lead_time_minutes', 30));
+
+        return now($timezone)->addMinutes($leadTimeMinutes);
     }
 }

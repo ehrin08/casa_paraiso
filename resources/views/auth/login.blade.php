@@ -27,7 +27,7 @@
                 <x-input-label for="password" value="Password" />
                 <a href="{{ route('password.request') }}" class="text-sm font-semibold text-casa-primary hover:text-casa-primary-dark">Forgot password?</a>
             </div>
-            <x-text-input id="password" class="mt-1 block w-full" type="password" name="password" required autocomplete="current-password" />
+            <x-password-input id="password" class="mt-1 block w-full" name="password" required autocomplete="current-password" />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
         </div>
         <label class="flex items-center gap-3 text-sm text-casa-muted">

@@ -8,6 +8,11 @@ use Illuminate\Validation\Rule;
 
 class AdminAppointmentStoreRequest extends AppointmentRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $this->synchronizeAppointmentTime();
+    }
+
     /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */

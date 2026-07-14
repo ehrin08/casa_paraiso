@@ -11,7 +11,7 @@ class TransactionNumber
 
     public function next(): string
     {
-        $prefix = 'TRX-'.now()->format('Ymd').'-';
+        $prefix = 'TRX-';
         $sequence = 1;
 
         do {

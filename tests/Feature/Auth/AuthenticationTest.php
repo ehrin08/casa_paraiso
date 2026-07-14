@@ -21,7 +21,12 @@ class AuthenticationTest extends TestCase
 
     public function test_login_screen_offers_password_and_google_sign_in(): void
     {
-        $this->get('/login')->assertOk()->assertSee('Continue with Google')->assertSee('name="password"', false);
+        $this->get('/login')
+            ->assertOk()
+            ->assertSee('Continue with Google')
+            ->assertSee('name="password"', false)
+            ->assertSee('Show password')
+            ->assertSee('x-bind:type=', false);
     }
 
     public function test_active_user_can_sign_in_with_a_password(): void

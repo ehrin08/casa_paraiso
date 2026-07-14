@@ -217,4 +217,17 @@ class TransactionRemediationTest extends TestCase
         $this->assertDatabaseHas('transactions', ['transaction_number' => 'TRX-RETRIED']);
         $this->assertDatabaseCount('transactions', 2);
     }
+
+    public function test_transaction_numbers_use_a_compact_global_sequence(): void
+    {
+        $customer = CustomerProfile::factory()->create();
+        $service = Service::factory()->create();
+
+        Transaction::factory()
+            ->for($customer)
+            ->for($service)
+            ->create(['transaction_number' => 'TRX-0001']);
+
+        $this->assertSame('TRX-0002', app(TransactionNumber::class)->next());
+    }
 }

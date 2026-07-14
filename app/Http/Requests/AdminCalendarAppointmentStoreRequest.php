@@ -9,6 +9,8 @@ class AdminCalendarAppointmentStoreRequest extends AppointmentRequest
 {
     protected function prepareForValidation(): void
     {
+        $this->synchronizeAppointmentTime();
+
         if (! $this->has('status')) {
             $this->merge(['status' => Appointment::STATUS_CONFIRMED]);
         }

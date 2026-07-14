@@ -13,6 +13,7 @@ use App\Services\RfmAddonVoucher;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -53,6 +54,40 @@ class AppointmentController extends Controller
                 ->sortBy('user.name'),
             'vouchers' => $customerProfile ? $addonVouchers->availableFor($customerProfile) : collect(),
             'addons' => collect(config('casa.addons', [])),
+        ]);
+    }
+
+    public function history(Request $request): View
+    {
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::in(Appointment::STATUSES)],
+            'date_from' => ['nullable', 'date_format:Y-m-d'],
+            'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
+        ]);
+        $status = $filters['status'] ?? null;
+        $dateFrom = isset($filters['date_from']) ? Carbon::createFromFormat('Y-m-d', $filters['date_from'])->startOfDay() : null;
+        $dateTo = isset($filters['date_to']) ? Carbon::createFromFormat('Y-m-d', $filters['date_to'])->endOfDay() : null;
+        $appointmentDate = 'COALESCE(scheduled_start_at, requested_start_at)';
+        $upcomingCondition = "status = '".Appointment::STATUS_CONFIRMED."' AND {$appointmentDate} >= ?";
+
+        $appointments = Appointment::query()
+            ->with(['service', 'staffProfile.user', 'preferredStaffProfile.user', 'promotionSuggestion', 'addons', 'feedback'])
+            ->where('customer_profile_id', $request->user()->customerProfile?->id ?? 0)
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($dateFrom, fn ($query) => $query->whereRaw("{$appointmentDate} >= ?", [$dateFrom]))
+            ->when($dateTo, fn ($query) => $query->whereRaw("{$appointmentDate} <= ?", [$dateTo]))
+            ->orderByRaw("CASE WHEN {$upcomingCondition} THEN 0 ELSE 1 END", [now()])
+            ->orderByRaw("CASE WHEN {$upcomingCondition} THEN {$appointmentDate} END ASC", [now()])
+            ->orderByRaw("CASE WHEN {$upcomingCondition} THEN NULL ELSE {$appointmentDate} END DESC", [now()])
+            ->orderByDesc('id')
+            ->paginate((int) config('casa.pagination.per_page', 15))
+            ->withQueryString();
+
+        return view('customer.appointments.history', [
+            'appointments' => $appointments,
+            'appointmentStatus' => $status,
+            'appointmentDateFrom' => $filters['date_from'] ?? null,
+            'appointmentDateTo' => $filters['date_to'] ?? null,
         ]);
     }
 
@@ -125,7 +160,14 @@ class AppointmentController extends Controller
         $requestedStart = Carbon::parse($data['requested_start_at']);
         $preferredStaffProfileId = ! empty($data['preferred_staff_profile_id']) ? (int) $data['preferred_staff_profile_id'] : null;
 
-        $workflow->assertBookableStart($requestedStart, $service, 'requested_start_at');
+        $workflow->assertBookableStart(
+            $requestedStart,
+            $service,
+            'requested_start_at',
+            true,
+            $data['addon_codes'] ?? [],
+            (int) config('casa.business_hours.customer_booking_lead_time_minutes', 30),
+        );
 
         if ($preferredStaffProfileId) {
             $preferredStaff = StaffProfile::query()->with('user')->findOrFail($preferredStaffProfileId);
@@ -145,7 +187,7 @@ class AppointmentController extends Controller
         ], $service, $requestedStart, $preferredStaffProfileId, $request->user()->id);
 
         return redirect()
-            ->route('customer.appointments.show', $appointment)
+            ->route('customer.appointments.history')
             ->with('status', 'appointment-booked');
     }
 
@@ -175,7 +217,7 @@ class AppointmentController extends Controller
         $workflow->changeStatus($appointment, Appointment::STATUS_CANCELLED, $request->user()->id, __('Cancelled by customer'));
 
         return redirect()
-            ->route('customer.appointments.show', $appointment)
+            ->route('customer.appointments.history')
             ->with('status', 'appointment-cancelled');
     }
 

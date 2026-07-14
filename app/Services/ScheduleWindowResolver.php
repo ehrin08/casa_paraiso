@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\StaffProfile;
 use App\Models\StaffScheduleException;
+use App\Models\StaffScheduleShift;
+use App\Models\StaffScheduleWeek;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -37,26 +39,37 @@ class ScheduleWindowResolver
         $date = Carbon::parse($day)->startOfDay();
         $business = $this->businessWindow($date);
 
-        $weeklySchedules = $staffProfile->relationLoaded('weeklySchedules')
-            ? $staffProfile->weeklySchedules
-            : $staffProfile->weeklySchedules()->get();
-
         $exceptions = $staffProfile->relationLoaded('scheduleExceptions')
             ? $staffProfile->scheduleExceptions->filter(fn (StaffScheduleException $exception) => $exception->exception_date?->isSameDay($date))
             : $staffProfile->scheduleExceptions()->whereDate('exception_date', $date->toDateString())->get();
 
         $windows = collect();
+        $rosterShifts = $this->rosterShiftsForDate($staffProfile, $date);
 
-        foreach ($weeklySchedules->where('day_of_week', $date->dayOfWeek)->where('is_available', true) as $schedule) {
-            $interval = $this->intervalForDate(
-                $date,
-                (string) $schedule->start_time,
-                (string) $schedule->end_time,
-                (bool) $schedule->ends_next_day,
-            );
+        if ($rosterShifts !== null) {
+            foreach ($rosterShifts as $schedule) {
+                $interval = $this->intervalForDate($date, (string) $schedule->start_time, (string) $schedule->end_time, (bool) $schedule->ends_next_day);
 
-            if ($clamped = $this->clamp($interval, $business)) {
-                $windows->push($clamped);
+                if ($clamped = $this->clamp($interval, $business)) {
+                    $windows->push($clamped);
+                }
+            }
+        } else {
+            $weeklySchedules = $staffProfile->relationLoaded('weeklySchedules')
+                ? $staffProfile->weeklySchedules
+                : $staffProfile->weeklySchedules()->get();
+
+            foreach ($weeklySchedules->where('day_of_week', $date->dayOfWeek)->where('is_available', true) as $schedule) {
+                $interval = $this->intervalForDate(
+                    $date,
+                    (string) $schedule->start_time,
+                    (string) $schedule->end_time,
+                    (bool) $schedule->ends_next_day,
+                );
+
+                if ($clamped = $this->clamp($interval, $business)) {
+                    $windows->push($clamped);
+                }
             }
         }
 
@@ -198,5 +211,32 @@ class ScheduleWindowResolver
         }
 
         return $remaining;
+    }
+
+    /**
+     * @return Collection<int, StaffScheduleShift>|null Null means that no published roster exists yet.
+     */
+    private function rosterShiftsForDate(StaffProfile $staffProfile, Carbon $date): ?Collection
+    {
+        $weekStart = $date->copy()->startOfWeek(Carbon::SUNDAY)->toDateString();
+        $week = StaffScheduleWeek::query()
+            ->whereNotNull('published_at')
+            ->whereDate('week_start_date', '<=', $weekStart)
+            ->orderByDesc('week_start_date')
+            ->first();
+
+        if (! $week) {
+            return null;
+        }
+
+        $sourceDate = Carbon::parse($week->week_start_date)->addDays($date->dayOfWeek)->toDateString();
+
+        return StaffScheduleShift::query()
+            ->where('staff_schedule_week_id', $week->id)
+            ->where('staff_profile_id', $staffProfile->id)
+            ->where('version', StaffScheduleShift::VERSION_PUBLISHED)
+            ->whereDate('schedule_date', $sourceDate)
+            ->orderBy('start_time')
+            ->get();
     }
 }

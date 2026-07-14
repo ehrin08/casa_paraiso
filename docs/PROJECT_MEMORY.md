@@ -41,7 +41,8 @@ When sources disagree, identify whether the question concerns intended or curren
 
 - The Laravel 12 monolith contains the core MVP workspaces for authentication and roles, services, therapist and customer records, scheduling, calendar-based appointments, receptionist operations, transactions, therapist commissions, feedback and sentiment, automatic customer rewards, reports, and CSV export.
 - Authenticated-workspace refinement is active in the current working tree, standardizing compact density, responsive filters, accessible overflow regions, shared page headings and stat strips, and fixed pagination.
-- Customer appointments use a month calendar with embedded booking, admin and receptionist appointments use weekly Bookings/Availability workspaces, and therapists use a personal weekly calendar.
+- Customer appointments use a month calendar with embedded booking and a separate customer-owned, filterable appointment-history page, admin and receptionist appointments use weekly Bookings/Availability workspaces, and therapists use a personal weekly calendar.
+- Admin Availability now includes a dated weekly therapist-roster draft/publish workflow. `StaffScheduleWeek`, `StaffScheduleShift`, `WeeklyRoster`, and `WeeklyRosterController` are the entry points; published weeks inherit forward by weekday, while legacy recurring schedules remain the initial fallback and exceptions retain final precedence.
 - Application behavior is covered primarily by Laravel feature tests under `tests/Feature`; factories exist for all business models.
 - Admin Settings persists editable business identity/contact details and a payment-form default while displaying code-controlled operating and security safeguards.
 - The Phase 11 application security baseline and checklist are implemented. Target-host validation, Hostinger delivery preparation, and the non-technical handover/operations manual remain incomplete.
@@ -73,7 +74,7 @@ All authenticated workspaces require `auth`, `active`, and `verified` middleware
 | Role | Primary access |
 | --- | --- |
 | Guest | Public landing page, customer registration, email/password login, Google sign-in, and password recovery |
-| Customer | Own profile, availability, booking with an optional eligible RFM add-on voucher, appointment calendar/history, pre-start cancellation, and eligible feedback |
+| Customer | Own profile, availability, booking with an optional eligible RFM add-on voucher, month calendar and separate filterable appointment history, pre-start cancellation, and eligible feedback |
 | Receptionist | Restricted front-desk dashboard plus appointment management, customer contact/history, and payment recording; availability is read-only |
 | Staff/Therapist | Personal dashboard/calendar plus assigned appointments, operational customer records, related transactions/feedback, and own commission history |
 | Admin | Dashboard and management of appointments, customers, staff, schedules, services, transactions, commissions, fixed customer rewards, feedback, reports, and limited application settings |
@@ -138,10 +139,12 @@ Key identity entry points are `routes/auth.php`, the shared profile routes in `r
 ### Scheduling and Booking
 
 - `config/casa.php` defines a hard 1:00 PM-to-midnight business window in `Asia/Manila`; starts must align to 30-minute intervals.
+- Customer self-booking requires at least 30 minutes of lead time; exactly 30 minutes is valid. Admin, Receptionist, and therapist-assisted scheduling retain the future-start rule without this customer lead time.
 - `ends_next_day` represents a schedule or exception ending exactly at midnight. Never model midnight as an earlier same-day end.
 - Effective availability is recurring availability plus date-specific availability, minus unavailable exceptions, clipped to business hours and confirmed overlaps.
 - Unavailable exceptions take precedence. A schedule, service assignment, staff role, active state, or bookable-state change must not orphan a future confirmed appointment.
 - Every new appointment is confirmed transactionally and reserves therapist capacity.
+- Appointment forms and detail views expose one appointment time. `scheduled_start_at` is canonical, and the legacy `requested_start_at` column is synchronized for schema compatibility.
 - Customer booking uses `AppointmentWorkflow::autoBook` to confirm transactionally, honor an eligible preference when possible, and assign an eligible therapist without overlap. Admin-created bookings also require an eligible therapist and schedule.
 - Confirmed appointments reserve capacity. Final scheduling must go through `AppointmentWorkflow`, not direct model updates.
 - Appointment states are `confirmed`, `completed`, `cancelled`, and `no_show`. Terminal states do not reopen. The pending-state retirement migration converts legacy pending rows to cancelled records with a system status log.
@@ -200,9 +203,9 @@ Key identity entry points are `routes/auth.php`, the shared profile routes in `r
 - Use `list-toolbar` for result totals and responsive filter disclosure, and `table-shell` for labeled, keyboard-focusable horizontal overflow.
 - `AppServiceProvider` registers `pagination.compact`. The fixed page size is `casa.pagination.per_page = 15`; preserve query state with `withQueryString()` and never accept request-provided page size.
 - Multiple lists need distinct page keys and useful fragments. Calendars, active queues, selector collections, and bounded previews remain unpaginated.
-- Appointment workspaces remain calendar-only: customer month, admin/receptionist weekly Bookings/Availability, and therapist personal week.
+- Appointment workspaces retain their calendar views: customer month, admin/receptionist weekly Bookings/Availability, and therapist personal week. Customer appointment history is a separate paginated card page.
 - Complex management CRUD uses its normal create/edit page routes: staff, services, schedules, transactions, and appointment editing. Keep modals for contextual calendar booking, Admin service completion, feedback/notes, and confirmation prompts.
-- Customer booking opens inside My Appointments; `/customer/appointments/create` remains the full-page fallback. Both surfaces show eligible customer rewards with their expiry and keep the unchanged package price visible.
+- Customer booking opens inside My Appointments; `/customer/appointments/create` remains the full-page fallback. Appointment history opens visit details in modals. Both booking surfaces show eligible customer rewards with their expiry and keep the unchanged package price visible.
 - Preserve 44px interaction targets, visible focus, accessible names, labeled overflow regions, keyboard calendar navigation, and reduced-motion support.
 
 Primary UI sources are `docs/BRAND_UI_GUIDE.md`, `docs/TECH_STACK.md`, `resources/views/components`, `resources/views/layouts`, `resources/css/app.css`, `resources/js/app.js`, `config/casa.php`, and `AppServiceProvider`.

@@ -78,7 +78,7 @@ class CustomerBookingModalTest extends TestCase
         ]);
 
         $appointment = Appointment::query()->latest('id')->firstOrFail();
-        $response->assertRedirect(route('customer.appointments.show', $appointment, false));
+        $response->assertRedirect(route('customer.appointments.history', absolute: false));
         $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
         $this->assertSame($therapist->id, $appointment->staff_profile_id);
     }

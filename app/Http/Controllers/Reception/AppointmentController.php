@@ -36,7 +36,6 @@ class AppointmentController extends Controller
                 'cancelled' => Appointment::query()->where('status', Appointment::STATUS_CANCELLED)->count(),
             ],
             'calendarAppointment' => new Appointment([
-                'requested_start_at' => now()->addDay()->setTime(13, 0),
                 'scheduled_start_at' => now()->addDay()->setTime(13, 0),
                 'status' => Appointment::STATUS_CONFIRMED,
             ]),
@@ -47,7 +46,7 @@ class AppointmentController extends Controller
     public function create(): View
     {
         return view('reception.appointments.form', [
-            'appointment' => new Appointment(['requested_start_at' => now()->addDay()->setTime(13, 0), 'scheduled_start_at' => now()->addDay()->setTime(13, 0), 'status' => Appointment::STATUS_CONFIRMED]),
+            'appointment' => new Appointment(['scheduled_start_at' => now()->addDay()->setTime(13, 0), 'status' => Appointment::STATUS_CONFIRMED]),
             ...$this->selectors(),
         ]);
     }

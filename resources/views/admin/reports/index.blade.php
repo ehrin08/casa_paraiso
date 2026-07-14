@@ -52,7 +52,7 @@
                     default => [],
                 };
                 $dateContext = match ($type) {
-                    'appointments' => __('Scheduled date when assigned; requested date otherwise.'),
+                    'appointments' => __('Appointment date and time.'),
                     'transactions' => __('Date payment was received.'),
                     'customers' => __('Date the customer profile was created.'),
                     'promotions' => __('Date the customer reward was issued.'),

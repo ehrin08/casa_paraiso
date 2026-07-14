@@ -41,6 +41,7 @@ class AppointmentWorkflow
         string $field = 'scheduled_start_at',
         bool $mustBeFuture = true,
         array $addonCodes = [],
+        int $minimumLeadTimeMinutes = 0,
     ): void {
         $timezone = (string) config('casa.business_hours.timezone', config('app.timezone'));
         $candidate = Carbon::instance($start)->setTimezone($timezone);
@@ -49,6 +50,12 @@ class AppointmentWorkflow
 
         if ($mustBeFuture && $candidate->lte(now($timezone))) {
             $messages[] = __('Choose a future appointment time.');
+        }
+
+        if ($minimumLeadTimeMinutes > 0 && $candidate->lt(now($timezone)->addMinutes($minimumLeadTimeMinutes))) {
+            $messages[] = __('Customer bookings must be made at least :minutes minutes before the appointment.', [
+                'minutes' => $minimumLeadTimeMinutes,
+            ]);
         }
 
         if ($interval < 1 || $candidate->minute % $interval !== 0 || $candidate->second !== 0) {
@@ -128,10 +135,11 @@ class AppointmentWorkflow
     ): Appointment {
         $addonCodes = is_array($attributes['addon_codes'] ?? null) ? $attributes['addon_codes'] : [];
         $paidAddons = $this->addons->selected($addonCodes);
-        $this->assertBookableStart($start, $service, 'requested_start_at', true, $addonCodes);
+        $minimumLeadTimeMinutes = (int) config('casa.business_hours.customer_booking_lead_time_minutes', 30);
+        $this->assertBookableStart($start, $service, 'requested_start_at', true, $addonCodes, $minimumLeadTimeMinutes);
 
-        return $this->withAppointmentNumberRetry(function (string $number) use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy, $addonCodes, $paidAddons): Appointment {
-            return DB::transaction(function () use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy, $number, $addonCodes, $paidAddons): Appointment {
+        return $this->withAppointmentNumberRetry(function (string $number) use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy, $addonCodes, $paidAddons, $minimumLeadTimeMinutes): Appointment {
+            return DB::transaction(function () use ($attributes, $service, $start, $preferredStaffProfileId, $changedBy, $number, $addonCodes, $paidAddons, $minimumLeadTimeMinutes): Appointment {
                 $promotionSuggestionId = isset($attributes['promotion_suggestion_id'])
                     ? (int) $attributes['promotion_suggestion_id']
                     : null;
@@ -141,7 +149,7 @@ class AppointmentWorkflow
                     : null;
                 $this->addons->assertDoesNotDuplicateVoucher($paidAddons, $voucher);
                 $scheduleAddonCodes = [...$addonCodes, ...($voucher?->addon_code ? [$voucher->addon_code] : [])];
-                $this->assertBookableStart($start, $service, 'requested_start_at', true, $scheduleAddonCodes);
+                $this->assertBookableStart($start, $service, 'requested_start_at', true, $scheduleAddonCodes, $minimumLeadTimeMinutes);
 
                 $candidateIds = StaffProfile::query()
                     ->where('is_bookable', true)
@@ -322,6 +330,7 @@ class AppointmentWorkflow
             $target->fill([
                 'service_id' => $service->id,
                 'staff_profile_id' => $lockedStaff->id,
+                'requested_start_at' => $start,
                 'scheduled_start_at' => $start,
                 'scheduled_end_at' => $end,
                 'updated_by' => $changedBy,

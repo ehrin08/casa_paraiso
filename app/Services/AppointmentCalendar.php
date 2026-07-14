@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\StaffProfile;
-use App\Models\StaffScheduleException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -109,30 +108,9 @@ class AppointmentCalendar
         $events = collect();
 
         for ($day = $start->copy()->startOfDay(); $day->lt($end); $day->addDay()) {
-            $business = $this->scheduleWindows->businessWindow($day);
-
             foreach ($staffProfiles as $staff) {
-                foreach ($staff->weeklySchedules->where('day_of_week', $day->dayOfWeek)->where('is_available', true) as $schedule) {
-                    $interval = $this->scheduleWindows->intervalForDate($day, (string) $schedule->start_time, (string) $schedule->end_time, (bool) $schedule->ends_next_day);
-                    $event = $this->availabilityEvent($staff, 'weekly_availability', $interval, __('Recurring availability'), $audience !== 'admin', $schedule->id, null, $audience);
-
-                    if ($event['ends_at'] > $business['start']->toIso8601String() && $event['starts_at'] < $business['end']->toIso8601String()) {
-                        $events->push($event);
-                    }
-                }
-
-                foreach ($staff->scheduleExceptions->filter(fn (StaffScheduleException $exception) => $exception->exception_date?->isSameDay($day)) as $exception) {
-                    $interval = $exception->start_time && $exception->end_time
-                        ? $this->scheduleWindows->intervalForDate($day, (string) $exception->start_time, (string) $exception->end_time, (bool) $exception->ends_next_day)
-                        : $business;
-                    $kind = $exception->exception_type === StaffScheduleException::TYPE_AVAILABLE
-                        ? 'available_exception'
-                        : 'unavailable_exception';
-                    $title = $exception->exception_type === StaffScheduleException::TYPE_AVAILABLE
-                        ? __('One-off availability')
-                        : __('Unavailable');
-
-                    $events->push($this->availabilityEvent($staff, $kind, $interval, $title, $audience !== 'admin', $exception->id, $exception->reason, $audience));
+                foreach ($this->scheduleWindows->effectiveWindows($staff, $day) as $index => $interval) {
+                    $events->push($this->availabilityEvent($staff, 'availability', $interval, __('Available'), $audience !== 'admin', $index, null, $audience));
                 }
             }
         }

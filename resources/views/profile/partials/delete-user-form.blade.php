@@ -14,7 +14,7 @@
             @csrf @method('delete')
             <div>
                 <x-input-label for="deletion_password" value="Confirm with your password" />
-                <x-text-input id="deletion_password" name="password" type="password" class="mt-1 block w-full" required autocomplete="current-password" />
+                <x-password-input id="deletion_password" name="password" class="mt-1 block w-full" required autocomplete="current-password" />
                 <x-input-error class="mt-2" :messages="$errors->get('password')" />
             </div>
             <button class="inline-flex min-h-11 items-center rounded-xl border border-red-700 px-4 py-2 text-sm font-bold text-red-800 hover:bg-red-50 focus:outline-none focus:ring-4 focus:ring-red-200">Delete and anonymize my account</button>

@@ -515,6 +515,13 @@ class AppointmentCrudRemediationTest extends TestCase
         ]);
     }
 
+    public function test_appointment_numbers_use_a_compact_global_sequence(): void
+    {
+        Appointment::factory()->create(['appointment_number' => 'APT-0001']);
+
+        $this->assertSame('APT-0002', app(AppointmentNumberGenerator::class)->next());
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

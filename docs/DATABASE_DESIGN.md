@@ -245,6 +245,18 @@ Relationships:
 - Belongs to staff profile.
 - Optionally belongs to the user who created the exception.
 
+### `staff_schedule_weeks` and `staff_schedule_shifts`
+
+Published weekly rosters provide the primary dated therapist schedule. `staff_schedule_weeks` has one Sunday `week_start_date`, optional `published_at`/`published_by`, and draft and published shift rows live in `staff_schedule_shifts`.
+
+Rules:
+
+- Draft shifts never affect booking availability.
+- Publishing replaces only that week's published shifts after confirmed-appointment coverage is checked.
+- A week without a published roster inherits the nearest earlier published roster by weekday; the legacy recurring weekly schedules remain the fallback until the first roster is published.
+- Shifts use 30-minute boundaries from 1:00 PM through midnight and may be split, but cannot overlap for a therapist/date/version.
+- Existing date-specific exceptions are applied after roster availability.
+
 ## Appointments
 
 ### `appointments`
@@ -287,6 +299,8 @@ Indexes:
 Rules:
 
 - New customer and admin-created bookings start as `confirmed` and require an assigned eligible therapist and scheduled time.
+- Customer self-booking requires at least 30 minutes of lead time in `Asia/Manila`; staff-operated booking and rescheduling may use any future aligned start.
+- The interface exposes one appointment time. `scheduled_start_at` is canonical, while `requested_start_at` remains as a synchronized compatibility field for the existing schema.
 - A preferred therapist is a customer preference only; final assignment remains in `staff_profile_id`.
 - Customer booking locks eligible therapist rows, rechecks availability, assigns one therapist, and reserves capacity in one transaction.
 - An available preferred therapist is assigned first. Otherwise choose the therapist with the fewest future confirmed bookings, then the lowest profile ID.

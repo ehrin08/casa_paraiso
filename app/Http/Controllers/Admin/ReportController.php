@@ -288,7 +288,7 @@ class ReportController extends Controller
             'customers' => ['Code', 'Name', 'Email', 'Phone', 'Joined At', 'Status', 'Appointments', 'Transactions', 'Feedback', 'Rewards'],
             'promotions' => ['Customer', 'Customer Group', 'Days Since Last Paid Visit', 'Paid Visits', 'Paid Total', 'Reward', 'Status', 'Expires At'],
             'feedback' => ['Customer', 'Service', 'Rating', 'Sentiment', 'Submitted At', 'Comment'],
-            default => ['Number', 'Customer', 'Service', 'Staff', 'Appointment Date', 'Requested', 'Scheduled', 'Status'],
+            default => ['Number', 'Customer', 'Service', 'Staff', 'Appointment Date', 'Status'],
         };
     }
 
@@ -302,7 +302,7 @@ class ReportController extends Controller
             'customers' => [$record->customer_code, $record->user?->name, $record->user?->email, $record->user?->phone, $record->created_at?->toDateTimeString(), $record->user?->is_active ? 'active' : 'inactive', $record->appointments_count, $record->transactions_count, $record->feedback_count, $record->promotion_suggestions_count],
             'promotions' => [$record->customerProfile?->user?->name, $record->rfmSegment?->name, $record->recency_days, $record->frequency_count, $record->monetary_total, $record->addonName() ?: $record->suggested_offer, $record->lifecycle(), $record->expires_at?->toDateTimeString()],
             'feedback' => [$record->customerProfile?->user?->name, $record->service?->name, $record->rating, $record->sentiment_label, $record->submitted_at?->toDateTimeString(), $record->comment],
-            default => [$record->appointment_number, $record->customerProfile?->user?->name, $record->service?->name, $record->staffProfile?->user?->name, ($record->scheduled_start_at ?? $record->requested_start_at)?->toDateTimeString(), $record->requested_start_at?->toDateTimeString(), $record->scheduled_start_at?->toDateTimeString(), $record->status],
+            default => [$record->appointment_number, $record->customerProfile?->user?->name, $record->service?->name, $record->staffProfile?->user?->name, ($record->scheduled_start_at ?? $record->requested_start_at)?->toDateTimeString(), $record->status],
         };
 
         return array_map($this->csvSafeValue(...), $row);

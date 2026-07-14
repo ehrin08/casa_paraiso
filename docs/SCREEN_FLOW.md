@@ -188,7 +188,7 @@ Responsive behavior:
 
 Main data:
 
-- Appointment number, customer, service, staff, requested time, scheduled time, status, notes.
+- Appointment number, customer, service, staff, appointment time, status, notes.
 
 Primary actions:
 
@@ -227,6 +227,10 @@ Primary actions:
 - View customer history.
 - Update customer notes.
 - Review promotion suggestions.
+
+### Weekly Therapist Roster
+
+Admin Availability includes a dated Sunday-to-Saturday team roster. The Admin copies the prior published week into a draft, adjusts therapist shift ranges, then publishes the whole roster. Drafts are private to Admin; published hours drive customer booking, receptionist availability, and therapist calendar coverage. A publish that would exclude a confirmed appointment is rejected and identifies the affected booking.
 
 ### Staff
 
@@ -530,6 +534,7 @@ Purpose:
 Main data:
 
 - Monthly calendar of confirmed upcoming appointments and appointment history.
+- A dedicated, filterable appointment-history page with status and date-range filters and links to full visit details.
 - Selected-day visit details and booking status.
 
 Responsive behavior:
@@ -539,9 +544,17 @@ Responsive behavior:
 Primary actions:
 
 - Book an appointment.
-- View appointment details.
+- View appointment details in a modal.
 - Cancel a confirmed booking before its start.
 - Submit feedback for completed appointment.
+
+### My Appointment History
+
+Route: `/customer/appointments/history`
+
+Purpose:
+
+- Let customers filter and review their appointment records away from the booking calendar.
 
 ### Book Appointment
 
@@ -586,7 +599,7 @@ Purpose:
 
 Main data:
 
-- Appointment number, service, requested time, scheduled time, assigned staff, status, notes.
+- Appointment number, service, appointment time, assigned staff, status, notes.
 
 Primary actions:
 

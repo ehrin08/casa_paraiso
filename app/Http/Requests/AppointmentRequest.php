@@ -9,6 +9,13 @@ use Illuminate\Validation\Rules\Exists;
 
 abstract class AppointmentRequest extends FormRequest
 {
+    protected function synchronizeAppointmentTime(): void
+    {
+        if ($this->filled('scheduled_start_at')) {
+            $this->merge(['requested_start_at' => $this->input('scheduled_start_at')]);
+        }
+    }
+
     public function authorize(): bool
     {
         return $this->user() !== null;

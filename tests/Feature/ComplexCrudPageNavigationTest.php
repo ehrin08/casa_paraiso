@@ -6,7 +6,6 @@ use App\Models\Appointment;
 use App\Models\Service;
 use App\Models\StaffProfile;
 use App\Models\StaffScheduleException;
-use App\Models\StaffWeeklySchedule;
 use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -24,7 +23,6 @@ class ComplexCrudPageNavigationTest extends TestCase
         ]);
         $staffProfile = StaffProfile::factory()->create();
         $service = Service::factory()->create();
-        $weeklySchedule = StaffWeeklySchedule::factory()->for($staffProfile)->create();
         $scheduleException = StaffScheduleException::factory()->for($staffProfile)->create();
 
         $this->actingAs($superAdmin)
@@ -40,8 +38,8 @@ class ComplexCrudPageNavigationTest extends TestCase
         $this->actingAs($superAdmin)
             ->get(route('admin.staff.show', $staffProfile, false))
             ->assertOk()
-            ->assertSee(route('admin.staff.weekly-schedules.create', $staffProfile, false), false)
-            ->assertSee(route('admin.staff.weekly-schedules.edit', [$staffProfile, $weeklySchedule], false), false)
+            ->assertSee('Weekly staff schedule')
+            ->assertSee('staff-schedule-roster', false)
             ->assertSee(route('admin.staff.schedule-exceptions.create', $staffProfile, false), false)
             ->assertSee(route('admin.staff.schedule-exceptions.edit', [$staffProfile, $scheduleException], false), false)
             ->assertDontSee('admin-staff-shift-create', false)

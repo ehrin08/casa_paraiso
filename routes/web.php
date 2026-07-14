@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\StaffScheduleExceptionController as AdminStaffSch
 use App\Http\Controllers\Admin\StaffWeeklyScheduleController as AdminStaffWeeklyScheduleController;
 use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
 use App\Http\Controllers\Admin\UserManagementController as AdminUserManagementController;
+use App\Http\Controllers\Admin\WeeklyRosterController as AdminWeeklyRosterController;
 use App\Http\Controllers\Auth\GoogleDeletionController;
 use App\Http\Controllers\Auth\GooglePasswordSetupController;
 use App\Http\Controllers\Customer\AppointmentCalendarController as CustomerAppointmentCalendarController;
@@ -61,6 +62,11 @@ Route::middleware(['auth', 'active', 'verified', 'role:super_admin,admin'])
     ->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
         Route::get('/appointments/calendar', AdminAppointmentCalendarController::class)->name('appointments.calendar');
+        Route::get('/staff-schedule-roster', [AdminWeeklyRosterController::class, 'show'])->name('staff-roster.show');
+        Route::post('/staff-schedule-roster/copy', [AdminWeeklyRosterController::class, 'copy'])->name('staff-roster.copy');
+        Route::post('/staff-schedule-roster/{scheduleWeek}/shifts', [AdminWeeklyRosterController::class, 'storeShift'])->name('staff-roster.shifts.store');
+        Route::delete('/staff-schedule-roster/{scheduleWeek}/shifts/{shift}', [AdminWeeklyRosterController::class, 'destroyShift'])->name('staff-roster.shifts.destroy');
+        Route::post('/staff-schedule-roster/{scheduleWeek}/publish', [AdminWeeklyRosterController::class, 'publish'])->name('staff-roster.publish');
         Route::post('/appointments/calendar', [AdminAppointmentController::class, 'storeFromCalendar'])->name('appointments.calendar.store');
         Route::get('/appointments/available-therapists', [AdminAppointmentController::class, 'availableTherapists'])->name('appointments.available-therapists');
         Route::post('/appointments/{appointment}/complete', [AdminAppointmentController::class, 'complete'])->name('appointments.complete');
@@ -134,6 +140,7 @@ Route::middleware(['auth', 'active', 'verified', 'role:customer'])
     ->group(function () {
         Route::get('/appointments/availability', [CustomerAppointmentController::class, 'availability'])->name('appointments.availability');
         Route::get('/appointments/calendar', CustomerAppointmentCalendarController::class)->name('appointments.calendar');
+        Route::get('/appointments/history', [CustomerAppointmentController::class, 'history'])->name('appointments.history');
         Route::patch('/appointments/{appointment}/cancel', [CustomerAppointmentController::class, 'cancel'])->name('appointments.cancel');
         Route::resource('appointments', CustomerAppointmentController::class)->only(['index', 'create', 'store', 'show']);
         Route::resource('feedback', CustomerFeedbackController::class)->only(['index', 'create', 'store']);

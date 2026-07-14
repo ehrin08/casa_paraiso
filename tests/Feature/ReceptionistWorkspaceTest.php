@@ -129,7 +129,8 @@ class ReceptionistWorkspaceTest extends TestCase
             'start' => $start->copy()->startOfWeek()->toDateString(),
             'end' => $start->copy()->startOfWeek()->addDays(7)->toDateString(),
         ], false))->assertOk()->json('events');
-        $weeklyAvailability = collect($availability)->firstWhere('kind', 'weekly_availability');
+        $weeklyAvailability = collect($availability)->firstWhere('kind', 'availability');
+        $this->assertNotNull($weeklyAvailability);
         $this->assertTrue($weeklyAvailability['read_only']);
         $this->assertNull($weeklyAvailability['detail_url']);
     }

@@ -20,13 +20,9 @@
                     <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Service schedule') }}</h2>
                 </div>
                 <dl class="mt-5 grid gap-4 sm:grid-cols-2">
-                    <div class="rounded-2xl bg-casa-bg p-4">
-                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Requested') }}</dt>
-                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->requested_start_at?->format('M d, Y g:i A') }}</dd>
-                    </div>
-                    <div class="rounded-2xl bg-casa-bg p-4">
-                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Scheduled') }}</dt>
-                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->scheduled_start_at?->format('M d, Y g:i A') ?: __('Not confirmed') }}</dd>
+                    <div class="rounded-2xl bg-casa-bg p-4 sm:col-span-2">
+                        <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Appointment time') }}</dt>
+                        <dd class="mt-2 font-semibold text-casa-text">{{ ($appointment->scheduled_start_at ?? $appointment->requested_start_at)?->format('M d, Y g:i A') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Status') }}</dt>

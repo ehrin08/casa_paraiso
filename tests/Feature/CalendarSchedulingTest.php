@@ -10,6 +10,7 @@ use App\Models\StaffScheduleException;
 use App\Models\StaffWeeklySchedule;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Tests\TestCase;
 
 class CalendarSchedulingTest extends TestCase
@@ -88,6 +89,141 @@ class CalendarSchedulingTest extends TestCase
 
         $this->assertNotNull($slot);
         $this->assertSame($start->copy()->addHour()->toDateTimeString(), $slot['ends_at']);
+    }
+
+    public function test_customer_availability_and_submission_require_thirty_minutes_of_lead_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-14 19:04:00', 'Asia/Manila'));
+
+        try {
+            $customer = User::factory()->customer()->create();
+            CustomerProfile::factory()->for($customer)->create();
+            $staff = StaffProfile::factory()->create();
+            $service = Service::factory()->create(['duration_minutes' => 60, 'is_active' => true]);
+            $staff->services()->attach($service);
+            StaffWeeklySchedule::factory()->for($staff)->create([
+                'day_of_week' => now()->dayOfWeek,
+                'start_time' => '13:00:00',
+                'end_time' => '00:00:00',
+                'ends_next_day' => true,
+            ]);
+
+            $response = $this->actingAs($customer)->getJson(route('customer.appointments.availability', [
+                'service_id' => $service->id,
+                'preferred_staff_profile_id' => $staff->id,
+                'month' => now()->format('Y-m'),
+            ], false));
+
+            $slots = collect($response->json('dates.'.now()->toDateString()));
+            $response->assertOk();
+            $this->assertFalse($slots->contains('time', '19:30'));
+            $this->assertTrue($slots->contains('time', '20:00'));
+
+            $this->actingAs($customer)
+                ->post(route('customer.appointments.store', absolute: false), [
+                    'service_id' => $service->id,
+                    'preferred_staff_profile_id' => $staff->id,
+                    'requested_start_at' => now()->setTime(19, 30)->toDateTimeString(),
+                ])
+                ->assertSessionHasErrors('requested_start_at');
+
+            $this->assertDatabaseCount('appointments', 0);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_customer_lead_time_accepts_exactly_thirty_minutes_and_rejects_one_second_less(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-14 19:00:00', 'Asia/Manila'));
+
+        try {
+            $firstCustomer = User::factory()->customer()->create();
+            CustomerProfile::factory()->for($firstCustomer)->create();
+            $secondCustomer = User::factory()->customer()->create();
+            CustomerProfile::factory()->for($secondCustomer)->create();
+            $staff = StaffProfile::factory()->create();
+            $service = Service::factory()->create(['duration_minutes' => 60, 'is_active' => true]);
+            $staff->services()->attach($service);
+            StaffWeeklySchedule::factory()->for($staff)->create([
+                'day_of_week' => now()->dayOfWeek,
+                'start_time' => '13:00:00',
+                'end_time' => '00:00:00',
+                'ends_next_day' => true,
+            ]);
+            $start = now()->setTime(19, 30);
+
+            $this->actingAs($firstCustomer)
+                ->post(route('customer.appointments.store', absolute: false), [
+                    'service_id' => $service->id,
+                    'preferred_staff_profile_id' => $staff->id,
+                    'requested_start_at' => $start->toDateTimeString(),
+                ])
+                ->assertSessionDoesntHaveErrors();
+
+            Carbon::setTestNow(Carbon::parse('2026-07-14 19:00:01', 'Asia/Manila'));
+
+            $this->actingAs($secondCustomer)
+                ->post(route('customer.appointments.store', absolute: false), [
+                    'service_id' => $service->id,
+                    'preferred_staff_profile_id' => $staff->id,
+                    'requested_start_at' => $start->toDateTimeString(),
+                ])
+                ->assertSessionHasErrors('requested_start_at');
+
+            $this->assertDatabaseCount('appointments', 1);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_staff_operated_bookings_do_not_use_the_customer_lead_time(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-07-14 19:04:00', 'Asia/Manila'));
+
+        try {
+            $admin = User::factory()->admin()->create();
+            $receptionist = User::factory()->receptionist()->create();
+            $firstCustomer = CustomerProfile::factory()->create();
+            $secondCustomer = CustomerProfile::factory()->create();
+            $service = Service::factory()->create(['duration_minutes' => 60, 'is_active' => true]);
+            $start = now()->setTime(19, 30);
+            $staffProfiles = StaffProfile::factory()->count(2)->create();
+
+            foreach ($staffProfiles as $staff) {
+                $staff->services()->attach($service);
+                StaffWeeklySchedule::factory()->for($staff)->create([
+                    'day_of_week' => $start->dayOfWeek,
+                    'start_time' => '13:00:00',
+                    'end_time' => '00:00:00',
+                    'ends_next_day' => true,
+                ]);
+            }
+
+            $this->actingAs($admin)
+                ->post(route('admin.appointments.store', absolute: false), [
+                    'customer_profile_id' => $firstCustomer->id,
+                    'service_id' => $service->id,
+                    'staff_profile_id' => $staffProfiles[0]->id,
+                    'scheduled_start_at' => $start->toDateTimeString(),
+                    'status' => Appointment::STATUS_CONFIRMED,
+                ])
+                ->assertSessionDoesntHaveErrors();
+
+            $this->actingAs($receptionist)
+                ->post(route('reception.appointments.store', absolute: false), [
+                    'customer_profile_id' => $secondCustomer->id,
+                    'service_id' => $service->id,
+                    'staff_profile_id' => $staffProfiles[1]->id,
+                    'scheduled_start_at' => $start->toDateTimeString(),
+                    'status' => Appointment::STATUS_CONFIRMED,
+                ])
+                ->assertSessionDoesntHaveErrors();
+
+            $this->assertDatabaseCount('appointments', 2);
+        } finally {
+            Carbon::setTestNow();
+        }
     }
 
     public function test_operational_calendar_rejects_unbounded_ranges(): void
@@ -285,6 +421,8 @@ class CalendarSchedulingTest extends TestCase
             ->assertSee(route('admin.appointments.calendar.store', absolute: false), false)
             ->assertSee('calendar-booking-selected', false)
             ->assertSee('Confirmed reservation')
+            ->assertSee('Appointment time')
+            ->assertDontSee('Requested time')
             ->assertSee('Add appointment on this day');
     }
 
@@ -308,7 +446,6 @@ class CalendarSchedulingTest extends TestCase
                 'customer_profile_id' => $customer->id,
                 'service_id' => $service->id,
                 'staff_profile_id' => $staff->id,
-                'requested_start_at' => $start->toDateTimeString(),
                 'scheduled_start_at' => $start->toDateTimeString(),
                 'status' => Appointment::STATUS_CONFIRMED,
             ])
@@ -317,6 +454,7 @@ class CalendarSchedulingTest extends TestCase
         $appointment = Appointment::query()->sole();
         $this->assertSame(Appointment::STATUS_CONFIRMED, $appointment->status);
         $this->assertSame($staff->id, $appointment->staff_profile_id);
+        $this->assertTrue($appointment->requested_start_at->equalTo($appointment->scheduled_start_at));
         $this->assertTrue($appointment->scheduled_end_at->equalTo($start->copy()->addMinutes(90)));
         $this->assertDatabaseHas('appointment_status_logs', [
             'appointment_id' => $appointment->id,
