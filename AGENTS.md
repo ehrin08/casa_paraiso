@@ -81,6 +81,7 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 ## Development Guidelines
 
 - Prefer small, focused changes that are easy to inspect.
+- End every completed work session by committing that session's scoped changes and pushing the current branch. Do not include unrelated pre-existing worktree changes; if committing or pushing is blocked, report the blocker before ending the session.
 - Keep project-specific setup notes in this file as the application takes shape.
 - Use Laravel 12, PHP 8.2+, Blade, Tailwind CSS through Vite, and MariaDB/MySQL unless a later planning decision changes the stack.
 - Use Laravel Sail as the primary local development runtime, but prefer direct `docker compose` commands on this Windows machine because `vendor\bin\sail.bat` depends on a working Bash/WSL shim.
