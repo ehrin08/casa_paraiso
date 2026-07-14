@@ -16,14 +16,12 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-3">
-            <x-metric-card label="Active" :value="$activeCount" meta="Used during generation" tone="green" />
-            <x-metric-card label="Inactive" :value="$inactiveCount" meta="Retained for history" tone="gold" />
-            <x-metric-card label="Segments" :value="$segments->total()" meta="Configured groups" tone="brown" />
-        </section>
-
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('RFM thresholds') }}" title="{{ __('Customer segments') }}" :count="$segments->total()" :reset-url="route('admin.rfm-segments.index')">
+            <x-list-toolbar eyebrow="{{ __('RFM thresholds') }}" title="{{ __('Customer segments') }}" :count="$segments->total()" :reset-url="route('admin.rfm-segments.index')" :active-filters="collect(request()->only(['q', 'status']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
+                <x-slot name="meta">
+                    <span class="casa-filter-chip">{{ __(':count active', ['count' => $activeCount]) }}</span>
+                    <span class="casa-filter-chip">{{ __(':count inactive', ['count' => $inactiveCount]) }}</span>
+                </x-slot>
                 <form method="GET" action="{{ route('admin.rfm-segments.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                     <input type="hidden" name="sort" value="{{ $sort }}">
                     <input type="hidden" name="direction" value="{{ $direction }}">

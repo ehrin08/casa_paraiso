@@ -53,7 +53,7 @@ class StaffController extends Controller
             ->when($bookable === 'no', fn ($query) => $query->where('staff_profiles.is_bookable', false))
             ->orderBy($sorts[$sort], $direction)
             ->orderBy('users.name')
-            ->paginate(10)
+            ->paginate((int) config('casa.pagination.per_page', 15))
             ->withQueryString();
 
         return view('admin.staff.index', [
@@ -73,7 +73,9 @@ class StaffController extends Controller
                 ->withCount(['staffProfiles', 'appointments'])
                 ->orderByDesc('is_active')
                 ->orderBy('name')
-                ->get(),
+                ->paginate((int) config('casa.pagination.per_page', 15), ['*'], 'services_page')
+                ->withQueryString()
+                ->fragment('service-catalog'),
             'newService' => new Service(['is_active' => true]),
             'activeServiceCount' => Service::query()->where('is_active', true)->count(),
             'inactiveServiceCount' => Service::query()->where('is_active', false)->count(),
@@ -107,6 +109,7 @@ class StaffController extends Controller
             ]);
 
             $staffProfile = $staffUser->staffProfile()->create([
+                'staff_type' => $data['staff_type'] ?? StaffProfile::TYPE_THERAPIST,
                 'position' => $data['position'] ?? null,
                 'specialization' => $data['specialization'] ?? null,
                 'bio' => $data['bio'] ?? null,
@@ -186,6 +189,7 @@ class StaffController extends Controller
                 ]);
 
                 $managedStaff->update([
+                    'staff_type' => $data['staff_type'] ?? $managedStaff->staff_type,
                     'position' => $data['position'] ?? null,
                     'specialization' => $data['specialization'] ?? null,
                     'bio' => $data['bio'] ?? null,

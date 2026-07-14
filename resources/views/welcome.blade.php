@@ -25,11 +25,11 @@
 
         <a href="#main-content" class="sr-only rounded-lg bg-casa-paper px-4 py-3 font-bold text-casa-cacao focus:not-sr-only focus:fixed focus:start-4 focus:top-4 focus:z-[100]">Skip to content</a>
 
-        <div class="casa-page min-h-screen overflow-hidden">
-            <header class="sticky top-0 z-50 border-b border-casa-border/70 bg-casa-paper/92 backdrop-blur-xl">
-                <div class="mx-auto flex max-w-[90rem] items-center justify-between gap-5 px-4 py-3 sm:px-6 lg:px-8">
+        <div class="casa-page casa-landing min-h-screen overflow-hidden">
+            <header class="casa-landing-header fixed inset-x-0 top-0 z-50 border-b border-casa-border/70 bg-casa-paper/92 backdrop-blur-xl" data-landing-header="fixed">
+                <div class="mx-auto flex max-w-[90rem] items-center justify-between gap-2 px-4 py-3 sm:gap-5 sm:px-6 lg:px-8">
                     <a href="/" class="rounded-xl bg-white px-2 py-1">
-                        <img src="{{ asset('images/casa_paraiso_logo.jpg') }}" alt="Casa Paraiso Body and Wellness Spa" class="h-10 w-36 object-cover object-center sm:h-12 sm:w-44">
+                        <img src="{{ asset('images/casa_paraiso_logo.jpg') }}" alt="Casa Paraiso Body and Wellness Spa" class="h-10 w-32 object-cover object-center sm:h-12 sm:w-44">
                     </a>
 
                     <nav class="hidden items-center gap-7 text-sm font-bold text-casa-muted lg:flex" aria-label="Public navigation">
@@ -43,22 +43,19 @@
                             @auth
                                 <a href="{{ $homeUrl }}" class="casa-button-primary">{{ __('Open workspace') }}</a>
                             @else
-                                <a href="{{ route('login') }}" class="hidden min-h-11 items-center px-2 text-sm font-bold text-casa-muted transition hover:text-casa-cacao sm:inline-flex">{{ __('Log in') }}</a>
-                                @if (Route::has('register'))
-                                    <a href="{{ route('login') }}" class="casa-button-primary">{{ __('Reserve') }}</a>
-                                @endif
+                                <a href="{{ route('login') }}" class="casa-button-primary">{{ __('Reserve') }}</a>
                             @endauth
                         </nav>
                     @endif
                 </div>
             </header>
 
-            <main id="main-content">
-                <section class="relative">
+            <main id="main-content" class="casa-landing-main">
+                <section class="casa-landing-screen-section relative" data-landing-screen-section>
                     <div class="absolute -start-24 top-12 size-80 rounded-full bg-casa-brass/8 blur-3xl"></div>
                     <div class="mx-auto grid max-w-[90rem] gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,0.88fr)_minmax(34rem,1.12fr)] lg:items-center lg:px-8 lg:py-20 xl:gap-16 xl:py-24">
                         <div class="relative z-10">
-                            <p class="casa-eyebrow">{{ config('casa.business_name') }}</p>
+                            <p class="casa-eyebrow">{{ $applicationSettings->business_name }}</p>
                             <h1 class="mt-6 max-w-3xl font-editorial text-5xl font-semibold leading-[0.93] text-casa-ink sm:text-6xl lg:text-7xl xl:text-[5.5rem]">
                                 Let the day<br><span class="italic text-casa-cacao">soften here.</span>
                             </h1>
@@ -114,14 +111,14 @@
                     </div>
                 </section>
 
-                <section id="treatments" class="border-y border-casa-border/75 bg-casa-sand/65 py-16 sm:py-20">
+                <section id="treatments" class="casa-landing-screen-section border-y border-casa-border/75 bg-casa-sand/65 py-16 sm:py-20" data-landing-screen-section>
                     <div class="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8">
                         <div class="grid gap-6 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)] lg:items-end">
                             <div>
                                 <p class="casa-eyebrow">Signature treatments</p>
                                 <h2 class="mt-5 font-editorial text-5xl font-semibold leading-none text-casa-ink sm:text-6xl">Four ways to return to yourself.</h2>
                             </div>
-                            <p class="max-w-2xl text-sm leading-7 text-casa-muted lg:justify-self-end sm:text-base">Each ritual keeps its time, inclusions, and price clear before you request a visit. Add-ons can be coordinated with our team during confirmation.</p>
+                            <p class="max-w-2xl text-sm leading-7 text-casa-muted lg:justify-self-end sm:text-base">Each ritual keeps its time, inclusions, and price clear before you book an appointment. Add-ons can be coordinated with our team before your visit.</p>
                         </div>
 
                         <div class="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -145,7 +142,7 @@
                     </div>
                 </section>
 
-                <section id="how-it-works" class="py-16 sm:py-24">
+                <section id="how-it-works" class="casa-landing-screen-section py-16 sm:py-24" data-landing-screen-section>
                     <div class="mx-auto grid max-w-[90rem] gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(20rem,0.82fr)_minmax(0,1.18fr)] lg:items-center lg:px-8 xl:gap-20">
                         <div class="casa-ritual-image aspect-[4/3] lg:aspect-[4/4.1]">
                             <picture>
@@ -162,11 +159,11 @@
                             <ol class="mt-9 space-y-4">
                                 <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-2xl border border-casa-border bg-casa-paper p-5">
                                     <span class="grid size-12 place-items-center rounded-full bg-casa-cacao text-sm font-extrabold text-white">01</span>
-                                    <span><strong class="block text-base text-casa-text">Choose your ritual and preferred time.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Available dates and times are shown from active staff schedules.</span></span>
+                                    <span><strong class="block text-base text-casa-text">Choose your ritual and preferred time.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Available dates and times are shown from active therapist schedules.</span></span>
                                 </li>
                                 <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-2xl border border-casa-border bg-casa-paper p-5">
                                     <span class="grid size-12 place-items-center rounded-full bg-casa-palm text-sm font-extrabold text-white">02</span>
-                                    <span><strong class="block text-base text-casa-text">Our team checks every detail.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Staff review availability and arrange the final therapist and schedule.</span></span>
+                                    <span><strong class="block text-base text-casa-text">Your visit is confirmed.</strong><span class="mt-1 block text-sm leading-6 text-casa-muted">Booking immediately reserves an eligible therapist and the selected schedule.</span></span>
                                 </li>
                                 <li class="grid grid-cols-[3rem_minmax(0,1fr)] gap-4 rounded-2xl border border-casa-border bg-casa-paper p-5">
                                     <span class="grid size-12 place-items-center rounded-full bg-casa-brass text-sm font-extrabold text-casa-charcoal">03</span>
@@ -177,7 +174,7 @@
                     </div>
                 </section>
 
-                <section id="visit" class="bg-casa-charcoal py-16 text-white sm:py-20">
+                <section id="visit" class="casa-landing-screen-section bg-casa-charcoal py-16 text-white sm:py-20" data-landing-screen-section>
                     <div class="mx-auto grid max-w-[90rem] gap-6 px-4 sm:px-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(20rem,0.85fr)] lg:px-8">
                         <div class="rounded-[28px] border border-white/10 bg-white/[0.055] p-6 sm:p-8">
                             <p class="casa-eyebrow text-casa-brass-light before:bg-casa-brass">Optional additions</p>
@@ -190,7 +187,7 @@
                                     </div>
                                 @endforeach
                             </div>
-                            <p class="mt-6 max-w-2xl text-sm leading-7 text-white/62">Add-ons are shown for reference and can be coordinated with staff while your appointment is being confirmed.</p>
+                            <p class="mt-6 max-w-2xl text-sm leading-7 text-white/62">Add-ons are shown for reference and can be coordinated with our team before your confirmed appointment.</p>
                         </div>
 
                         <aside class="rounded-[28px] bg-casa-paper p-7 text-casa-text sm:p-9">
@@ -216,7 +213,7 @@
                             </article>
                             <article class="casa-card p-6 sm:p-7">
                                 <x-nav-icon name="team" class="size-6 text-casa-cacao" />
-                                <h2 class="mt-5 text-lg font-extrabold text-casa-text">Staff-guided scheduling</h2>
+                                <h2 class="mt-5 text-lg font-extrabold text-casa-text">Therapist-aware scheduling</h2>
                                 <p class="mt-3 text-sm leading-7 text-casa-muted">The spa team checks availability before every booking becomes final.</p>
                             </article>
                             <article class="casa-card p-6 sm:p-7">

@@ -27,7 +27,9 @@ class ReportController extends Controller
         $this->validateFilters($request);
 
         $type = $this->type($request);
-        $records = $this->query($type, $request)->paginate(15)->withQueryString();
+        $records = $this->query($type, $request)
+            ->paginate((int) config('casa.pagination.per_page', 15))
+            ->withQueryString();
 
         return view('admin.reports.index', [
             'type' => $type,

@@ -8,7 +8,7 @@
             </p>
         </div>
 
-        <a href="{{ route('admin.staff.show', $staffProfile) }}" class="casa-button-secondary">{{ __('Back to staff') }}</a>
+        <a href="{{ route('admin.staff.show', $staffProfile) }}" class="casa-button-secondary">{{ __('Back to therapist') }}</a>
     </x-slot>
 
     @include('admin.staff.schedule-exceptions.partials.form', [

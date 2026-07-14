@@ -28,7 +28,7 @@
                 <select id="completion_method" name="payment_method" class="casa-input mt-2">
                     <option value="">{{ __('Not received yet') }}</option>
                     @foreach (\App\Models\Transaction::PAYMENT_METHODS as $option)
-                        <option value="{{ $option }}" @selected(old('payment_method', \App\Models\Transaction::METHOD_CASH) === $option)>{{ $option }}</option>
+                        <option value="{{ $option }}" @selected(old('payment_method', $transaction->payment_method) === $option)>{{ $option }}</option>
                     @endforeach
                 </select>
                 <x-input-error class="mt-2" :messages="$errors->get('payment_method')" />

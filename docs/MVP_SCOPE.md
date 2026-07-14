@@ -9,7 +9,8 @@ The MVP should support appointment scheduling, customer records, manual transact
 ## MVP Users
 
 - Admin: manages services, staff, appointments, customer records, transactions, reports, promotion suggestions, and feedback insights.
-- Staff: reviews assigned appointments and customer details needed for daily operations through read-only workspaces.
+- Receptionist: runs restricted front-desk appointment, customer-contact, and payment workflows without access to schedules, insights, reports, settings, user administration, or commissions.
+- Therapist (`staff` role): reviews assigned appointments, related operational records, and personal commission history.
 - Customer: books appointments, views booking status, cancels before the scheduled start, and submits feedback after service.
 
 Users authenticate with either a verified Google account or a verified email and password. Customers may self-register; staff and admin emails must be pre-authorized by the protected super administrator. Authenticated Google-only users may reconfirm their linked Google identity in Account Settings to create a password, while passwordless accounts without Google linkage use the reset-password flow.
@@ -19,13 +20,15 @@ Users authenticate with either a verified Google account or a verified email and
 ### Appointment Scheduling
 
 - Customers can book available appointments and receive immediate confirmation.
+- Customers can open booking directly from My Appointments; the full-page booking route remains an accessible fallback.
 - The system atomically assigns an eligible therapist, preferring the customer's selection when available and otherwise balancing future bookings.
 - Admin can reschedule, cancel, mark no-show, or finish confirmed appointments.
-- Appointments should include customer, service, preferred date and time, assigned staff member, status, and notes.
-- Scheduling should consider service duration, staff assignment, and staff availability.
+- Receptionists can create, reschedule, cancel, mark no-show, or finish confirmed appointments, but cannot edit therapist availability.
+- Appointments should include customer, service, preferred date and time, assigned therapist, status, and notes.
+- Scheduling should consider service duration, therapist assignment, and therapist availability.
 - Confirmed customer bookings immediately reserve therapist capacity and disappear from availability when no eligible therapist remains.
 
-### Service And Staff Management
+### Service And Therapist Management
 
 - Admin can manage spa services, including service name, description, duration, and price.
 - The initial active service catalog should use the Casa Paraiso package menu:
@@ -35,8 +38,8 @@ Users authenticate with either a verified Google account or a verified email and
   - AURORA BREEZE: PHP 849.00, 2 hours.
 - Add-ons such as Ventosa, Hot Compress, Hot Stone, 30-Minute Back Massage, and VIP Room are shown as customer-facing content only until selectable add-ons are added in a later phase.
 - Business hours are shown as open every day from 1:00 PM to 12:00 MN.
-- Admin can manage staff profiles and staff availability.
-- Staff availability should be simple enough for non-technical staff to maintain.
+- Admin can manage therapist profiles and therapist availability. Therapist profiles retain the internal `staff` role and use `staff_type = therapist`.
+- Therapist availability should be simple enough for non-technical staff to maintain.
 
 ### Customer Records
 
@@ -48,6 +51,20 @@ Users authenticate with either a verified Google account or a verified email and
 - Admin records service transactions manually, including through the atomic finish-service workflow.
 - Transaction records should include customer, appointment or service reference, amount, payment status, payment method, transaction date, and staff/admin recorder.
 - Online payment gateway integration is not part of the MVP.
+
+### Application Settings
+
+- Admin and Super Administrator can maintain the public business name, contact details, address, and the payment method used to prefill new Admin and Receptionist payment forms.
+- Operating hours, booking intervals, timezone, commission rate, authorization, and scheduling invariants remain code-controlled safeguards rather than editable business fields.
+- Only the protected Super Administrator can provision users, change roles, or activate and deactivate accounts.
+
+### Therapist Commissions
+
+- A completed appointment with an assigned therapist earns a commission only when its linked transaction is fully paid.
+- The system-wide therapist commission rate is 22% of the actual transaction amount.
+- Admin records external payouts; the system does not transfer money.
+- Paid commission rows are immutable. Later transaction corrections create traceable signed adjustments.
+- Therapists can view only their own commission totals and history. Receptionists have no commission access.
 
 ### RFM Promotion Suggestions
 

@@ -31,7 +31,7 @@
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Assigned therapist') }}</dt>
-                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->staffProfile?->user?->name ?: __('Pending') }}</dd>
+                        <dd class="mt-2 font-semibold text-casa-text">{{ $appointment->staffProfile?->user?->name ?: __('Unassigned') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Status') }}</dt>

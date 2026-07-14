@@ -12,11 +12,11 @@
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
         <section class="space-y-6">
             <x-app-card>
-                <div class="grid gap-4 sm:grid-cols-3">
-                    <x-metric-card label="Recency" value="{{ $suggestion->recency_days ?? 'N/A' }}" meta="Days since paid visit" tone="gold" />
-                    <x-metric-card label="Frequency" :value="$suggestion->frequency_count ?? 0" meta="Paid completed visits" tone="green" />
-                    <x-metric-card label="Monetary" value="PHP {{ number_format((float) $suggestion->monetary_total, 2) }}" meta="Paid completed total" tone="brown" />
-                </div>
+                <x-stat-strip :items="[
+                    ['label' => __('Recency'), 'value' => $suggestion->recency_days ?? __('N/A'), 'meta' => __('Days since paid visit'), 'tone' => 'gold'],
+                    ['label' => __('Frequency'), 'value' => $suggestion->frequency_count ?? 0, 'meta' => __('Paid completed visits'), 'tone' => 'green'],
+                    ['label' => __('Monetary'), 'value' => 'PHP '.number_format((float) $suggestion->monetary_total, 2), 'meta' => __('Paid completed total'), 'tone' => 'brown'],
+                ]" />
 
                 <div class="mt-6 rounded-2xl bg-casa-bg p-5">
                     <p class="casa-section-label">{{ __('Suggested offer') }}</p>

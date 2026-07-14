@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AppointmentCalendarController as AdminAppointmentCalendarController;
 use App\Http\Controllers\Admin\AppointmentController as AdminAppointmentController;
+use App\Http\Controllers\Admin\CommissionController as AdminCommissionController;
 use App\Http\Controllers\Admin\CustomerController as AdminCustomerController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\FeedbackController as AdminFeedbackController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Admin\PromotionRuleController as AdminPromotionRuleCont
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\RfmSegmentController as AdminRfmSegmentController;
 use App\Http\Controllers\Admin\ServiceController as AdminServiceController;
+use App\Http\Controllers\Admin\SettingController as AdminSettingController;
 use App\Http\Controllers\Admin\StaffController as AdminStaffController;
 use App\Http\Controllers\Admin\StaffScheduleExceptionController as AdminStaffScheduleExceptionController;
 use App\Http\Controllers\Admin\StaffWeeklyScheduleController as AdminStaffWeeklyScheduleController;
@@ -21,17 +23,24 @@ use App\Http\Controllers\Customer\AppointmentCalendarController as CustomerAppoi
 use App\Http\Controllers\Customer\AppointmentController as CustomerAppointmentController;
 use App\Http\Controllers\Customer\FeedbackController as CustomerFeedbackController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Reception\AppointmentCalendarController as ReceptionAppointmentCalendarController;
+use App\Http\Controllers\Reception\AppointmentController as ReceptionAppointmentController;
+use App\Http\Controllers\Reception\CustomerController as ReceptionCustomerController;
+use App\Http\Controllers\Reception\DashboardController as ReceptionDashboardController;
+use App\Http\Controllers\Reception\TransactionController as ReceptionTransactionController;
 use App\Http\Controllers\Staff\AppointmentCalendarController as StaffAppointmentCalendarController;
 use App\Http\Controllers\Staff\AppointmentController as StaffAppointmentController;
+use App\Http\Controllers\Staff\CommissionController as StaffCommissionController;
 use App\Http\Controllers\Staff\CustomerController as StaffCustomerController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 use App\Http\Controllers\Staff\FeedbackController as StaffFeedbackController;
 use App\Http\Controllers\Staff\TransactionController as StaffTransactionController;
+use App\Models\ApplicationSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('welcome', ['applicationSettings' => ApplicationSetting::current()]);
 });
 
 Route::get('/dashboard', function (Request $request) {
@@ -41,11 +50,11 @@ Route::get('/dashboard', function (Request $request) {
 Route::middleware(['auth', 'active', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    Route::get('/profile/delete/google', [GoogleDeletionController::class, 'redirect'])->name('profile.deletion.google');
-    Route::get('/profile/delete/google/callback', [GoogleDeletionController::class, 'callback'])->name('profile.deletion.google.callback');
-    Route::get('/profile/password/google', [GooglePasswordSetupController::class, 'redirect'])->name('profile.password.google');
-    Route::get('/profile/password/google/callback', [GooglePasswordSetupController::class, 'callback'])->name('profile.password.google.callback');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->middleware('throttle:user-sensitive')->name('profile.destroy');
+    Route::get('/profile/delete/google', [GoogleDeletionController::class, 'redirect'])->middleware('throttle:user-sensitive')->name('profile.deletion.google');
+    Route::get('/profile/delete/google/callback', [GoogleDeletionController::class, 'callback'])->middleware('throttle:user-sensitive')->name('profile.deletion.google.callback');
+    Route::get('/profile/password/google', [GooglePasswordSetupController::class, 'redirect'])->middleware('throttle:user-sensitive')->name('profile.password.google');
+    Route::get('/profile/password/google/callback', [GooglePasswordSetupController::class, 'callback'])->middleware('throttle:user-sensitive')->name('profile.password.google.callback');
 });
 
 Route::middleware(['auth', 'active', 'verified', 'role:super_admin,admin'])
@@ -74,6 +83,9 @@ Route::middleware(['auth', 'active', 'verified', 'role:super_admin,admin'])
         Route::patch('/services/{service}/toggle', [AdminServiceController::class, 'toggle'])->name('services.toggle');
         Route::resource('services', AdminServiceController::class)->except('destroy');
         Route::resource('transactions', AdminTransactionController::class)->except('destroy');
+        Route::get('/commissions', [AdminCommissionController::class, 'index'])->name('commissions.index');
+        Route::get('/commissions/{commission}', [AdminCommissionController::class, 'show'])->name('commissions.show');
+        Route::patch('/commissions/{commission}/pay', [AdminCommissionController::class, 'pay'])->name('commissions.pay');
         Route::patch('/rfm-segments/{rfmSegment}/toggle', [AdminRfmSegmentController::class, 'toggle'])->name('rfm-segments.toggle');
         Route::resource('rfm-segments', AdminRfmSegmentController::class)
             ->parameters(['rfm-segments' => 'rfmSegment'])
@@ -87,19 +99,8 @@ Route::middleware(['auth', 'active', 'verified', 'role:super_admin,admin'])
         Route::resource('feedback', AdminFeedbackController::class)->only(['index', 'show']);
         Route::get('/reports/export', [AdminReportController::class, 'export'])->name('reports.export');
         Route::get('/reports', [AdminReportController::class, 'index'])->name('reports.index');
-        Route::view('/settings', 'modules.placeholder', [
-            'eyebrow' => 'Admin module',
-            'title' => 'Settings',
-            'description' => 'Maintain business details, user status, and practical system defaults.',
-            'status' => 'Phase 11',
-            'actionLabel' => 'Back to dashboard',
-            'actionRoute' => 'admin.dashboard',
-            'cards' => [
-                ['label' => 'Business', 'value' => 'Contact details'],
-                ['label' => 'Users', 'value' => 'Account status'],
-                ['label' => 'Defaults', 'value' => 'Operating values'],
-            ],
-        ])->name('settings.index');
+        Route::get('/settings', [AdminSettingController::class, 'index'])->name('settings.index');
+        Route::patch('/settings', [AdminSettingController::class, 'update'])->name('settings.update');
     });
 
 Route::middleware(['auth', 'active', 'verified', 'super_admin'])
@@ -118,7 +119,22 @@ Route::middleware(['auth', 'active', 'verified', 'role:staff'])
         Route::resource('appointments', StaffAppointmentController::class)->only(['index', 'show']);
         Route::resource('customers', StaffCustomerController::class)->only(['index', 'show']);
         Route::resource('transactions', StaffTransactionController::class)->only(['index', 'show']);
+        Route::resource('commissions', StaffCommissionController::class)->only(['index', 'show']);
         Route::resource('feedback', StaffFeedbackController::class)->only(['index', 'show']);
+    });
+
+Route::middleware(['auth', 'active', 'verified', 'role:receptionist'])
+    ->prefix('reception')
+    ->name('reception.')
+    ->group(function () {
+        Route::get('/dashboard', ReceptionDashboardController::class)->name('dashboard');
+        Route::get('/appointments/calendar', ReceptionAppointmentCalendarController::class)->name('appointments.calendar');
+        Route::get('/appointments/available-therapists', [ReceptionAppointmentController::class, 'availableTherapists'])->name('appointments.available-therapists');
+        Route::post('/appointments/{appointment}/complete', [ReceptionAppointmentController::class, 'complete'])->name('appointments.complete');
+        Route::patch('/appointments/{appointment}/outcome', [ReceptionAppointmentController::class, 'outcome'])->name('appointments.outcome');
+        Route::resource('appointments', ReceptionAppointmentController::class)->except('destroy');
+        Route::resource('customers', ReceptionCustomerController::class)->only(['index', 'show', 'update']);
+        Route::resource('transactions', ReceptionTransactionController::class)->except('destroy');
     });
 
 Route::middleware(['auth', 'active', 'verified', 'role:customer'])

@@ -29,8 +29,9 @@ class InteractiveListControlsTest extends TestCase
             ->for($serviceA)
             ->create([
                 'appointment_number' => 'APT-200',
-                'status' => Appointment::STATUS_PENDING,
-                'requested_start_at' => now()->addDays(2)->setTime(10, 0),
+                'status' => Appointment::STATUS_CONFIRMED,
+                'requested_start_at' => now()->addDays(2)->setTime(14, 0),
+                'scheduled_start_at' => now()->addDays(2)->setTime(14, 0),
             ]);
 
         Appointment::factory()
@@ -38,8 +39,8 @@ class InteractiveListControlsTest extends TestCase
             ->for($serviceB)
             ->create([
                 'appointment_number' => 'APT-100',
-                'status' => Appointment::STATUS_CONFIRMED,
-                'requested_start_at' => now()->addDays(3)->setTime(11, 0),
+                'status' => Appointment::STATUS_CANCELLED,
+                'requested_start_at' => now()->addDays(3)->setTime(14, 0),
             ]);
 
         $this->actingAs($admin)
@@ -54,7 +55,7 @@ class InteractiveListControlsTest extends TestCase
                 'mode' => 'bookings',
                 'start' => $weekStart->toDateString(),
                 'end' => $weekStart->copy()->addDays(7)->toDateString(),
-                'status' => Appointment::STATUS_PENDING,
+                'status' => Appointment::STATUS_CONFIRMED,
             ], false));
 
         $response->assertOk()->assertJsonPath('mode', 'bookings');
@@ -134,7 +135,7 @@ class InteractiveListControlsTest extends TestCase
             ->assertSee('sort=price', false);
     }
 
-    public function test_staff_appointment_calendar_excludes_unassigned_pending_demand(): void
+    public function test_staff_appointment_calendar_rejects_the_retired_pending_filter(): void
     {
         $staffUser = User::factory()->staff()->create();
         $staffProfile = StaffProfile::factory()->for($staffUser)->create();
@@ -152,8 +153,8 @@ class InteractiveListControlsTest extends TestCase
             ->for($customer)
             ->for($service)
             ->create([
-                'appointment_number' => 'APT-PENDING-QUEUE',
-                'status' => Appointment::STATUS_PENDING,
+                'appointment_number' => 'APT-CANCELLED-QUEUE',
+                'status' => Appointment::STATUS_CANCELLED,
                 'requested_start_at' => now()->addWeek()->setTime(10, 0),
             ]);
 
@@ -178,13 +179,10 @@ class InteractiveListControlsTest extends TestCase
             ->getJson(route('staff.appointments.calendar', [
                 'start' => $weekStart->toDateString(),
                 'end' => $weekStart->copy()->addDay()->toDateString(),
-                'status' => Appointment::STATUS_PENDING,
+                'status' => 'pending',
             ], false));
 
-        $response->assertOk();
-        $numbers = collect($response->json('events'))->pluck('appointment_number')->filter();
-        $this->assertFalse($numbers->contains('APT-PENDING-QUEUE'));
-        $this->assertFalse($numbers->contains('APT-COMPLETE-QUEUE'));
+        $response->assertUnprocessable()->assertJsonValidationErrors('status');
     }
 
     public function test_customer_appointment_calendar_replaces_pagination_controls(): void
@@ -201,6 +199,8 @@ class InteractiveListControlsTest extends TestCase
                 'appointment_number' => 'APT-CUSTOMER-'.str_pad((string) $sequence->index, 2, '0', STR_PAD_LEFT),
                 'status' => Appointment::STATUS_COMPLETED,
                 'requested_start_at' => now()->startOfMonth()->addDays($sequence->index + 1)->setTime(14, 0),
+                'scheduled_start_at' => now()->startOfMonth()->addDays($sequence->index + 1)->setTime(14, 0),
+                'scheduled_end_at' => now()->startOfMonth()->addDays($sequence->index + 1)->setTime(15, 0),
             ])
             ->create();
 

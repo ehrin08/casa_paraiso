@@ -37,7 +37,7 @@ class RfmSegmentController extends Controller
             ->when($status === 'inactive', fn ($query) => $query->where('is_active', false))
             ->orderBy($sorts[$sort], $direction)
             ->orderBy('name')
-            ->paginate(12)
+            ->paginate((int) config('casa.pagination.per_page', 15))
             ->withQueryString();
 
         return view('admin.rfm-segments.index', [

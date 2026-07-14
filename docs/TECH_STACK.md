@@ -44,6 +44,16 @@ Use targeted JavaScript only where it directly improves a workflow, such as appo
 
 Turbo Drive 8 is approved as the targeted navigation enhancement for the Blade application. It is bundled into the compiled Vite assets and is enabled only for safe same-origin GET links and filter forms; state-changing forms, exports, and specialized panels retain normal Laravel behavior.
 
+## Authenticated Workspace UI
+
+- Keep the application server-rendered. Alpine.js may manage local disclosure and calendar state, but URLs, filtering, sorting, and pagination remain normal Laravel requests.
+- Use the shared Blade components for workspace consistency: `page-heading`, `stat-strip`, `list-toolbar`, `table-shell`, `app-card`, and `metric-card`.
+- Laravel's default paginator view is `pagination.compact`. `casa.pagination.per_page` is the single server-controlled page size and is fixed at 15 records; controllers preserve active query state with `withQueryString()` and never honor a request `per_page` value.
+- Screens with two record sets must use independent paginator query keys and, where useful, a fragment target. The Team & Services workspace uses `page` for staff and `services_page` with `#service-catalog` for services.
+- Record-list filters collapse below the 1024px breakpoint while retaining accessible expanded state and active-filter counts. Tables and compact calendar date strips use labeled, keyboard-focusable overflow regions.
+- Keep appointment calendars and other bounded operational previews unpaginated; they continue to read from role-scoped JSON feeds or their existing server-rendered collections.
+- Follow `docs/BRAND_UI_GUIDE.md` for density, responsive behavior, interaction targets, typography, and accessibility details.
+
 ## Database And Data Workflow
 
 - Use Laravel migrations as the source of truth for schema changes.
@@ -63,6 +73,7 @@ Turbo Drive 8 is approved as the targeted navigation enhancement for the Blade a
 - Hostinger must point web requests to Laravel's `public/index.php` entrypoint or an equivalent safe shared-hosting configuration.
 - When Hostinger Terminal or SSH is available, run `composer install --no-dev --optimize-autoloader` followed by `php artisan optimize` after the production environment is configured.
 - Do not build or upload Laravel configuration/view caches from Windows; production caches must be generated on the Linux hosting environment.
+- Treat `docs/SECURITY_HARDENING.md` as the production release gate, including HTTPS, trusted-host, session-cookie, least-privilege database, backup, and restore checks.
 
 ## Local Development Checks
 
@@ -100,8 +111,8 @@ docker compose exec -T laravel.test composer install
 docker compose restart laravel.test
 docker compose exec -T laravel.test npm install
 docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan migrate
-docker compose exec -T laravel.test php artisan test
+docker compose exec -T --user sail laravel.test php artisan migrate
+docker compose exec -T --user sail laravel.test php artisan test
 ```
 
 Demo seeding is restricted to local and testing environments. Production deployments must run migrations without `--seed` so predictable demo credentials are never installed or reset.

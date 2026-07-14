@@ -11,8 +11,6 @@ class Appointment extends Model
     /** @use HasFactory<AppointmentFactory> */
     use HasFactory;
 
-    public const STATUS_PENDING = 'pending';
-
     public const STATUS_CONFIRMED = 'confirmed';
 
     public const STATUS_COMPLETED = 'completed';
@@ -22,7 +20,6 @@ class Appointment extends Model
     public const STATUS_NO_SHOW = 'no_show';
 
     public const STATUSES = [
-        self::STATUS_PENDING,
         self::STATUS_CONFIRMED,
         self::STATUS_COMPLETED,
         self::STATUS_CANCELLED,
@@ -34,7 +31,6 @@ class Appointment extends Model
      * Terminal outcomes require an existing confirmed schedule.
      */
     public const CREATION_STATUSES = [
-        self::STATUS_PENDING,
         self::STATUS_CONFIRMED,
     ];
 
@@ -45,11 +41,6 @@ class Appointment extends Model
      * @var array<string, array<int, string>>
      */
     public const STATUS_TRANSITIONS = [
-        self::STATUS_PENDING => [
-            self::STATUS_PENDING,
-            self::STATUS_CONFIRMED,
-            self::STATUS_CANCELLED,
-        ],
         self::STATUS_CONFIRMED => [
             self::STATUS_CONFIRMED,
             self::STATUS_COMPLETED,
@@ -138,6 +129,11 @@ class Appointment extends Model
     public function statusLogs()
     {
         return $this->hasMany(AppointmentStatusLog::class);
+    }
+
+    public function therapistCommissions()
+    {
+        return $this->hasMany(TherapistCommission::class);
     }
 
     public function cancelledBy()

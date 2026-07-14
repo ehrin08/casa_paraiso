@@ -53,7 +53,7 @@
                     <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $staffUser->is_active)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
                     <span>
                         <span class="block text-sm font-bold text-casa-text">{{ __('Active login account') }}</span>
-                        <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Inactive staff cannot sign in or access protected staff workspaces.') }}</span>
+                        <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Inactive therapists cannot sign in or access the protected therapist workspace.') }}</span>
                     </span>
                 </label>
                 <x-input-error class="mt-2" :messages="$errors->get('is_active')" />
@@ -98,7 +98,7 @@
                     <input type="checkbox" name="is_bookable" value="1" @checked(old('is_bookable', $staffProfile->is_bookable)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
                     <span>
                         <span class="block text-sm font-bold text-casa-text">{{ __('Bookable for appointments') }}</span>
-                        <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Bookable staff can later be assigned schedules and confirmed appointments.') }}</span>
+                        <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Bookable therapists can be assigned schedules and confirmed appointments.') }}</span>
                     </span>
                 </label>
                 <x-input-error class="mt-2" :messages="$errors->get('is_bookable')" />
@@ -134,7 +134,7 @@
                 @empty
                     <x-empty-state
                         title="{{ __('No active services') }}"
-                        description="{{ __('Add or activate services before assigning staff eligibility.') }}"
+                        description="{{ __('Add or activate services before assigning therapist eligibility.') }}"
                     />
                 @endforelse
             </div>

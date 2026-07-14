@@ -2,6 +2,8 @@
 
 This plan records the read-only findings from the 2026-07-12 CRUD audit. No repair in this document has been executed. The project database safety gate requires explicit approval for the exact records and operation before any update is run.
 
+> Superseded for future operations: the pending appointment workflow was retired on 2026-07-14. This document preserves the 2026-07-12 repair record; its pending-request recommendations are historical only.
+
 ## Current Findings
 
 | Appointment | Status | Service | Affected field | Current value | Issue |

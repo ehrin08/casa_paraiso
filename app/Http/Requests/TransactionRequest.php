@@ -12,7 +12,7 @@ class TransactionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() || $this->user()?->isStaff();
+        return $this->user()?->isAdmin() || $this->user()?->isStaff() || $this->user()?->isReceptionist();
     }
 
     /**

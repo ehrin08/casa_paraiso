@@ -19,8 +19,12 @@ class UserManagementController extends Controller
     public function index(): View
     {
         return view('admin.users.index', [
-            'users' => User::query()->with(['staffProfile', 'customerProfile'])->orderByRaw("FIELD(role, 'super_admin', 'admin', 'staff', 'customer')")->orderBy('name')->paginate(15),
-            'assignableRoles' => [User::ROLE_ADMIN, User::ROLE_STAFF, User::ROLE_CUSTOMER],
+            'users' => User::query()
+                ->with(['staffProfile', 'customerProfile'])
+                ->orderByRaw("FIELD(role, 'super_admin', 'admin', 'receptionist', 'staff', 'customer')")
+                ->orderBy('name')
+                ->paginate((int) config('casa.pagination.per_page', 15)),
+            'assignableRoles' => [User::ROLE_ADMIN, User::ROLE_RECEPTIONIST, User::ROLE_STAFF, User::ROLE_CUSTOMER],
         ]);
     }
 
@@ -96,7 +100,7 @@ class UserManagementController extends Controller
                     }
                 },
             ],
-            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_STAFF, User::ROLE_CUSTOMER])],
+            'role' => ['required', Rule::in([User::ROLE_ADMIN, User::ROLE_RECEPTIONIST, User::ROLE_STAFF, User::ROLE_CUSTOMER])],
             'is_active' => ['sometimes', 'boolean'],
         ]);
     }

@@ -2,7 +2,7 @@
 
 ## Project Status
 
-Application code has been scaffolded with Laravel 12, Laravel Breeze, Blade, Tailwind CSS, Vite, Laravel Sail, and MariaDB/MySQL configuration. Project planning documents exist for MVP scope, technology stack, database design, screen flow, Docker workflow, and implementation roadmap.
+The Laravel 12 application includes the core MVP workspaces for authentication and roles, services, staff and customer records, calendar-based appointments, transactions, feedback and sentiment, RFM promotions, and reports. Read `docs/PROJECT_MEMORY.md` for the current implementation map, active refinement, domain entry points, and durable known gaps.
 
 ## Planning Documents
 
@@ -13,7 +13,17 @@ Application code has been scaffolded with Laravel 12, Laravel Breeze, Blade, Tai
 - Docker workflow: `docs/DOCKER_WORKFLOW.md`
 - Implementation roadmap: `docs/IMPLEMENTATION_ROADMAP.md`
 - Brand and UI guide: `docs/BRAND_UI_GUIDE.md`
-- Use the MVP scope, tech stack, database design, screen flow, Docker workflow, and implementation roadmap as the first-build source of truth before API design, routes, controllers, views, migrations, models, or implementation.
+- Security hardening checklist: `docs/SECURITY_HARDENING.md`
+- Project memory and implementation map: `docs/PROJECT_MEMORY.md`
+- Use the MVP scope, tech stack, database design, screen flow, Docker workflow, implementation roadmap, and brand/UI guide as the source of truth. Reconcile proposed changes with the current implementation before changing APIs, routes, controllers, views, migrations, or models.
+
+## Project Memory Protocol
+
+- For every task, read in this order: `AGENTS.md`, `docs/PROJECT_MEMORY.md`, then only the authoritative documents, current source files, and representative tests relevant to the task.
+- Use project memory for orientation and task routing, not as a substitute for verifying the implementation being changed.
+- Update `docs/PROJECT_MEMORY.md` in the same change when roles, route families, modules, models, migrations, domain services, shared UI conventions, business invariants, deployment constraints, verification commands, milestones, or durable known gaps change.
+- Do not update project memory for cosmetic-only edits, temporary debugging, generated artifacts, credentials, record-level database findings, or internal refactors that do not change behavior or future task routing.
+- When project memory conflicts with an authoritative document or current source, inspect the appropriate authority and record a durable discrepancy instead of guessing.
 
 ## Project Objectives
 
@@ -64,7 +74,6 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 
 ## Future Decisions
 
-- Detailed security hardening checklist is still undecided.
 - Full handover and operations manual is still undecided.
 
 ## Development Guidelines
@@ -78,9 +87,12 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 - Keep Apache/XAMPP compatibility as a fallback local workflow only.
 - Use Node/npm for frontend asset builds only; do not require a production Node.js runtime for the MVP.
 - Use Turbo Drive only for safe same-origin GET links and filter forms; keep state-changing forms, exports, and panel links on their existing Laravel request paths.
+- Keep authenticated record lists on the shared compact workspace pattern: use `list-toolbar` for totals and responsive filter disclosure, `table-shell` for labeled keyboard-focusable overflow, and the registered `pagination.compact` view for paging.
+- Use `casa.pagination.per_page` as the fixed server-controlled page size of 15, preserve filter and sort state with `withQueryString()`, and do not accept a user-provided `per_page` value. Give multiple paginators on one screen distinct query keys and fragments.
+- Use the authenticated layout's shared `page-heading` wrapper and prefer `stat-strip` for compact detail/calendar context. Keep larger metric cards for dashboards and analytics summaries.
 - Appointment workspaces are calendar-only: customer month view, admin Bookings/Availability week view, and staff personal week view. Keep mutations on normal Laravel form routes and use the role-scoped JSON feeds only for calendar reads.
 - Treat 1:00 PM to 12:00 midnight in Asia/Manila as the hard booking window with 30-minute start intervals; `ends_next_day` represents midnight-ending staff windows.
-- Pending requests show demand but do not reserve capacity. Final confirmation must use the transactional appointment workflow, and therapist availability changes must remain guarded against future confirmed conflicts.
+- Every new appointment is confirmed transactionally and reserves therapist capacity. Therapist availability changes must remain guarded against future confirmed conflicts.
 - Use Laravel migrations and seeders as the primary database workflow.
 - Document setup, build, migration, seed, and deployment commands as the application is scaffolded.
 - Keep usability, security, and effectiveness visible in design and implementation decisions to support the ISO/IEC 25010 quality target.
@@ -89,17 +101,18 @@ Design and develop a centralized Spa Appointment and Management System for Casa 
 
 ## Verification
 
-Current scaffold verification:
+Current application verification:
 
 - Laravel app: `docker compose up -d`, then open `http://localhost:8001`
 - PHP dependencies after creating the volume: `docker compose exec -T laravel.test composer install`, then `docker compose restart laravel.test`
 - Frontend assets: `docker compose exec -T laravel.test npm run build`
-- Database (run only after explicit user approval because this resets and reseeds data): `docker compose exec -T laravel.test php artisan migrate:fresh --seed`
-- Tests: `docker compose exec -T laravel.test php artisan test`
+- Database (run only after explicit user approval because this resets and reseeds data): `docker compose exec -T --user sail laravel.test php artisan migrate:fresh --seed`
+- Tests: `docker compose exec -T --user sail laravel.test php artisan test`
+- Run Artisan as the container's `sail` user so CLI-created logs and cache files remain writable by the web process. If permissions drift, repair `storage` and `bootstrap/cache` from the root container user before retrying.
 
 ## Notes For Future Agents
 
-- Check this file before making changes.
-- Read the existing code structure before introducing new conventions.
+- Read this file, then `docs/PROJECT_MEMORY.md`, before making changes.
+- Use the project memory to locate the relevant code structure, then inspect the affected source before introducing new conventions.
 - Preserve user-created files and avoid broad refactors unless requested.
 - Follow `docs/BRAND_UI_GUIDE.md` when adding or changing public, authentication, admin, staff, or customer interface elements.

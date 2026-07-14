@@ -4,7 +4,7 @@ use App\Models\User;
 
 return [
 
-    'super_admin_email' => env('SUPER_ADMIN_EMAIL', 'ehrinjohn08@gmail.com'),
+    'super_admin_email' => env('SUPER_ADMIN_EMAIL', 'admin@example.com'),
 
     'profile_deletion_reauth_ttl' => (int) env('PROFILE_DELETION_REAUTH_TTL', 600),
 

@@ -12,14 +12,12 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-3">
-            <x-metric-card label="Active" :value="$activeCount" meta="Bookable treatments" tone="green" />
-            <x-metric-card label="Inactive" :value="$inactiveCount" meta="Hidden from booking" tone="gold" />
-            <x-metric-card label="Catalog" :value="$services->total()" meta="Total services" tone="brown" />
-        </section>
-
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Catalog') }}" title="{{ __('Treatment list') }}" :count="$services->total()" :reset-url="route('admin.services.index')">
+            <x-list-toolbar eyebrow="{{ __('Catalog') }}" title="{{ __('Treatment list') }}" :count="$services->total()" :reset-url="route('admin.services.index')" :active-filters="collect(request()->only(['q', 'status']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
+                <x-slot name="meta">
+                    <span class="casa-filter-chip">{{ __(':count active', ['count' => $activeCount]) }}</span>
+                    <span class="casa-filter-chip">{{ __(':count inactive', ['count' => $inactiveCount]) }}</span>
+                </x-slot>
                 <form method="GET" action="{{ route('admin.services.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                     <input type="hidden" name="sort" value="{{ $sort }}">
                     <input type="hidden" name="direction" value="{{ $direction }}">
@@ -37,7 +35,7 @@
                 @if ($services->isEmpty())
                     <x-empty-state
                         title="{{ __('No services yet') }}"
-                        description="{{ __('Add the first treatment with duration and pricing before staff assignments and appointments are connected.') }}"
+                        description="{{ __('Add the first treatment with duration and pricing before therapist assignments and appointments are connected.') }}"
                     >
                         <x-slot name="action">
                             <a href="{{ route('admin.services.create') }}" class="casa-button-primary">{{ __('Add service') }}</a>
@@ -67,7 +65,7 @@
                                     <td class="px-4 py-4 text-casa-muted">{{ $service->duration_minutes }} {{ __('min') }}</td>
                                     <td class="px-4 py-4 font-semibold text-casa-text">PHP {{ number_format((float) $service->price, 2) }}</td>
                                     <td class="px-4 py-4 text-casa-muted">
-                                        {{ trans_choice(':count staff|:count staff', $service->staff_profiles_count) }},
+                                        {{ trans_choice(':count therapist|:count therapists', $service->staff_profiles_count) }},
                                         {{ trans_choice(':count appointment|:count appointments', $service->appointments_count) }}
                                     </td>
                                     <td class="px-4 py-4">

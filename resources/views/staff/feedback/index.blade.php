@@ -1,14 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <p class="casa-section-label">{{ __('Staff module') }}</p>
+            <p class="casa-section-label">{{ __('Therapist module') }}</p>
             <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('Feedback') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">{{ __('View feedback related to your assigned appointments.') }}</p>
         </div>
     </x-slot>
 
     <x-app-card>
-        <x-list-toolbar eyebrow="{{ __('Reviews') }}" title="{{ __('Related feedback') }}" :count="$feedback->total()" :reset-url="route('staff.feedback.index')">
+        <x-list-toolbar eyebrow="{{ __('Reviews') }}" title="{{ __('Related feedback') }}" :count="$feedback->total()" :reset-url="route('staff.feedback.index')" :active-filters="collect(request()->only(['q', 'sentiment_label']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
             <form method="GET" action="{{ route('staff.feedback.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                 <input type="hidden" name="sort" value="{{ $sort }}">
                 <input type="hidden" name="direction" value="{{ $direction }}">

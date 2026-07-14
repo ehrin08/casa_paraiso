@@ -52,7 +52,7 @@ class TransactionController extends Controller
             }))
             ->orderBy($sorts[$sort], $direction)
             ->orderByDesc('transactions.created_at')
-            ->paginate(12)
+            ->paginate((int) config('casa.pagination.per_page', 15))
             ->withQueryString();
 
         return view('staff.transactions.index', [

@@ -340,6 +340,7 @@ class IdentityAndEligibilityRemediationTest extends TestCase
         $googleUser->user = ['verified_email' => true];
 
         $provider = Mockery::mock(Provider::class);
+        $provider->shouldReceive('redirectUrl')->once()->andReturnSelf();
         $provider->shouldReceive('user')->once()->andReturn($googleUser);
         Socialite::shouldReceive('driver')->with('google')->once()->andReturn($provider);
     }

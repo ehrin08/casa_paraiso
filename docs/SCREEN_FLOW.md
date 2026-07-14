@@ -2,37 +2,59 @@
 
 ## Purpose
 
-Define the MVP pages, role-based navigation, and main user journeys before Laravel routes, controllers, and Blade layouts are scaffolded.
+Document the implemented MVP pages, role-based navigation, shared workspace behavior, and main user journeys. Use this flow when extending Laravel routes, controllers, Blade views, or navigation.
 
-The interface should use separate dashboards for admin, staff, and customer. Authenticated roles use a persistent sidebar on desktop. Admin and staff use a navigation drawer on smaller screens, while customers use a compact header plus bottom navigation for Appointments, Feedback, and Profile. Customers land on appointment-focused pages after login.
+The implemented interface uses separate dashboards for admin, receptionist, therapist, and customer. Authenticated roles use a persistent sidebar on desktop. Operational roles use a navigation drawer on smaller screens, while customers use a compact header plus bottom navigation for Appointments, Feedback, and Profile. Customers land on appointment-focused pages after login.
 
 ## Route Groups
 
 - Public: unauthenticated pages for landing, service browsing, login, and registration.
 - Auth: login, registration, password reset, logout, and authenticated redirects.
 - Admin: full management access.
-- Staff: daily operations access.
-- Customer: appointment request, status, history, feedback, and profile access.
+- Receptionist: restricted front-desk appointments, customers, and payments.
+- Staff/Therapist: assigned daily operations and personal commissions.
+- Customer: appointment booking, status, history, feedback, and profile access.
 
-Planned route prefixes:
+Route prefixes:
 
 - `/`
 - `/login`
 - `/register`
 - `/admin`
+- `/reception`
 - `/staff`
 - `/customer`
 
 ## Shared Layout Rules
 
 - Use Laravel Blade server-rendered pages with Tailwind CSS.
-- Use a shared authenticated layout shell with role-specific desktop sidebar navigation.
+- Use a shared authenticated layout shell with a compact 256px role-specific desktop sidebar and consistent page-heading wrapper.
 - Admin and staff collapse the sidebar into a mobile drawer.
 - Customer mobile navigation uses a persistent three-item bottom bar for Appointments, Feedback, and Profile.
 - Admin and staff pages should use the persistent sidebar with module navigation, page title, search/filter area where needed, and clear primary action buttons.
 - Customer pages should stay simpler and appointment-first, with sidebar navigation focused on appointments, feedback, and profile.
+- Use compact stat strips for detail and calendar context; reserve larger metric cards for dashboards and analytics-heavy summaries.
+- Paginate authenticated record lists at the fixed server-controlled size of 15. Preserve filters and sorting across pages, show the result range on every non-empty page, and do not expose a page-size selector.
+- On screens narrower than 1024px, list filters collapse behind a labeled toggle that exposes its expanded state and active-filter count. Show Clear filters only when a filter is active.
+- Desktop pagination uses numbered controls; mobile pagination uses Previous, Page X of Y, and Next. Empty result sets show their empty state without pagination.
+- Keep operational tables inside labeled, keyboard-focusable horizontal-scroll regions. Calendar week strips and customer month grids may scroll horizontally when seven full-size date targets do not fit.
+- Appointment calendars, dashboard previews, service queues, detail-history previews, and form selector collections remain unpaginated.
 - All role dashboards should show only actions the current role is allowed to perform.
 - Avoid SPA-only navigation patterns; pages should work as standard Laravel routes.
+
+## Receptionist Screens
+
+- Dashboard: today’s bookings, upcoming visits, customer count, and payment activity.
+- Appointments: weekly bookings and read-only therapist availability; confirmed create/edit, cancellation, no-show, and completion/payment actions.
+- Customers: search, contact details, appointment/payment history, and permitted contact/operational-note updates.
+- Payments: create, edit, and review manual transactions.
+- Profile: shared account settings. Receptionists cannot access schedules, services, insights, reports, exports, settings, user administration, or commissions.
+
+## Embedded Booking And Commission Screens
+
+- Customer booking opens as a modal from My Appointments and the selected-day panel; `/customer/appointments/create` remains the fallback.
+- Admin `/admin/commissions`: filtered pending/paid/adjustment records, totals, source links, and external payout recording.
+- Therapist `/staff/commissions`: read-only personal pending, paid, and net totals plus personal history.
 
 ## Public Screens
 
@@ -48,8 +70,8 @@ Purpose:
 
 Primary actions:
 
-- Login.
-- Register.
+- Guests use the single `Reserve` navigation action to open the login page.
+- Authenticated users open their role workspace.
 - Book an available appointment after authentication.
 
 Main data:
@@ -70,7 +92,7 @@ Purpose:
 Primary actions:
 
 - View service details.
-- Register or login to request an appointment.
+- Register or login to book an appointment.
 
 Main data:
 
@@ -86,6 +108,9 @@ Access: guest users.
 Purpose:
 
 - Authenticate with a verified email and password or Google OAuth. Unknown verified Google accounts and public registrations become customers; privileged emails must be pre-authorized.
+- Keep the login page focused on password and Google sign-in without promoting account creation; public registration remains available directly at `/register`.
+- On desktop, keep the overall login shell fixed to the viewport and allow only the form pane to scroll when short heights, zoom, messages, or expanded guidance require it. Mobile retains normal document scrolling.
+- Place the Guests and Team guidance inside one collapsed `Sign-in instructions` disclosure.
 
 Post-login redirect:
 
@@ -144,7 +169,7 @@ Route group: `/admin/appointments`
 
 Purpose:
 
-- Manage all confirmed customer bookings and historical appointment requests.
+- Manage confirmed customer bookings and historical appointment outcomes.
 
 Screens:
 
@@ -154,6 +179,11 @@ Screens:
 - Create appointment.
 - Service queue plus appointment detail, reschedule, and cancellation controls.
 - Mark completed or no-show.
+
+Responsive behavior:
+
+- The seven-day selector is a labeled, horizontally scrollable tab list with Left/Right and Home/End keyboard movement.
+- Desktop shows the therapist timeline. Mobile shows the selected day's agenda and the Add appointment on this day action.
 
 Main data:
 
@@ -207,7 +237,7 @@ Purpose:
 
 Screens:
 
-- Staff list.
+- Team & Services workspace with independently paginated staff and embedded service-catalog lists.
 - Staff detail.
 - Create/edit staff account.
 - Weekly schedule editor.
@@ -217,6 +247,7 @@ Screens:
 Main data:
 
 - Staff user, profile, bookable status, assigned services, weekly availability, exceptions.
+- Staff results use the standard `page` query key. The embedded service catalog uses `services_page` and returns to `#service-catalog` after paging.
 
 Primary actions:
 
@@ -353,22 +384,30 @@ Route group: `/admin/settings`
 
 Purpose:
 
-- Manage basic application settings.
+- Manage the limited business details and operational defaults safe for administrators to edit.
 
 Screens:
 
-- Business profile.
-- User account management.
-- System defaults.
+- Business profile and public contact information.
+- Default payment method used to prefill new Admin and Receptionist records.
+- Read-only operating safeguards and environment security readiness.
+- Protected user-management link for the Super Administrator only.
 
 Main data:
 
-- Business contact information, operating assumptions, default payment methods, user status.
+- Business name, contact email, phone, address, default payment method, fixed operating assumptions, and configuration readiness indicators.
 
 Primary actions:
 
 - Update business details.
-- Activate/deactivate user accounts.
+- Update the default payment method.
+- Open protected user administration when signed in as the configured Super Administrator.
+
+Rules:
+
+- Admin and Super Administrator may update business settings; Receptionist, Therapist, Customer, and Guest are denied.
+- User activation, role assignment, and provisioning remain exclusive to the protected Super Administrator.
+- Hours, timezone, booking interval, commission rate, and security environment values are read-only in this workspace.
 
 ## Staff Screens
 
@@ -414,7 +453,7 @@ Rules:
 
 Primary actions:
 
-- Confirm appointment.
+- Open assigned appointment details.
 - Reschedule appointment.
 - Mark completed.
 - Mark no-show.
@@ -494,6 +533,10 @@ Main data:
 
 - Monthly calendar of confirmed upcoming appointments and appointment history.
 - Selected-day visit details and booking status.
+
+Responsive behavior:
+
+- The month grid remains a calendar rather than becoming a paginated list and scrolls inside a labeled keyboard-focusable region on narrow screens.
 
 Primary actions:
 
@@ -616,21 +659,17 @@ Primary actions:
 
 ## Access Matrix
 
-| Area | Admin | Staff | Customer | Guest |
-| --- | --- | --- | --- | --- |
-| Public landing/services | Yes | Yes | Yes | Yes |
-| Admin dashboard | Yes | No | No | No |
-| Staff dashboard | No | Yes | No | No |
-| Customer appointments | No | No | Own only | No |
-| Appointments management | All | Assigned read-only | Own booking/cancellation | No |
-| Services management | Yes | View only if needed | View active services | View active services |
-| Staff management | Yes | No | No | No |
-| Customer records | Yes | Operational access | Own profile only | No |
-| Transactions | All | Allowed operational records | Own history if exposed | No |
-| Promotions | Yes | Review/apply if allowed | No | No |
-| Feedback | All | Related view only | Own feedback only | No |
-| Reports | Yes | Limited operational reports | No | No |
-| Settings | Yes | No | Own profile only | No |
+| Area | Admin | Receptionist | Therapist | Customer | Guest |
+| --- | --- | --- | --- | --- | --- |
+| Public landing/services | Yes | Yes | Yes | Yes | Yes |
+| Role dashboard | Admin | Reception | Therapist | Appointments | No |
+| Appointments management | All | Front-desk operations | Assigned | Own booking/cancellation | No |
+| Services and schedules | Manage | Availability view only | Assigned view | Active services | Public services |
+| Customer records | All | Contact and operational history | Operational access | Own profile | No |
+| Transactions | All | Create and edit | Related read-only | No | No |
+| Commissions | Manage payouts | No | Own read-only | No | No |
+| Promotions, feedback insights, reports | Yes | No | Related feedback only | Own feedback | No |
+| Settings and users | Admin/super admin | Own profile | Own profile | Own profile | No |
 
 ## MVP Coverage Check
 

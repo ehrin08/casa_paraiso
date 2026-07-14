@@ -14,19 +14,34 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-casa-text antialiased">
+    <body @class([
+        'font-sans text-casa-text antialiased',
+        'lg:h-dvh lg:overflow-hidden' => $fitDesktopViewport,
+    ])>
         <x-page-loading />
         <x-toast-stack />
 
-        <div class="grid min-h-screen bg-casa-bg lg:grid-cols-[minmax(0,1.12fr)_minmax(430px,0.7fr)]">
-            <section class="relative hidden min-h-screen overflow-hidden bg-casa-charcoal lg:block">
+        <div
+            data-guest-viewport="{{ $fitDesktopViewport ? 'desktop-fixed' : 'fluid' }}"
+            @class([
+                'grid min-h-screen bg-casa-bg lg:grid-cols-[minmax(0,1.12fr)_minmax(430px,0.7fr)]',
+                'lg:h-dvh lg:min-h-0 lg:overflow-hidden' => $fitDesktopViewport,
+            ])
+        >
+            <section @class([
+                'relative hidden min-h-screen overflow-hidden bg-casa-charcoal lg:block',
+                'lg:h-dvh lg:min-h-0' => $fitDesktopViewport,
+            ])>
                 <picture class="absolute inset-0">
                     <source media="(max-width: 1200px)" srcset="{{ asset('images/spa/spa-auth-720.webp') }}">
                     <img src="{{ asset('images/spa/spa-auth-1024.webp') }}" alt="A warmly lit tropical spa treatment room" class="h-full w-full object-cover" fetchpriority="high">
                 </picture>
                 <div class="absolute inset-0 bg-gradient-to-t from-casa-charcoal via-casa-charcoal/22 to-casa-charcoal/15"></div>
 
-                <div class="relative z-10 flex min-h-screen flex-col justify-between p-10 xl:p-14">
+                <div @class([
+                    'relative z-10 flex min-h-screen flex-col justify-between p-10 xl:p-14',
+                    'lg:h-dvh lg:min-h-0' => $fitDesktopViewport,
+                ])>
                     <a href="/" class="inline-flex w-fit rounded-2xl bg-casa-paper p-3 shadow-casa-lift">
                         <img src="{{ asset('images/casa_paraiso_logo.jpg') }}" alt="Casa Paraiso Body and Wellness Spa" class="h-16 w-60 object-cover object-center xl:h-20 xl:w-72">
                     </a>
@@ -37,7 +52,7 @@
                             Your calm place,<br>before you arrive.
                         </h1>
                         <p class="mt-5 max-w-md text-sm leading-7 text-white/78">
-                            Request a visit, follow its status, and keep every step of your Casa Paraiso care close at hand.
+                            Book an appointment, follow its status, and keep every step of your Casa Paraiso care close at hand.
                         </p>
                         <div class="mt-7 flex flex-wrap gap-2 text-[0.68rem] font-extrabold uppercase tracking-[0.12em] text-white/72">
                             <span class="rounded-full border border-white/20 bg-black/15 px-3 py-2">Bookings</span>
@@ -48,8 +63,17 @@
                 </div>
             </section>
 
-            <main class="flex min-h-screen items-center justify-center px-4 py-8 sm:px-8 lg:px-10">
-                <div class="w-full max-w-md">
+            <main
+                data-guest-scroll-region="{{ $fitDesktopViewport ? 'true' : 'false' }}"
+                @class([
+                    'flex min-h-screen items-center justify-center px-4 py-8 sm:px-8 lg:px-10',
+                    'lg:h-dvh lg:min-h-0 lg:items-start lg:overflow-y-auto lg:overscroll-contain' => $fitDesktopViewport,
+                ])
+            >
+                <div @class([
+                    'w-full max-w-md',
+                    'lg:my-auto' => $fitDesktopViewport,
+                ])>
                     <div class="mb-5 overflow-hidden rounded-[24px] bg-casa-charcoal lg:hidden">
                         <div class="relative h-28">
                             <img src="{{ asset('images/spa/spa-auth-720.webp') }}" alt="A warmly lit tropical spa treatment room" class="h-full w-full object-cover object-center">

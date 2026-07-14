@@ -20,11 +20,11 @@
     </x-slot>
 
     <div class="space-y-5">
-        <section class="grid gap-4 md:grid-cols-3">
-            <x-metric-card label="In queue" :value="$summary['confirmed']" meta="Confirmed services awaiting outcome" tone="gold" />
-            <x-metric-card label="Confirmed" :value="$summary['confirmed']" meta="Placed on therapist calendars" tone="green" />
-            <x-metric-card label="Completed" :value="$summary['completed']" meta="Finished services" tone="brown" />
-        </section>
+        <x-stat-strip :items="[
+            ['label' => __('Confirmed'), 'value' => $summary['confirmed'], 'meta' => __('Placed on therapist calendars'), 'tone' => 'green'],
+            ['label' => __('Completed'), 'value' => $summary['completed'], 'meta' => __('Finished services'), 'tone' => 'brown'],
+            ['label' => __('Cancelled'), 'value' => $summary['cancelled'], 'meta' => __('Visits no longer scheduled'), 'tone' => 'gold'],
+        ]" />
 
         <x-app-card>
             <div class="flex flex-col gap-3 border-b border-casa-border pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -45,12 +45,12 @@
                     <article class="grid gap-4 rounded-2xl border p-4 sm:grid-cols-[7.5rem_minmax(0,1fr)_auto] sm:items-center {{ $isOverdue ? 'border-casa-cacao/35 bg-casa-cacao/5' : ($hasStarted ? 'border-casa-palm/35 bg-casa-palm/5' : 'border-casa-border bg-casa-bg') }}">
                         <div>
                             <p class="text-lg font-black text-casa-text">{{ $queuedAppointment->scheduled_start_at?->format('g:i A') }}</p>
-                            <p class="mt-1 text-xs font-bold uppercase tracking-[0.1em] text-casa-muted">{{ $queuedAppointment->scheduled_start_at?->format('M d') }}</p>
+                            <p class="mt-1 text-sm font-bold uppercase tracking-[0.05em] text-casa-muted">{{ $queuedAppointment->scheduled_start_at?->format('M d') }}</p>
                         </div>
                         <div class="min-w-0">
                             <div class="flex flex-wrap items-center gap-2">
                                 <h3 class="truncate font-bold text-casa-text">{{ $queuedAppointment->customerProfile?->user?->name }}</h3>
-                                <span class="rounded-full px-2.5 py-1 text-[0.65rem] font-black uppercase tracking-[0.08em] {{ $isOverdue ? 'bg-casa-cacao text-white' : ($hasStarted ? 'bg-casa-palm text-white' : 'bg-casa-brass/15 text-casa-cacao') }}">
+                                <span class="rounded-full px-2.5 py-1 text-sm font-black uppercase tracking-[0.04em] {{ $isOverdue ? 'bg-casa-cacao text-white' : ($hasStarted ? 'bg-casa-palm text-white' : 'bg-casa-brass/15 text-casa-cacao') }}">
                                     {{ $isOverdue ? __('Overdue') : ($hasStarted ? __('Ready') : __('Upcoming')) }}
                                 </span>
                             </div>

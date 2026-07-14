@@ -2,6 +2,8 @@
 
 Created from the CRUD audit completed on 2026-07-12.
 
+> Historical note: pending appointment creation and transition coverage below was superseded when the pending workflow was retired on 2026-07-14.
+
 ## Baseline
 
 - [x] Audit admin CRUD screens in the authenticated browser.

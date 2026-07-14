@@ -15,12 +15,12 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-4">
-            <x-metric-card label="Duration" :value="$service->duration_minutes.' min'" meta="Booking length" tone="brown" />
-            <x-metric-card label="Price" :value="'PHP '.number_format((float) $service->price, 2)" meta="Published rate" tone="green" />
-            <x-metric-card label="Staff" :value="$service->staff_profiles_count" meta="Assigned providers" tone="gold" />
-            <x-metric-card label="Status" value="{{ $service->is_active ? __('Active') : __('Inactive') }}" meta="Catalog visibility" tone="charcoal" />
-        </section>
+        <x-stat-strip :items="[
+            ['label' => __('Duration'), 'value' => $service->duration_minutes.' min', 'meta' => __('Booking length'), 'tone' => 'brown'],
+            ['label' => __('Price'), 'value' => 'PHP '.number_format((float) $service->price, 2), 'meta' => __('Published rate'), 'tone' => 'green'],
+            ['label' => __('Therapists'), 'value' => $service->staff_profiles_count, 'meta' => __('Assigned providers'), 'tone' => 'gold'],
+            ['label' => __('Status'), 'value' => $service->is_active ? __('Active') : __('Inactive'), 'meta' => __('Catalog visibility'), 'tone' => 'dark'],
+        ]" />
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <x-app-card>
@@ -53,16 +53,16 @@
             </x-app-card>
 
             <aside class="casa-dark-panel rounded-[24px] p-6 shadow-casa-card">
-                <p class="text-xs font-black uppercase tracking-[0.18em] text-casa-gold">{{ __('Next workflow') }}</p>
-                <h2 class="mt-4 font-display text-2xl font-black text-white">{{ __('Ready for staff assignment.') }}</h2>
+                <p class="text-xs font-black uppercase tracking-[0.18em] text-casa-gold">{{ __('Scheduling coverage') }}</p>
+                <h2 class="mt-4 font-display text-2xl font-black text-white">{{ __('Ready for therapist assignment.') }}</h2>
                 <p class="mt-4 text-sm leading-7 text-casa-bg/80">
-                    {{ __('Phase 5B will connect this service to bookable staff, then schedules can use those assignments for appointment requests.') }}
+                    {{ __('Assign active therapists to this service so confirmed bookings can use their eligible schedules.') }}
                 </p>
                 <div class="casa-divider my-6"></div>
                 <div class="space-y-3 text-sm font-semibold text-casa-bg/80">
-                    <p>{{ __('Staff assignments') }}</p>
+                    <p>{{ __('Therapist assignments') }}</p>
                     <p>{{ __('Weekly schedules') }}</p>
-                    <p>{{ __('Customer appointment requests') }}</p>
+                    <p>{{ __('Confirmed customer bookings') }}</p>
                 </div>
             </aside>
         </section>

@@ -1,4 +1,4 @@
-<x-guest-layout>
+<x-guest-layout :fit-desktop-viewport="true">
     <x-slot name="eyebrow">Your calm doorway</x-slot>
     <x-slot name="title">Welcome to Casa Paraiso</x-slot>
     <x-slot name="subtitle">Sign in with your email and password or continue securely with Google.</x-slot>
@@ -53,16 +53,23 @@
         <span class="transition-transform duration-200 group-hover:translate-x-1" aria-hidden="true">→</span>
     </a>
 
-    <div class="mt-6 grid gap-3 sm:grid-cols-2">
-        <div class="rounded-2xl border border-casa-border bg-casa-paper p-4">
-            <p class="text-xs font-extrabold uppercase tracking-wider text-casa-primary">Guests</p>
-            <p class="mt-2 text-sm leading-6 text-casa-muted">Create an account with email and password, or use your verified Google account.</p>
+    <details data-login-instructions class="group mt-6 overflow-hidden rounded-2xl border border-casa-border bg-casa-paper">
+        <summary class="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-bold text-casa-text transition hover:bg-casa-sand/55 [&::-webkit-details-marker]:hidden">
+            <span>Sign-in instructions</span>
+            <svg viewBox="0 0 20 20" class="size-4 shrink-0 text-casa-primary transition-transform duration-200 motion-reduce:transition-none group-open:rotate-180" fill="none" aria-hidden="true">
+                <path d="m5 7.5 5 5 5-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </summary>
+        <div class="grid gap-3 border-t border-casa-border bg-casa-sand/30 p-4 sm:grid-cols-2">
+            <div class="rounded-2xl border border-casa-border bg-casa-paper p-4">
+                <p class="text-xs font-extrabold uppercase tracking-wider text-casa-primary">Guests</p>
+                <p class="mt-2 text-sm leading-6 text-casa-muted">Sign in with your email and password, or continue with your verified Google account.</p>
+            </div>
+            <div class="rounded-2xl border border-casa-border bg-casa-paper p-4">
+                <p class="text-xs font-extrabold uppercase tracking-wider text-casa-primary">Team</p>
+                <p class="mt-2 text-sm leading-6 text-casa-muted">Use your pre-authorized email. Select “Forgot password?” to establish your first password.</p>
+            </div>
         </div>
-        <div class="rounded-2xl border border-casa-border bg-casa-paper p-4">
-            <p class="text-xs font-extrabold uppercase tracking-wider text-casa-primary">Team</p>
-            <p class="mt-2 text-sm leading-6 text-casa-muted">Use your pre-authorized email. Select “Forgot password?” to establish your first password.</p>
-        </div>
-    </div>
+    </details>
 
-    <p class="mt-6 text-center text-sm text-casa-muted">New customer? <a href="{{ route('register') }}" class="font-bold text-casa-primary hover:text-casa-primary-dark">Create an account</a></p>
 </x-guest-layout>

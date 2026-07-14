@@ -152,6 +152,7 @@ window.operationalCalendar = (config) => ({
     weeklyCreatePattern: config.weeklyCreatePattern || '',
     exceptionCreatePattern: config.exceptionCreatePattern || '',
     role: config.role,
+    canEditAvailability: Boolean(config.canEditAvailability),
     mode: config.initialMode || 'bookings',
     weekStart: config.initialWeek,
     selectedDate: config.initialDate || config.initialWeek,
@@ -392,14 +393,12 @@ window.operationalCalendar = (config) => ({
 
     eventClass(event) {
         return {
-            request: 'casa-calendar-event-request',
-            pending: 'casa-calendar-event-request',
             confirmed: 'casa-calendar-event-confirmed',
             completed: 'casa-calendar-event-completed',
             cancelled: 'casa-calendar-event-cancelled',
             no_show: 'casa-calendar-event-cancelled',
             booking_blocker: 'casa-calendar-event-blocker',
-        }[event.kind === 'booking_blocker' ? event.kind : event.status] || 'casa-calendar-event-request';
+        }[event.kind === 'booking_blocker' ? event.kind : event.status] || 'casa-calendar-event-confirmed';
     },
 
     backgroundClass(event) {
@@ -448,7 +447,7 @@ window.operationalCalendar = (config) => ({
     },
 
     chooseAvailability(resource, slot) {
-        if (this.mode !== 'availability' || resource.id === 'requests') {
+        if (!this.canEditAvailability || this.mode !== 'availability' || resource.id === 'requests') {
             return;
         }
 
@@ -713,6 +712,7 @@ window.customerCalendarBooking = (config) => ({
     month: config.initialMonth,
     selectedDate: '',
     selectedSlot: config.initialSlot || '',
+    preferredDate: '',
     slotsByDate: {},
     loading: false,
     error: '',
@@ -846,6 +846,21 @@ window.customerCalendarBooking = (config) => ({
         this.selectedSlot = '';
     },
 
+    preselectDate(date) {
+        if (!date) {
+            return;
+        }
+
+        this.preferredDate = date;
+        this.month = date.slice(0, 7);
+        this.selectedDate = '';
+        this.selectedSlot = '';
+
+        if (this.serviceId) {
+            this.fetchAvailability();
+        }
+    },
+
     moveAvailableDate(date, amount) {
         const nextDate = addCalendarDays(date, amount);
         const nextMonth = nextDate.slice(0, 7);
@@ -896,6 +911,11 @@ window.customerCalendarBooking = (config) => ({
             },
         }).then((response) => {
             this.slotsByDate = response.data.dates || {};
+
+            if (this.preferredDate && (this.slotsByDate[this.preferredDate] || []).length) {
+                this.selectedDate = this.preferredDate;
+                this.preferredDate = '';
+            }
 
             if (this.selectedDate && !this.slotsByDate[this.selectedDate]) {
                 this.selectedDate = '';

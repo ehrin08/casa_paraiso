@@ -15,7 +15,8 @@ class StaffProfileFactory extends Factory
     {
         return [
             'user_id' => User::factory()->staff(),
-            'position' => fake()->randomElement(['Spa Therapist', 'Senior Therapist', 'Reception Staff']),
+            'staff_type' => StaffProfile::TYPE_THERAPIST,
+            'position' => fake()->randomElement(['Spa Therapist', 'Senior Therapist', 'Wellness Specialist']),
             'specialization' => fake()->randomElement(['Massage therapy', 'Body treatments', 'Foot care']),
             'bio' => fake()->optional()->sentence(),
             'hire_date' => fake()->optional()->dateTimeBetween('-3 years', '-1 month'),

@@ -10,14 +10,8 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-3">
-            <x-metric-card label="Customers" :value="$totalCustomers" meta="Profile records" tone="brown" />
-            <x-metric-card label="Showing" :value="$customers->count()" meta="Current page" tone="green" />
-            <x-metric-card label="Search" value="{{ $search !== '' ? __('Active') : __('Ready') }}" meta="Name, email, phone, code" tone="gold" />
-        </section>
-
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Customer records') }}" title="{{ __('Profile list') }}" :count="$customers->total()" :reset-url="route('admin.customers.index')">
+            <x-list-toolbar eyebrow="{{ __('Customer records') }}" title="{{ __('Profile list') }}" :count="$customers->total()" :reset-url="route('admin.customers.index')" :active-filters="collect(request()->only(['q', 'status']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
                 <form method="GET" action="{{ route('admin.customers.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                     <input type="hidden" name="sort" value="{{ $sort }}">
                     <input type="hidden" name="direction" value="{{ $direction }}">

@@ -6,7 +6,8 @@
     $roleLabel = match (true) {
         $user->isSuperAdmin() => 'Super admin workspace',
         $user->isAdmin() => 'Admin workspace',
-        $user->isStaff() => 'Staff workspace',
+        $user->isReceptionist() => 'Reception workspace',
+        $user->isStaff() => 'Therapist workspace',
         default => 'Customer lounge',
     };
 
@@ -20,6 +21,7 @@
                     ['label' => 'Customers', 'icon' => 'customers', 'route' => 'admin.customers.index', 'active' => 'admin.customers.*'],
                     ['label' => 'Team & Services', 'icon' => 'team', 'route' => 'admin.staff.index', 'active' => ['admin.staff.*', 'admin.services.*']],
                     ['label' => 'Payments', 'icon' => 'payments', 'route' => 'admin.transactions.index', 'active' => 'admin.transactions.*'],
+                    ['label' => 'Commissions', 'icon' => 'payments', 'route' => 'admin.commissions.index', 'active' => 'admin.commissions.*'],
                     ['label' => 'Insights', 'icon' => 'insights', 'route' => 'admin.promotions.index', 'active' => ['admin.promotions.*', 'admin.rfm-segments.*', 'admin.promotion-rules.*', 'admin.feedback.*', 'admin.reports.*']],
                 ],
             ],
@@ -32,7 +34,19 @@
                     ['label' => 'My Schedule', 'icon' => 'calendar', 'route' => 'staff.appointments.index', 'active' => 'staff.appointments.*'],
                     ['label' => 'Customers', 'icon' => 'customers', 'route' => 'staff.customers.index', 'active' => 'staff.customers.*'],
                     ['label' => 'Payments', 'icon' => 'payments', 'route' => 'staff.transactions.index', 'active' => 'staff.transactions.*'],
+                    ['label' => 'My Commissions', 'icon' => 'payments', 'route' => 'staff.commissions.index', 'active' => 'staff.commissions.*'],
                     ['label' => 'Feedback', 'icon' => 'feedback', 'route' => 'staff.feedback.index', 'active' => 'staff.feedback.*'],
+                ],
+            ],
+        ],
+        $user->isReceptionist() => [
+            [
+                'label' => 'Front desk',
+                'items' => [
+                    ['label' => 'Dashboard', 'icon' => 'dashboard', 'route' => 'reception.dashboard', 'active' => 'reception.dashboard'],
+                    ['label' => 'Appointments', 'icon' => 'calendar', 'route' => 'reception.appointments.index', 'active' => 'reception.appointments.*'],
+                    ['label' => 'Customers', 'icon' => 'customers', 'route' => 'reception.customers.index', 'active' => 'reception.customers.*'],
+                    ['label' => 'Payments', 'icon' => 'payments', 'route' => 'reception.transactions.index', 'active' => 'reception.transactions.*'],
                 ],
             ],
         ],
@@ -65,7 +79,7 @@
 @endphp
 
 <nav x-data="{ open: false }" x-on:keydown.escape.window="open = false" data-role-navigation="{{ $user->role }}">
-    <div class="sticky top-0 z-40 border-b border-casa-border/80 bg-casa-paper/94 px-4 py-2.5 backdrop-blur-xl lg:hidden">
+    <div class="sticky top-0 z-40 border-b border-casa-border/80 bg-casa-paper/94 px-4 py-2 backdrop-blur-xl lg:hidden">
         <div class="flex items-center justify-between gap-4">
             <a href="{{ route($dashboardRoute) }}" class="min-w-0 rounded-xl bg-white px-2 py-1">
                 <x-application-logo class="origin-left scale-[0.72]" />
@@ -73,8 +87,8 @@
 
             <div class="flex items-center gap-2">
                 <span class="hidden text-right sm:block">
-                    <span class="block text-[0.62rem] font-extrabold uppercase tracking-[0.12em] text-casa-cacao">{{ $roleLabel }}</span>
-                    <span class="block max-w-36 truncate text-xs font-semibold text-casa-muted">{{ $user->name }}</span>
+                    <span class="block text-sm font-extrabold uppercase tracking-[0.05em] text-casa-cacao">{{ $roleLabel }}</span>
+                    <span class="block max-w-36 truncate text-sm font-semibold text-casa-muted">{{ $user->name }}</span>
                 </span>
                 <button type="button" class="casa-icon-button" aria-label="Open account navigation" aria-controls="mobile-workspace-navigation" x-bind:aria-expanded="open" @click="open = true">
                     <svg class="size-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -85,26 +99,26 @@
         </div>
     </div>
 
-    <aside data-desktop-sidebar class="casa-wood-panel fixed inset-y-0 start-0 z-30 hidden w-72 flex-col overflow-y-auto border-e border-white/10 p-4 lg:flex">
-        <a href="{{ route($dashboardRoute) }}" class="rounded-2xl bg-casa-paper px-3 py-2.5 shadow-casa-card">
-            <x-application-logo class="origin-left scale-[0.88]" />
+    <aside data-desktop-sidebar class="casa-wood-panel fixed inset-y-0 start-0 z-30 hidden w-64 flex-col overflow-y-auto border-e border-white/10 p-3 lg:flex">
+        <a href="{{ route($dashboardRoute) }}" class="rounded-xl bg-casa-paper px-2.5 py-2 shadow-casa-card">
+            <x-application-logo class="origin-left scale-[0.82]" />
         </a>
 
-        <div class="mt-4 rounded-2xl border border-white/10 bg-white/[0.065] p-3.5">
+        <div class="mt-3 rounded-xl border border-white/10 bg-white/[0.065] p-3">
             <div class="flex items-center gap-3">
-                <span class="grid size-10 shrink-0 place-items-center rounded-full border border-casa-brass/35 bg-casa-brass/15 text-xs font-extrabold tracking-[0.08em] text-casa-sand">{{ $initials }}</span>
+                <span class="grid size-9 shrink-0 place-items-center rounded-full border border-casa-brass/35 bg-casa-brass/15 text-sm font-extrabold tracking-[0.04em] text-casa-sand">{{ $initials }}</span>
                 <span class="min-w-0">
-                    <span class="block text-[0.62rem] font-extrabold uppercase tracking-[0.15em] text-casa-brass-light">{{ $roleLabel }}</span>
+                    <span class="block text-sm font-extrabold uppercase tracking-[0.05em] text-casa-brass-light">{{ $roleLabel }}</span>
                     <span class="mt-1 block truncate text-sm font-semibold text-white">{{ $user->name }}</span>
-                    <span class="mt-0.5 block truncate text-[0.7rem] text-white/65">{{ $user->email }}</span>
+                    <span class="mt-0.5 block truncate text-sm text-white/65">{{ $user->email }}</span>
                 </span>
             </div>
         </div>
 
-        <div class="mt-5 space-y-5">
+        <div class="mt-4 space-y-4">
             @foreach ($navGroups as $group)
                 <section aria-label="{{ $group['label'] }} navigation">
-                    <p class="px-3 text-[0.62rem] font-extrabold uppercase tracking-[0.17em] text-white/60">{{ $group['label'] }}</p>
+                    <p class="px-3 text-sm font-extrabold uppercase tracking-[0.05em] text-white/60">{{ $group['label'] }}</p>
                     <div class="mt-2 space-y-1">
                         @foreach ($group['items'] as $item)
                             @php $isActive = request()->routeIs(...(array) $item['active']); @endphp
@@ -118,7 +132,7 @@
             @endforeach
 
             <section aria-label="Account navigation">
-                <p class="px-3 text-[0.62rem] font-extrabold uppercase tracking-[0.17em] text-white/60">Account</p>
+                <p class="px-3 text-sm font-extrabold uppercase tracking-[0.05em] text-white/60">Account</p>
                 <div class="mt-2 space-y-1">
                     @foreach ($accountLinks as $item)
                         @php $isActive = request()->routeIs(...(array) $item['active']); @endphp
@@ -131,8 +145,8 @@
             </section>
         </div>
 
-        <div class="mt-auto pt-6">
-            <p class="mb-3 px-2 text-[0.68rem] leading-5 text-white/65">Open every day<br><span class="font-bold text-white/80">1:00 PM to 12:00 MN</span></p>
+        <div class="mt-auto pt-4">
+            <p class="mb-2 px-2 text-sm leading-5 text-white/65">Open every day<br><span class="font-bold text-white/80">1:00 PM to 12:00 MN</span></p>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="casa-button-secondary w-full border-white/15 bg-white/8 text-white hover:bg-white/14 hover:text-white">
@@ -144,7 +158,7 @@
 
     <div x-show="open" x-transition.opacity class="fixed inset-0 z-50 lg:hidden" style="display: none;">
         <div class="absolute inset-0 bg-casa-charcoal/72 backdrop-blur-sm" @click="open = false"></div>
-        <aside id="mobile-workspace-navigation" x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full" class="casa-wood-panel absolute inset-y-0 start-0 flex w-[min(21rem,90vw)] flex-col overflow-y-auto p-4 shadow-casa-lift" aria-label="Mobile workspace navigation">
+        <aside id="mobile-workspace-navigation" x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="-translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="translate-x-0" x-transition:leave-end="-translate-x-full" class="casa-wood-panel absolute inset-y-0 start-0 flex w-[min(19rem,88vw)] flex-col overflow-y-auto p-3 shadow-casa-lift" aria-label="Mobile workspace navigation">
             <div class="flex items-center justify-between gap-4">
                 <a href="{{ route($dashboardRoute) }}" class="rounded-xl bg-casa-paper px-2 py-1.5" @click="open = false">
                     <x-application-logo class="origin-left scale-[0.72]" />
@@ -156,16 +170,16 @@
                 </button>
             </div>
 
-            <div class="mt-5 rounded-2xl border border-white/10 bg-white/[0.065] p-3.5">
-                <p class="text-[0.64rem] font-extrabold uppercase tracking-[0.16em] text-casa-brass-light">{{ $roleLabel }}</p>
+            <div class="mt-4 rounded-xl border border-white/10 bg-white/[0.065] p-3">
+                <p class="text-sm font-extrabold uppercase tracking-[0.05em] text-casa-brass-light">{{ $roleLabel }}</p>
                 <p class="mt-1 truncate text-sm font-semibold text-white">{{ $user->name }}</p>
-                <p class="mt-0.5 truncate text-xs text-white/65">{{ $user->email }}</p>
+                <p class="mt-0.5 truncate text-sm text-white/65">{{ $user->email }}</p>
             </div>
 
-            <div class="mt-5 space-y-5">
+            <div class="mt-4 space-y-4">
                 @foreach ($navGroups as $group)
                     <section aria-label="{{ $group['label'] }} navigation">
-                        <p class="px-3 text-[0.62rem] font-extrabold uppercase tracking-[0.17em] text-white/60">{{ $group['label'] }}</p>
+                        <p class="px-3 text-sm font-extrabold uppercase tracking-[0.05em] text-white/60">{{ $group['label'] }}</p>
                         <div class="mt-2 space-y-1">
                             @foreach ($group['items'] as $item)
                                 @php $isActive = request()->routeIs(...(array) $item['active']); @endphp
@@ -179,7 +193,7 @@
                 @endforeach
 
                 <section aria-label="Account navigation">
-                    <p class="px-3 text-[0.62rem] font-extrabold uppercase tracking-[0.17em] text-white/60">Account</p>
+                    <p class="px-3 text-sm font-extrabold uppercase tracking-[0.05em] text-white/60">Account</p>
                     <div class="mt-2 space-y-1">
                         @foreach ($accountLinks as $item)
                             @php $isActive = request()->routeIs(...(array) $item['active']); @endphp

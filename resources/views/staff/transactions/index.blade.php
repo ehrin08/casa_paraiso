@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <p class="casa-section-label">{{ __('Staff module') }}</p>
+            <p class="casa-section-label">{{ __('Therapist module') }}</p>
             <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('Transactions') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">{{ __('Review transactions linked to your assigned appointments.') }}</p>
         </div>
@@ -9,7 +9,7 @@
     </x-slot>
 
     <x-app-card>
-        <x-list-toolbar eyebrow="{{ __('Payments') }}" title="{{ __('Recorded transactions') }}" :count="$transactions->total()" :reset-url="route('staff.transactions.index')">
+        <x-list-toolbar eyebrow="{{ __('Payments') }}" title="{{ __('Recorded transactions') }}" :count="$transactions->total()" :reset-url="route('staff.transactions.index')" :active-filters="collect(request()->only(['q', 'payment_status']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
             <form method="GET" action="{{ route('staff.transactions.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                 <input type="hidden" name="sort" value="{{ $sort }}">
                 <input type="hidden" name="direction" value="{{ $direction }}">

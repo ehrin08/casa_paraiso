@@ -44,7 +44,7 @@
                 <input type="checkbox" name="is_active" value="1" @checked(old('is_active', $service->is_active)) class="mt-1 rounded border-casa-border text-casa-primary shadow-sm focus:ring-casa-gold">
                 <span>
                     <span class="block text-sm font-bold text-casa-text">{{ __('Active in catalog') }}</span>
-                    <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Active services can be used by upcoming staff assignment and appointment workflows.') }}</span>
+                    <span class="mt-1 block text-sm leading-6 text-casa-muted">{{ __('Active services can be used by therapist assignment and appointment workflows.') }}</span>
                 </span>
             </label>
             <x-input-error class="mt-2" :messages="$errors->get('is_active')" />

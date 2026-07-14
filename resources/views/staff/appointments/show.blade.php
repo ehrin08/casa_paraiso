@@ -2,7 +2,7 @@
     @php $recordPaymentModal = 'staff-appointment-payment-'.$appointment->id; @endphp
     <x-slot name="header">
         <div>
-            <p class="casa-section-label">{{ __('Staff appointment') }}</p>
+            <p class="casa-section-label">{{ __('Therapist appointment') }}</p>
             <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ $appointment->appointment_number }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">
                 {{ $appointment->customerProfile?->user?->name }} · {{ $appointment->service?->name }}
@@ -53,7 +53,7 @@
         </section>
 
         <aside class="space-y-4">
-            @if (false && $appointment->status === \App\Models\Appointment::STATUS_PENDING)
+            @if (false)
                 <x-app-card>
                     <p class="casa-section-label">{{ __('Confirm') }}</p>
                     <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Accept request') }}</h2>
@@ -74,8 +74,8 @@
                         <x-confirm-submit
                             :form="$confirmAppointmentFormId"
                             label="{{ __('Confirm appointment') }}"
-                            confirm-title="{{ __('Confirm appointment request?') }}"
-                            confirm-message="{{ __('This assigns the appointment to you at the scheduled time and moves it into the confirmed queue.') }}"
+                            confirm-title="{{ __('Confirm this appointment?') }}"
+                            confirm-message="{{ __('This assigns the appointment to you at the scheduled time and keeps it in the confirmed queue.') }}"
                             confirm-button="{{ __('Confirm appointment') }}"
                             button-class="casa-button-primary w-full"
                         />

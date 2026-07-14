@@ -20,13 +20,8 @@ class AuditCrudIntegrity extends Command
     {
         $checks = [
             'Active appointments assigned to deleted or missing staff' => $this->activeAppointmentsWithUnavailableStaff(),
-            'Pending requests preferring deleted or missing staff' => $this->pendingRequestsWithUnavailablePreference(),
-            'Pending appointments reserving schedule or staff' => Appointment::query()
-                ->where('status', Appointment::STATUS_PENDING)
-                ->where(fn ($query) => $query
-                    ->whereNotNull('staff_profile_id')
-                    ->orWhereNotNull('scheduled_start_at')
-                    ->orWhereNotNull('scheduled_end_at')),
+            'Appointments with unsupported statuses' => Appointment::query()
+                ->whereNotIn('status', Appointment::STATUSES),
             'Confirmed appointments missing assignment or confirmation metadata' => Appointment::query()
                 ->where('status', Appointment::STATUS_CONFIRMED)
                 ->where(fn ($query) => $query
@@ -114,18 +109,6 @@ class AuditCrudIntegrity extends Command
             ->leftJoin('staff_profiles', 'staff_profiles.id', '=', 'appointments.staff_profile_id')
             ->whereIn('appointments.status', [Appointment::STATUS_CONFIRMED])
             ->whereNotNull('appointments.staff_profile_id')
-            ->where(fn ($query) => $query
-                ->whereNull('staff_profiles.id')
-                ->orWhereNotNull('staff_profiles.deleted_at'));
-    }
-
-    private function pendingRequestsWithUnavailablePreference(): Builder
-    {
-        return DB::table('appointments')
-            ->select('appointments.id')
-            ->leftJoin('staff_profiles', 'staff_profiles.id', '=', 'appointments.preferred_staff_profile_id')
-            ->where('appointments.status', Appointment::STATUS_PENDING)
-            ->whereNotNull('appointments.preferred_staff_profile_id')
             ->where(fn ($query) => $query
                 ->whereNull('staff_profiles.id')
                 ->orWhereNotNull('staff_profiles.deleted_at'));

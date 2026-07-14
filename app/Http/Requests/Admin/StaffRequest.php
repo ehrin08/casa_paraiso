@@ -42,6 +42,7 @@ class StaffRequest extends FormRequest
             ],
             'phone' => ['nullable', 'string', 'max:50'],
             'is_active' => ['sometimes', 'boolean'],
+            'staff_type' => ['sometimes', Rule::in(StaffProfile::TYPES)],
             'position' => ['nullable', 'string', 'max:255'],
             'specialization' => ['nullable', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:5000'],

@@ -17,14 +17,14 @@
 
     @php $createTransaction = $transaction; @endphp
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-3">
+        <section class="casa-metric-grid grid gap-3 sm:gap-4 md:grid-cols-3" data-metric-grid>
             <x-metric-card label="Paid total" value="PHP {{ number_format((float) $summary['paid'], 2) }}" meta="Paid transactions" tone="green" />
             <x-metric-card label="Open balance" value="PHP {{ number_format((float) $summary['unpaid'], 2) }}" meta="Unpaid or partial" tone="gold" />
             <x-metric-card label="Records" :value="$summary['count']" meta="All transactions" tone="brown" />
         </section>
 
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Payments') }}" title="{{ __('Transaction list') }}" :count="$transactions->total()" :reset-url="route('admin.transactions.index')">
+            <x-list-toolbar eyebrow="{{ __('Payments') }}" title="{{ __('Transaction list') }}" :count="$transactions->total()" :reset-url="route('admin.transactions.index')" :active-filters="collect(request()->only(['q', 'payment_status']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
                 <form method="GET" action="{{ route('admin.transactions.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                     <input type="hidden" name="sort" value="{{ $sort }}">
                     <input type="hidden" name="direction" value="{{ $direction }}">
@@ -41,7 +41,7 @@
 
             <div class="mt-5">
                 @if ($transactions->isEmpty())
-                    <x-empty-state title="{{ __('No transactions yet') }}" description="{{ __('Manual payment records will appear here after staff or admin records a service payment.') }}" />
+                    <x-empty-state title="{{ __('No transactions yet') }}" description="{{ __('Manual payment records will appear here after Receptionist or Admin records a service payment.') }}" />
                 @else
                     <x-table-shell>
                         <thead class="bg-casa-bg text-left text-xs font-black uppercase tracking-[0.1em] text-casa-muted">

@@ -41,7 +41,7 @@ class CustomerController extends Controller
             ->select('customer_profiles.*')
             ->orderBy($sorts[$sort], $direction)
             ->orderBy('users.name')
-            ->paginate(10)
+            ->paginate((int) config('casa.pagination.per_page', 15))
             ->withQueryString();
 
         return view('staff.customers.index', [

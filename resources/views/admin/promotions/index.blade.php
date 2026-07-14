@@ -24,13 +24,13 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-3">
+        <section class="casa-metric-grid grid gap-3 sm:gap-4 md:grid-cols-3" data-metric-grid>
             <x-metric-card label="Suggested" :value="$summary['suggested']" meta="Needs review" tone="gold" />
             <x-metric-card label="Applied" :value="$summary['applied']" meta="Marked used" tone="green" />
             <x-metric-card label="Dismissed" :value="$summary['dismissed']" meta="No action" tone="charcoal" />
         </section>
 
-        <section class="grid gap-4 md:grid-cols-3">
+        <section class="casa-metric-grid grid gap-3 sm:gap-4 md:grid-cols-3" data-metric-grid>
             <x-metric-card label="Positive feedback" :value="$feedbackSummary['positive']" meta="Satisfied customers" tone="green" />
             <x-metric-card label="Neutral feedback" :value="$feedbackSummary['neutral']" meta="Watch list" tone="gold" />
             <x-metric-card label="Negative feedback" :value="$feedbackSummary['negative']" meta="Needs attention" tone="brown" />
@@ -38,7 +38,7 @@
 
         <section class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
             <x-app-card>
-                <x-list-toolbar eyebrow="{{ __('Suggestions') }}" title="{{ __('Review queue') }}" :count="$suggestions->total()" :reset-url="route('admin.promotions.index')">
+                <x-list-toolbar eyebrow="{{ __('Suggestions') }}" title="{{ __('Review queue') }}" :count="$suggestions->total()" :reset-url="route('admin.promotions.index')" :active-filters="collect(request()->only(['q', 'status']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
                     <form method="GET" action="{{ route('admin.promotions.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                         <input type="hidden" name="sort" value="{{ $sort }}">
                         <input type="hidden" name="direction" value="{{ $direction }}">

@@ -4,6 +4,8 @@
     $initialRequestedStart = old('requested_start_at', optional($appointment->requested_start_at)->format('Y-m-d\TH:i'));
     $initialScheduledStart = old('scheduled_start_at', optional($appointment->scheduled_start_at)->format('Y-m-d\TH:i'));
     $staffNames = $staffProfiles->mapWithKeys(fn ($staff) => [(string) $staff->id => $staff->user?->name])->all();
+    $availableTherapistsUrl = $availableTherapistsUrl ?? route('admin.appointments.available-therapists');
+    $cancelUrl = $cancelUrl ?? route('admin.appointments.index');
 @endphp
 
 <form
@@ -11,7 +13,7 @@
     action="{{ $action }}"
     @class(['grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]', 'casa-modal-form' => $modalName])
     x-data="adminAppointmentForm({
-        availableUrl: @js(route('admin.appointments.available-therapists')),
+        availableUrl: @js($availableTherapistsUrl),
         appointmentId: @js($appointment->id),
         initialServiceId: @js((string) old('service_id', $appointment->service_id)),
         initialRequestedStart: @js($initialRequestedStart),
@@ -93,8 +95,8 @@
 
                 <div>
                     <x-input-label for="staff_profile_id" :value="__('Assigned therapist')" />
-                    <select id="staff_profile_id" name="staff_profile_id" class="casa-input mt-2" x-model="staffId">
-                        <option value="">{{ __('Assign during confirmation') }}</option>
+                    <select id="staff_profile_id" name="staff_profile_id" class="casa-input mt-2" x-model="staffId" @required($fixedStatus)>
+                        <option value="">{{ __('Select assigned therapist') }}</option>
                         @foreach ($staffProfiles as $staffProfile)
                             <option value="{{ $staffProfile->id }}" x-bind:disabled="!staffIsAvailable('{{ $staffProfile->id }}')">{{ $staffProfile->user->name }}</option>
                         @endforeach
@@ -155,7 +157,7 @@
                 @if ($modalName)
                     <button type="button" class="casa-button-secondary w-full" x-on:click="$dispatch('close-modal', '{{ $modalName }}')">{{ __('Cancel') }}</button>
                 @else
-                    <a href="{{ route('admin.appointments.index') }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>
+                    <a href="{{ $cancelUrl }}" class="casa-button-secondary w-full">{{ __('Cancel') }}</a>
                 @endif
             </div>
         </x-app-card>

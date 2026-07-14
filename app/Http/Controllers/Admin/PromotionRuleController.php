@@ -45,7 +45,7 @@ class PromotionRuleController extends Controller
             ->when($status === 'inactive', fn ($query) => $query->where('promotion_rules.is_active', false))
             ->orderBy($sorts[$sort], $direction)
             ->orderBy('promotion_rules.name')
-            ->paginate(12)
+            ->paginate((int) config('casa.pagination.per_page', 15))
             ->withQueryString();
 
         return view('admin.promotion-rules.index', [

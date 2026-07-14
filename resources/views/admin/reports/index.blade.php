@@ -1,4 +1,9 @@
 <x-app-layout>
+    @php
+        $reportActiveFilters = collect(request()->only(['q', 'date_from', 'date_to', 'status', 'payment_status', 'sentiment_label']))
+            ->filter(fn ($value) => filled($value))
+            ->count();
+    @endphp
     <x-slot name="header">
         <div>
             <p class="casa-section-label">{{ __('Admin module') }}</p>
@@ -12,23 +17,30 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-4">
+        <section class="casa-metric-grid grid gap-3 sm:gap-4 md:grid-cols-4" data-metric-grid>
             <x-metric-card label="Appointments" :value="$summary['appointments']" meta="All booking records" tone="brown" />
             <x-metric-card label="Revenue" value="PHP {{ number_format((float) $summary['revenue'], 2) }}" meta="Paid transactions" tone="green" />
             <x-metric-card label="Customers" :value="$summary['customers']" meta="Profile records" tone="gold" />
             <x-metric-card label="Feedback" :value="$summary['feedback']" meta="Submitted reviews" tone="charcoal" />
         </section>
 
-        <x-app-card :x-data="'{ open: '.(request()->query() !== [] ? 'true' : 'false').' }'">
+        <x-app-card x-data="{ filtersOpen: false }">
             <div class="flex flex-col gap-3 border-b border-casa-border pb-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <p class="casa-section-label">{{ __('Filters') }}</p>
                     <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Report controls') }}</h2>
                 </div>
-                <button type="button" class="casa-button-secondary" @click="open = ! open">
-                    <span x-text="open ? '{{ __('Hide filters') }}' : '{{ __('Show filters') }}'">
-                        {{ request()->query() !== [] ? __('Hide filters') : __('Show filters') }}
-                    </span>
+                <button
+                    type="button"
+                    class="casa-button-secondary justify-between lg:hidden"
+                    aria-controls="report-filters"
+                    x-bind:aria-expanded="filtersOpen"
+                    x-on:click="filtersOpen = ! filtersOpen"
+                >
+                    <span>{{ __('Filters') }}</span>
+                    @if ($reportActiveFilters > 0)
+                        <span class="grid min-h-6 min-w-6 place-items-center rounded-full bg-casa-palm px-1.5 text-sm text-white">{{ $reportActiveFilters }}</span>
+                    @endif
                 </button>
             </div>
 
@@ -48,7 +60,7 @@
                 };
             @endphp
 
-            <form method="GET" action="{{ route('admin.reports.index') }}" class="mt-5 grid gap-4 lg:grid-cols-6" x-show="open">
+            <form id="report-filters" method="GET" action="{{ route('admin.reports.index') }}" class="mt-4 hidden gap-3 lg:grid lg:grid-cols-6" x-bind:class="filtersOpen ? '!grid' : ''">
                 <input type="hidden" name="sort" value="{{ $filters['sort'] ?? '' }}">
                 <input type="hidden" name="direction" value="{{ $filters['direction'] ?? '' }}">
                 <div>
@@ -112,7 +124,7 @@
         </x-app-card>
 
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Results') }}" title="{{ ucfirst($type) }}" :count="$records->total()" :reset-url="route('admin.reports.index', ['type' => $type])">
+            <x-list-toolbar eyebrow="{{ __('Results') }}" title="{{ ucfirst($type) }}" :count="$records->total()" :reset-url="route('admin.reports.index', ['type' => $type])" :active-filters="collect(request()->only(['q', 'date_from', 'date_to', 'status', 'payment_status', 'sentiment_label']))->filter(fn ($value) => filled($value))->count()">
                 <a href="{{ route('admin.reports.export', request()->query()) }}" class="casa-button-secondary" data-turbo="false">{{ __('Export filtered CSV') }}</a>
             </x-list-toolbar>
 

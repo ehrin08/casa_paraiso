@@ -15,7 +15,7 @@
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section>
             <x-app-card>
-                <x-list-toolbar eyebrow="{{ __('My reviews') }}" title="{{ __('Feedback history') }}" :count="$feedback->total()" :reset-url="route('customer.feedback.index')">
+                <x-list-toolbar eyebrow="{{ __('My reviews') }}" title="{{ __('Feedback history') }}" :count="$feedback->total()" :reset-url="route('customer.feedback.index')" :active-filters="collect(request()->only(['q', 'sentiment_label']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
                     <form method="GET" action="{{ route('customer.feedback.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(10rem,1fr)_auto_auto]">
                         <input type="hidden" name="sort" value="{{ $sort }}">
                         <input type="hidden" name="direction" value="{{ $direction }}">
@@ -62,7 +62,7 @@
                     @endforelse
                 </div>
 
-                @if ($feedback->hasPages())
+                @if ($feedback->isNotEmpty())
                     <div class="mt-5">{{ $feedback->links() }}</div>
                 @endif
             </x-app-card>

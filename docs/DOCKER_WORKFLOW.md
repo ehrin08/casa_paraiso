@@ -46,9 +46,9 @@ Then start the Docker services and verify the app:
 docker compose up -d
 docker compose exec -T laravel.test composer install
 docker compose restart laravel.test
-docker compose exec -T laravel.test php artisan migrate:fresh --seed
+docker compose exec -T --user sail laravel.test php artisan migrate:fresh --seed
 docker compose exec -T laravel.test npm run build
-docker compose exec -T laravel.test php artisan test
+docker compose exec -T --user sail laravel.test php artisan test
 ```
 
 The host `composer install` is still needed after a clean clone because Sail's Docker build context comes from `vendor/laravel/sail`. The in-container install populates the separate `sail-vendor` volume used by the running application. Restart `laravel.test` afterward because its web process may have stopped while the empty volume was being populated.
@@ -79,7 +79,7 @@ docker compose down
 Run migrations:
 
 ```powershell
-docker compose exec laravel.test php artisan migrate
+docker compose exec --user sail laravel.test php artisan migrate
 ```
 
 Refresh PHP dependencies after a Composer change:
@@ -92,7 +92,7 @@ docker compose exec -T laravel.test composer install
 Run tests:
 
 ```powershell
-docker compose exec laravel.test php artisan test
+docker compose exec --user sail laravel.test php artisan test
 ```
 
 Build frontend assets:
@@ -163,7 +163,7 @@ MAIL_FROM_NAME="${APP_NAME}"
 Laravel selects SMTP with automatic STARTTLS for port `587`. This mailer is global, so both password-reset and email-verification notifications will be delivered through Gmail. After saving the secret, clear cached configuration without displaying it:
 
 ```powershell
-docker compose exec -T laravel.test php artisan optimize:clear
+docker compose exec -T --user sail laravel.test php artisan optimize:clear
 ```
 
 Google references:
@@ -185,7 +185,7 @@ SESSION_SECURE_COOKIE=true
 Apply those settings, then start the profile and read the generated public URL from its logs:
 
 ```powershell
-docker compose exec -T laravel.test php artisan optimize:clear
+docker compose exec -T --user sail laravel.test php artisan optimize:clear
 docker compose --profile tunnel up -d cloudflared
 docker compose logs cloudflared
 ```
@@ -197,7 +197,7 @@ APP_URL=https://random-words.trycloudflare.com
 ```
 
 ```powershell
-docker compose exec -T laravel.test php artisan optimize:clear
+docker compose exec -T --user sail laravel.test php artisan optimize:clear
 ```
 
 The entire local application is public while the tunnel runs. Keep `APP_DEBUG=false`, do not share the URL, and stop the tunnel immediately after the reset-link check:
@@ -216,7 +216,7 @@ SESSION_SECURE_COOKIE=null
 ```
 
 ```powershell
-docker compose exec -T laravel.test php artisan optimize:clear
+docker compose exec -T --user sail laravel.test php artisan optimize:clear
 ```
 
 Gmail SMTP may remain enabled after the tunnel stops. Reset links generated through localhost will then work only on this development computer. Old Quick Tunnel links stop working when their tunnel closes.
@@ -266,13 +266,13 @@ The remediation adds `2026_07_12_020000_add_generation_key_to_promotion_suggesti
 4. Run the read-only integrity audit:
 
 ```powershell
-docker compose exec -T laravel.test php artisan casa:audit-crud-integrity
+docker compose exec -T --user sail laravel.test php artisan casa:audit-crud-integrity
 ```
 
 5. Run the isolated Feature suite configured by `phpunit.xml` (the 2026-07-12 remediation baseline is 104 tests and 828 assertions):
 
 ```powershell
-docker compose exec -T laravel.test php artisan test --testsuite=Feature
+docker compose exec -T --user sail laravel.test php artisan test --testsuite=Feature
 ```
 
 6. Run the remaining quality gates:
@@ -280,7 +280,7 @@ docker compose exec -T laravel.test php artisan test --testsuite=Feature
 ```powershell
 docker compose exec -T laravel.test ./vendor/bin/pint --test
 docker compose exec -T laravel.test composer validate
-docker compose exec -T laravel.test php artisan view:cache
+docker compose exec -T --user sail laravel.test php artisan view:cache
 docker compose exec -T laravel.test npm run build
 ```
 

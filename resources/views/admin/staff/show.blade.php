@@ -1,16 +1,16 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <p class="casa-section-label">{{ __('Staff detail') }}</p>
+            <p class="casa-section-label">{{ __('Therapist detail') }}</p>
             <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ $staffProfile->user->name }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">
-                {{ $staffProfile->specialization ?: __('Staff access, treatment eligibility, and future schedule connections.') }}
+                {{ $staffProfile->specialization ?: __('Therapist access, treatment eligibility, and future schedule connections.') }}
             </p>
         </div>
 
         <div class="flex flex-wrap gap-3">
-            <a href="{{ route('admin.staff.index') }}" class="casa-button-secondary">{{ __('All staff') }}</a>
-            <a href="{{ route('admin.staff.edit', $staffProfile) }}" class="casa-button-primary">{{ __('Edit staff') }}</a>
+            <a href="{{ route('admin.staff.index') }}" class="casa-button-secondary">{{ __('All therapists') }}</a>
+            <a href="{{ route('admin.staff.edit', $staffProfile) }}" class="casa-button-primary">{{ __('Edit therapist') }}</a>
         </div>
     </x-slot>
 
@@ -39,19 +39,19 @@
             </div>
         @endif
 
-        <section class="grid gap-4 md:grid-cols-4">
-            <x-metric-card label="Services" :value="$staffProfile->services_count" meta="Assigned treatments" tone="green" />
-            <x-metric-card label="Schedules" :value="$staffProfile->weekly_schedules_count" meta="Phase 5C entries" tone="gold" />
-            <x-metric-card label="Appointments" :value="$staffProfile->appointments_count" meta="Linked bookings" tone="brown" />
-            <x-metric-card label="Access" value="{{ $staffProfile->user->is_active ? __('Active') : __('Inactive') }}" meta="Login status" tone="charcoal" />
-        </section>
+        <x-stat-strip :items="[
+            ['label' => __('Services'), 'value' => $staffProfile->services_count, 'meta' => __('Assigned treatments'), 'tone' => 'green'],
+            ['label' => __('Schedules'), 'value' => $staffProfile->weekly_schedules_count, 'meta' => __('Availability entries'), 'tone' => 'gold'],
+            ['label' => __('Appointments'), 'value' => $staffProfile->appointments_count, 'meta' => __('Linked bookings'), 'tone' => 'brown'],
+            ['label' => __('Access'), 'value' => $staffProfile->user->is_active ? __('Active') : __('Inactive'), 'meta' => __('Login status'), 'tone' => 'dark'],
+        ]" />
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <x-app-card>
                 <div class="flex flex-col gap-3 border-b border-casa-border pb-5 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <p class="casa-section-label">{{ __('Profile') }}</p>
-                        <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Staff information') }}</h2>
+                        <h2 class="mt-2 font-display text-xl font-black text-casa-text">{{ __('Therapist information') }}</h2>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <x-status-badge :tone="$staffProfile->user->is_active ? 'success' : 'dark'">
@@ -60,6 +60,7 @@
                         <x-status-badge :tone="$staffProfile->is_bookable ? 'success' : 'warning'">
                             {{ $staffProfile->is_bookable ? __('Bookable') : __('Not bookable') }}
                         </x-status-badge>
+                        <x-status-badge>{{ ucfirst($staffProfile->staff_type) }}</x-status-badge>
                     </div>
                 </div>
 
@@ -74,7 +75,7 @@
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Position') }}</dt>
-                        <dd class="mt-2 font-semibold text-casa-text">{{ $staffProfile->position ?: __('Staff') }}</dd>
+                        <dd class="mt-2 font-semibold text-casa-text">{{ $staffProfile->position ?: __('Therapist') }}</dd>
                     </div>
                     <div class="rounded-2xl bg-casa-bg p-4">
                         <dt class="text-xs font-black uppercase tracking-[0.12em] text-casa-muted">{{ __('Hire date') }}</dt>

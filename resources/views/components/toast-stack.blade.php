@@ -3,7 +3,6 @@
     $message = match ($status) {
         'appointment-created' => __('Appointment created.'),
         'appointment-updated' => __('Appointment updated.'),
-        'appointment-requested' => __('Appointment request submitted.'),
         'appointment-booked' => __('Appointment confirmed and added to the schedule.'),
         'appointment-completed' => __('Service finished and transaction recorded.'),
         'appointment-cancelled' => __('Appointment cancelled.'),
@@ -11,8 +10,8 @@
         'service-updated' => __('Service updated.'),
         'service-activated' => __('Service activated.'),
         'service-deactivated' => __('Service deactivated.'),
-        'staff-created' => __('Staff record created.'),
-        'staff-updated' => __('Staff record updated.'),
+        'staff-created' => __('Therapist record created.'),
+        'staff-updated' => __('Therapist record updated.'),
         'transaction-created' => __('Transaction created.'),
         'transaction-updated' => __('Transaction updated.'),
         'feedback-submitted' => __('Feedback submitted.'),
@@ -29,6 +28,7 @@
         'schedule-exception-created' => __('Schedule exception created.'),
         'schedule-exception-updated' => __('Schedule exception updated.'),
         'schedule-exception-deleted' => __('Schedule exception deleted.'),
+        'settings-updated' => __('Settings updated.'),
         'promotions-generated' => trans_choice(':count promotion suggestion generated|:count promotion suggestions generated', (int) session('generated_count', 0)),
         default => is_string($status) && $status !== '' ? __(str_replace('-', ' ', ucfirst($status))) : null,
     };

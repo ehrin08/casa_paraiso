@@ -46,6 +46,37 @@ Casa Brass is decorative and should not carry small text. Use Brass Light for me
 - Customer appointment and feedback history use responsive cards. Operational record lists remain tables with keyboard-focusable horizontal scrolling.
 - Admin and staff use a persistent desktop sidebar and mobile drawer. Customers use a desktop sidebar and mobile bottom navigation for Appointments, Feedback, and Profile.
 
+## Authenticated Density Scale
+
+Compact density applies only inside the authenticated application shell. Public marketing and guest authentication screens keep their spacious editorial layout.
+
+| Element | Authenticated standard |
+| --- | --- |
+| Desktop sidebar | 256px (`16rem`) |
+| Page and section rhythm | 12–16px gaps; 16px base card padding, increasing to 20px where a form needs it |
+| Operational card radius | 14–16px with a light, low-spread shadow; compact controls may use 10–12px |
+| Page title | 24–30px |
+| Section heading | 18–22px |
+| Meaningful text | 14px minimum |
+| Buttons, fields, tabs, and page controls | 44px minimum interaction target |
+
+- Use the shared `page-heading` component for authenticated page titles. Customer headings may use its editorial variant; admin and staff headings use the operational variant.
+- Use `stat-strip` for compact context on detail pages and appointment calendars. Reserve larger metric cards for dashboards, feedback, promotions, transactions, and reports.
+- Put record totals and useful status counts in toolbar chips. Do not add generic “Showing” or “Search Ready” metric cards above lists.
+- List filters collapse below the 1024px breakpoint. The toggle exposes an accessible expanded state and active-filter count; render “Clear filters” only when at least one filter is active.
+- Keep tables inside the shared keyboard-focusable horizontal-scroll region. Week tabs and month grids may scroll internally when seven 44px targets cannot fit.
+- Operational week selectors use tab semantics with Left/Right and Home/End keyboard movement. Customer month grids and operational week strips must keep an accessible label on their keyboard-focusable scroll region.
+- At very narrow widths, customer dock labels may be visually hidden, but their accessible names must remain available.
+
+## Pagination Pattern
+
+- `casa.pagination.per_page` is the single page-size source and is fixed at 15 records. Controllers must not read a user-provided `per_page` value or expose a page-size selector.
+- Use Laravel's registered `pagination.compact` view for authenticated record lists. It always shows `first–last of total` when results exist, including a single-page result, and renders nothing for an empty result.
+- Desktop pagination shows numbered pages with Previous and Next controls. Mobile pagination shows Previous, `Page X of Y`, and Next. Current and disabled states must be programmatically exposed and every page control must retain a 44px target.
+- Preserve active filters and sorting with `withQueryString()`; state-changing forms and exports keep their existing request paths.
+- When two independent lists share a screen, give the secondary paginator its own query key and fragment. Team & Services uses `page` for staff and `services_page` plus `#service-catalog` for the embedded catalog.
+- Do not paginate appointment calendars, the active service queue, dashboard previews, detail-history previews, or form selector collections.
+
 ## Imagery
 
 Use warm editorial treatment details, anonymous hands, natural linens, dark wood, woven cane, ceramic vessels, restrained foliage, and believable window light. Avoid identifiable faces, clinical equipment, excessive candles, glossy stock-photo styling, heavy orange casts, text, and third-party logos.
@@ -58,7 +89,7 @@ Project imagery is stored under `public/images/spa/` as responsive WebP variants
 | --- | --- | --- |
 | Public marketing | Warm and restorative | “Let the day soften here.” |
 | Customer workflow | Calm and transparent | “Your time and therapist are reserved as soon as booking succeeds.” |
-| Staff operations | Clear and focused | “Review the requested time and treatment.” |
+| Therapist operations | Clear and focused | “Review the confirmed time and treatment.” |
 | Admin operations | Concise and decision-oriented | “Review time-sensitive requests first.” |
 | Errors | Plain and helpful | “Availability could not be loaded. Try another service or month.” |
 | Success | Reassuring and specific | “Appointment confirmed and added to the schedule.” |

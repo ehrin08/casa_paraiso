@@ -9,10 +9,10 @@
     </x-slot>
 
     <x-app-card>
-        <div class="grid gap-4 sm:grid-cols-2">
-            <x-metric-card label="Rating" value="{{ $feedback->rating }}/5" meta="Customer score" tone="gold" />
-            <x-metric-card label="Sentiment" value="{{ ucfirst($feedback->sentiment_label) }}" meta="Rule-based label" tone="green" />
-        </div>
+        <x-stat-strip :items="[
+            ['label' => __('Rating'), 'value' => $feedback->rating.'/5', 'meta' => __('Customer score'), 'tone' => 'gold'],
+            ['label' => __('Sentiment'), 'value' => ucfirst($feedback->sentiment_label), 'meta' => __('Rule-based label'), 'tone' => 'green'],
+        ]" />
         <p class="mt-6 whitespace-pre-line rounded-2xl bg-casa-bg p-5 text-sm leading-7 text-casa-muted">{{ $feedback->comment ?: __('No written comment.') }}</p>
     </x-app-card>
 </x-app-layout>

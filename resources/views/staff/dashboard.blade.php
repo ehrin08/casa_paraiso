@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <p class="casa-eyebrow">{{ __('Staff workspace') }}</p>
+            <p class="casa-eyebrow">{{ __('Therapist workspace') }}</p>
             <h1 class="mt-2 font-display text-3xl font-black text-casa-text">{{ __('Daily dashboard') }}</h1>
             <p class="mt-2 max-w-2xl text-sm leading-6 text-casa-muted">{{ __('See today’s assigned care, requests waiting for action, and recently completed services.') }}</p>
         </div>
@@ -13,7 +13,7 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 sm:grid-cols-3">
+        <section class="casa-metric-grid grid gap-3 sm:grid-cols-3 sm:gap-4" data-metric-grid>
             <x-metric-card label="Assigned today" :value="$summary['assignedToday'] ?? 0" meta="Confirmed appointments" tone="green" />
             <x-metric-card label="Upcoming" :value="$summary['upcoming'] ?? 0" meta="Confirmed visits on your schedule" tone="gold" />
             <x-metric-card label="Completed" :value="$summary['completedToday'] ?? 0" meta="Services finished today" tone="brown" />

@@ -57,6 +57,13 @@ class UserFactory extends Factory
         ]);
     }
 
+    public function receptionist(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => User::ROLE_RECEPTIONIST,
+        ]);
+    }
+
     public function inactive(): static
     {
         return $this->state(fn (array $attributes) => [

@@ -31,19 +31,21 @@
             <div @class([
                 'min-h-screen',
                 'pb-24 lg:pb-0' => $isCustomer,
-                'lg:ps-72' => $usesSidebar,
+                'lg:ps-64' => $usesSidebar,
             ])>
                 <!-- Page Heading -->
                 @isset($header)
                     <header data-page-header class="border-b border-casa-border/80 bg-casa-paper/90 backdrop-blur-xl">
-                        <div class="mx-auto flex max-w-[90rem] flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-end lg:justify-between lg:px-8">
-                            {{ $header }}
+                        <div class="mx-auto max-w-[90rem] px-4 py-4 sm:px-5 lg:px-6">
+                            <x-page-heading :variant="$isCustomer ? 'editorial' : 'operational'">
+                                {{ $header }}
+                            </x-page-heading>
                         </div>
                     </header>
                 @endisset
 
                 <!-- Page Content -->
-                <main data-page-content class="mx-auto max-w-[90rem] px-4 py-5 sm:px-6 lg:px-8 lg:py-6">
+                <main data-page-content class="mx-auto max-w-[90rem] px-4 py-4 sm:px-5 lg:px-6">
                     {{ $slot }}
                 </main>
             </div>

@@ -3,6 +3,20 @@
 return [
     'business_name' => 'Casa Paraiso Body and Wellness Spa',
     'marketing_line' => 'Reserve your spot. You deserve this.',
+    'pagination' => [
+        'per_page' => 15,
+    ],
+    'commissions' => [
+        'therapist_rate' => 0.22,
+    ],
+    'security' => [
+        'force_https' => (bool) env('FORCE_HTTPS', false),
+        'hsts' => (bool) env('HSTS_ENABLED', false),
+        'trusted_hosts' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('TRUSTED_HOSTS', '')),
+        ))),
+    ],
     'business_hours' => [
         'summary' => 'Open every day',
         'window' => '1:00 PM to 12:00 MN',

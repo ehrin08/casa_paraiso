@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\ApplicationSetting;
 use App\Models\Appointment;
 use App\Models\Feedback;
 use App\Models\PromotionRule;
@@ -37,6 +38,14 @@ class DatabaseSeeder extends Seeder
                 'role' => User::ROLE_ADMIN,
                 'is_active' => true,
                 'password' => Hash::make('password'),
+            ],
+        );
+
+        ApplicationSetting::query()->updateOrCreate(
+            ['id' => 1],
+            [
+                ...ApplicationSetting::defaults(),
+                'updated_by' => $admin->id,
             ],
         );
 
@@ -87,6 +96,7 @@ class DatabaseSeeder extends Seeder
         $staffProfile = StaffProfile::updateOrCreate(
             ['user_id' => $staff->id],
             [
+                'staff_type' => StaffProfile::TYPE_THERAPIST,
                 'position' => 'Spa Therapist',
                 'specialization' => 'Hilot and relaxation massage',
                 'bio' => 'Handles daily massage and body wellness appointments.',
@@ -98,6 +108,7 @@ class DatabaseSeeder extends Seeder
         $secondStaffProfile = StaffProfile::updateOrCreate(
             ['user_id' => $secondStaff->id],
             [
+                'staff_type' => StaffProfile::TYPE_THERAPIST,
                 'position' => 'Senior Therapist',
                 'specialization' => 'Body treatments and ventosa therapy',
                 'bio' => 'Supports specialty treatments and customer care.',
@@ -106,7 +117,7 @@ class DatabaseSeeder extends Seeder
             ],
         );
 
-        $customerProfile = $customer->customerProfile()->updateOrCreate(
+        $customer->customerProfile()->updateOrCreate(
             ['user_id' => $customer->id],
             [
                 'customer_code' => 'CP-00001',
@@ -260,22 +271,6 @@ class DatabaseSeeder extends Seeder
 
         $gaiaTouch = $services->firstWhere('slug', 'gaia-touch');
         $tethysFlow = $services->firstWhere('slug', 'tethys-flow');
-
-        Appointment::updateOrCreate(
-            ['appointment_number' => 'APT-DEMO-PENDING'],
-            [
-                'customer_profile_id' => $customerProfile->id,
-                'service_id' => $gaiaTouch->id,
-                'staff_profile_id' => null,
-                'preferred_staff_profile_id' => $staffProfile->id,
-                'requested_start_at' => now()->addDays(2)->setTime(14, 0),
-                'scheduled_start_at' => null,
-                'scheduled_end_at' => null,
-                'status' => Appointment::STATUS_PENDING,
-                'customer_notes' => 'Prefers a quiet room if available.',
-                'created_by' => $customer->id,
-            ],
-        );
 
         $confirmedStart = now()->addDay()->setTime(15, 0);
         Appointment::updateOrCreate(

@@ -20,9 +20,9 @@ class AppointmentIndexController extends Controller
                 ->where('status', Appointment::STATUS_CONFIRMED)
                 ->where('scheduled_start_at', '>=', now())
                 ->count(),
-            'pending' => Appointment::query()
+            'cancelled' => Appointment::query()
                 ->where('customer_profile_id', $customerProfileId)
-                ->where('status', Appointment::STATUS_PENDING)
+                ->where('status', Appointment::STATUS_CANCELLED)
                 ->count(),
             'completed' => Appointment::query()
                 ->where('customer_profile_id', $customerProfileId)

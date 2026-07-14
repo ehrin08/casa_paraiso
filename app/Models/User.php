@@ -19,12 +19,15 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public const ROLE_STAFF = 'staff';
 
+    public const ROLE_RECEPTIONIST = 'receptionist';
+
     public const ROLE_CUSTOMER = 'customer';
 
     public const ROLES = [
         self::ROLE_SUPER_ADMIN,
         self::ROLE_ADMIN,
         self::ROLE_STAFF,
+        self::ROLE_RECEPTIONIST,
         self::ROLE_CUSTOMER,
     ];
 
@@ -88,11 +91,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->role === self::ROLE_CUSTOMER;
     }
 
+    public function isReceptionist(): bool
+    {
+        return $this->role === self::ROLE_RECEPTIONIST;
+    }
+
     public function homeRouteName(): string
     {
         return match ($this->role) {
             self::ROLE_SUPER_ADMIN, self::ROLE_ADMIN => 'admin.dashboard',
             self::ROLE_STAFF => 'staff.dashboard',
+            self::ROLE_RECEPTIONIST => 'reception.dashboard',
             default => 'customer.appointments.index',
         };
     }
@@ -115,5 +124,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public function reviewedPromotionSuggestions()
     {
         return $this->hasMany(PromotionSuggestion::class, 'reviewed_by');
+    }
+
+    public function paidCommissions()
+    {
+        return $this->hasMany(TherapistCommission::class, 'paid_by');
     }
 }

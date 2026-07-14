@@ -10,7 +10,7 @@ class AdminAppointmentOutcomeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->isAdmin() ?? false;
+        return ($this->user()?->isAdmin() || $this->user()?->isReceptionist()) ?? false;
     }
 
     public function rules(): array

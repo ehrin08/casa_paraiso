@@ -40,7 +40,7 @@ class FeedbackController extends Controller
             }))
             ->orderBy($sorts[$sort], $direction)
             ->orderByDesc('feedback.submitted_at')
-            ->paginate(12)
+            ->paginate((int) config('casa.pagination.per_page', 15))
             ->withQueryString();
 
         return view('admin.feedback.index', [

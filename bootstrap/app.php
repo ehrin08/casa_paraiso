@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureUserHasRole;
 use App\Http\Middleware\EnsureUserIsActive;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
@@ -14,6 +15,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(AddSecurityHeaders::class);
+
+        $middleware->trustHosts(
+            at: fn (): array => config('casa.security.trusted_hosts', []),
+            subdomains: false,
+        );
+
         $middleware->trustProxies(at: [
             '127.0.0.1',
             '172.16.0.0/12',

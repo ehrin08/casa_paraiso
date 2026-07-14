@@ -8,13 +8,14 @@ use App\Http\Requests\AdminAppointmentOutcomeRequest;
 use App\Http\Requests\AdminAppointmentStoreRequest;
 use App\Http\Requests\AdminAppointmentUpdateRequest;
 use App\Http\Requests\AdminCalendarAppointmentStoreRequest;
-use App\Http\Requests\AppointmentRequest;
+use App\Models\ApplicationSetting;
 use App\Models\Appointment;
 use App\Models\CustomerProfile;
 use App\Models\Service;
 use App\Models\StaffProfile;
 use App\Models\Transaction;
 use App\Services\AppointmentCompletion;
+use App\Services\AppointmentManagement;
 use App\Services\AppointmentWorkflow;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -41,9 +42,9 @@ class AppointmentController extends Controller
             'mode' => $mode,
             'initialWeek' => now()->startOfWeek(Carbon::SUNDAY)->toDateString(),
             'summary' => [
-                'pending' => Appointment::query()->where('status', Appointment::STATUS_PENDING)->count(),
                 'confirmed' => Appointment::query()->where('status', Appointment::STATUS_CONFIRMED)->count(),
                 'completed' => Appointment::query()->where('status', Appointment::STATUS_COMPLETED)->count(),
+                'cancelled' => Appointment::query()->where('status', Appointment::STATUS_CANCELLED)->count(),
             ],
             'services' => Service::query()->where('is_active', true)->orderBy('name')->get(),
             'staffProfiles' => StaffProfile::query()
@@ -69,7 +70,6 @@ class AppointmentController extends Controller
             'staff_profile_id' => ['nullable', 'integer', 'exists:staff_profiles,id'],
             'requested_start_at' => ['nullable', 'date'],
             'scheduled_start_at' => ['nullable', 'date'],
-            'status' => ['nullable', 'in:pending,confirmed'],
         ]);
         $scheduledStart = ! empty($data['scheduled_start_at']) ? Carbon::parse($data['scheduled_start_at']) : null;
         $requestedStart = ! empty($data['requested_start_at'])
@@ -79,24 +79,24 @@ class AppointmentController extends Controller
         return view('admin.appointments.create', $this->formData(new Appointment([
             'requested_start_at' => $requestedStart,
             'scheduled_start_at' => $scheduledStart,
-            'status' => $data['status'] ?? ($scheduledStart && ! empty($data['staff_profile_id']) ? Appointment::STATUS_CONFIRMED : Appointment::STATUS_PENDING),
+            'status' => Appointment::STATUS_CONFIRMED,
             'customer_profile_id' => $data['customer_profile_id'] ?? null,
             'staff_profile_id' => $data['staff_profile_id'] ?? null,
         ])));
     }
 
-    public function store(AdminAppointmentStoreRequest $request, AppointmentWorkflow $workflow): RedirectResponse
+    public function store(AdminAppointmentStoreRequest $request, AppointmentManagement $management): RedirectResponse
     {
-        $appointment = $this->persistAppointment(new Appointment, $request, $workflow);
+        $appointment = $management->persist(new Appointment, $request->validated(), $request->user()->id);
 
         return redirect()
             ->route('admin.appointments.show', $appointment)
             ->with('status', 'appointment-created');
     }
 
-    public function storeFromCalendar(AdminCalendarAppointmentStoreRequest $request, AppointmentWorkflow $workflow): RedirectResponse
+    public function storeFromCalendar(AdminCalendarAppointmentStoreRequest $request, AppointmentManagement $management): RedirectResponse
     {
-        $this->persistAppointment(new Appointment, $request, $workflow);
+        $management->persist(new Appointment, $request->validated(), $request->user()->id);
 
         return redirect()
             ->route('admin.appointments.index')
@@ -125,7 +125,7 @@ class AppointmentController extends Controller
                 'service_id' => $appointment->service_id,
                 'amount' => $appointment->service?->price,
                 'payment_status' => Transaction::PAYMENT_PAID,
-                'payment_method' => Transaction::METHOD_CASH,
+                'payment_method' => ApplicationSetting::current()->default_payment_method,
                 'paid_at' => now(),
             ]),
             'transactionAppointments' => collect([$appointment]),
@@ -140,9 +140,9 @@ class AppointmentController extends Controller
         return view('admin.appointments.edit', $this->formData($appointment));
     }
 
-    public function update(AdminAppointmentUpdateRequest $request, Appointment $appointment, AppointmentWorkflow $workflow): RedirectResponse
+    public function update(AdminAppointmentUpdateRequest $request, Appointment $appointment, AppointmentManagement $management): RedirectResponse
     {
-        $this->persistAppointment($appointment, $request, $workflow);
+        $management->persist($appointment, $request->validated(), $request->user()->id);
 
         return redirect()
             ->route('admin.appointments.show', $appointment)
@@ -180,138 +180,6 @@ class AppointmentController extends Controller
         $workflow->changeStatus($appointment, $data['status'], $request->user()->id, $data['reason'] ?? null);
 
         return redirect()->route('admin.appointments.index')->with('status', 'appointment-updated');
-    }
-
-    private function persistAppointment(Appointment $appointment, AppointmentRequest $request, AppointmentWorkflow $workflow): Appointment
-    {
-        $data = $request->validated();
-        $service = Service::query()->findOrFail($data['service_id']);
-        $status = $data['status'];
-        $requestedStart = Carbon::parse($data['requested_start_at']);
-        $scheduledStart = ! empty($data['scheduled_start_at']) ? Carbon::parse($data['scheduled_start_at']) : null;
-        $staffProfile = ! empty($data['staff_profile_id'])
-            ? StaffProfile::withTrashed()->with('user')->findOrFail($data['staff_profile_id'])
-            : null;
-        $preferredStaffProfile = ! empty($data['preferred_staff_profile_id'])
-            ? StaffProfile::withTrashed()->with(['user', 'services'])->findOrFail($data['preferred_staff_profile_id'])
-            : null;
-        $isNew = ! $appointment->exists;
-        $originalStatus = $appointment->status;
-        $originalCustomerProfileId = $appointment->customer_profile_id;
-        $originalServiceId = $appointment->service_id;
-        $originalStaffProfileId = $appointment->staff_profile_id;
-        $originalPreferredStaffProfileId = $appointment->preferred_staff_profile_id;
-        $originalRequestedStart = $appointment->requested_start_at?->copy();
-        $originalScheduledStart = $appointment->scheduled_start_at?->copy();
-
-        $workflow->assertTransitionAllowed($appointment, $status);
-
-        if ($appointment->exists
-            && $appointment->status === Appointment::STATUS_CONFIRMED
-            && $status === Appointment::STATUS_COMPLETED) {
-            throw ValidationException::withMessages([
-                'status' => __('Finish the service from its completion form so the transaction is recorded with the outcome.'),
-            ]);
-        }
-
-        $preferenceChanged = $isNew
-            || (int) $appointment->preferred_staff_profile_id !== (int) $preferredStaffProfile?->id;
-
-        if ($preferredStaffProfile && $preferenceChanged && ! $workflow->isStaffEligibleForService($preferredStaffProfile, $service)) {
-            throw ValidationException::withMessages([
-                'preferred_staff_profile_id' => __('The preferred therapist must be active, bookable, and eligible for this service.'),
-            ]);
-        }
-
-        $requestChanged = $isNew
-            || (int) $originalServiceId !== (int) $service->id
-            || ! $originalRequestedStart?->equalTo($requestedStart);
-
-        if ($isNew || ($status === Appointment::STATUS_PENDING && $requestChanged)) {
-            $workflow->assertBookableStart($requestedStart, $service, 'requested_start_at');
-        }
-
-        if ($status === Appointment::STATUS_PENDING) {
-            $staffProfile = null;
-            $scheduledStart = null;
-        }
-
-        if ($status === Appointment::STATUS_CONFIRMED) {
-            if (! $staffProfile || ! $scheduledStart) {
-                throw ValidationException::withMessages([
-                    'scheduled_start_at' => __('Confirmed appointments require staff and scheduled time.'),
-                ]);
-            }
-        }
-
-        $scheduledEnd = $scheduledStart ? $workflow->scheduledEnd($scheduledStart, $service) : null;
-        $scheduledStartChanged = ($originalScheduledStart === null) !== ($scheduledStart === null)
-            || ($originalScheduledStart && $scheduledStart && ! $originalScheduledStart->equalTo($scheduledStart));
-        $scheduleChanged = $isNew
-            || (int) $originalServiceId !== (int) $service->id
-            || (int) $originalStaffProfileId !== (int) $staffProfile?->id
-            || $scheduledStartChanged;
-
-        $terminalRecordChanged = (int) $originalCustomerProfileId !== (int) $data['customer_profile_id']
-            || (int) $originalServiceId !== (int) $service->id
-            || (int) $originalStaffProfileId !== (int) $staffProfile?->id
-            || (int) $originalPreferredStaffProfileId !== (int) $preferredStaffProfile?->id
-            || ! $originalRequestedStart?->equalTo($requestedStart)
-            || $scheduledStartChanged;
-
-        if (in_array($originalStatus, [Appointment::STATUS_COMPLETED, Appointment::STATUS_CANCELLED, Appointment::STATUS_NO_SHOW], true)
-            && $terminalRecordChanged) {
-            throw ValidationException::withMessages([
-                'status' => __('Completed, cancelled, and no-show appointment details are historical. Only notes may be edited.'),
-            ]);
-        }
-
-        if ($originalStatus === Appointment::STATUS_CONFIRMED
-            && in_array($status, [Appointment::STATUS_COMPLETED, Appointment::STATUS_NO_SHOW, Appointment::STATUS_CANCELLED], true)
-            && $scheduleChanged) {
-            throw ValidationException::withMessages([
-                'status' => __('Save schedule or therapist changes before recording the appointment outcome.'),
-            ]);
-        }
-
-        $appointment->fill([
-            'customer_profile_id' => $data['customer_profile_id'],
-            'service_id' => $service->id,
-            'staff_profile_id' => $staffProfile?->id,
-            'preferred_staff_profile_id' => $preferredStaffProfile?->id,
-            'requested_start_at' => $requestedStart,
-            'scheduled_start_at' => $scheduledStart,
-            'scheduled_end_at' => $scheduledEnd,
-            'customer_notes' => $data['customer_notes'] ?? null,
-            'internal_notes' => $data['internal_notes'] ?? null,
-            'created_by' => $appointment->created_by ?: $request->user()->id,
-            'updated_by' => $request->user()->id,
-        ]);
-
-        if ($status === Appointment::STATUS_CONFIRMED) {
-            if (! $scheduleChanged) {
-                return $workflow->changeStatus($appointment, $status, $request->user()->id, $data['reason'] ?? null);
-            }
-
-            return $workflow->schedule(
-                $appointment,
-                $staffProfile,
-                $service,
-                $scheduledStart,
-                $request->user()->id,
-                $data['reason'] ?? null,
-            );
-        }
-
-        if ($isNew) {
-            return $workflow->createPending(
-                $appointment->getAttributes(),
-                $request->user()->id,
-                $data['reason'] ?? null,
-            );
-        }
-
-        return $workflow->changeStatus($appointment, $status, $request->user()->id, $data['reason'] ?? null);
     }
 
     public function availableTherapists(Request $request, AppointmentWorkflow $workflow): JsonResponse

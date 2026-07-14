@@ -17,7 +17,7 @@ class AppointmentCalendar
      * @param  array{staff_profile_id?: int|null, service_id?: int|null, status?: string|null}  $filters
      * @return array<string, mixed>
      */
-    public function admin(Carbon $start, Carbon $end, string $mode, array $filters = []): array
+    public function admin(Carbon $start, Carbon $end, string $mode, array $filters = [], string $audience = 'admin'): array
     {
         $staffProfiles = StaffProfile::query()
             ->with(['user', 'services', 'weeklySchedules', 'scheduleExceptions'])
@@ -31,28 +31,21 @@ class AppointmentCalendar
         $resources = $staffProfiles->map(fn (StaffProfile $staff) => $this->resource($staff));
 
         if ($mode === 'availability') {
-            $events = $this->availabilityEvents($staffProfiles, $start, $end);
-            $events = $events->concat($this->bookingBlockers($staffProfiles, $start, $end));
+            $events = $this->availabilityEvents($staffProfiles, $start, $end, $audience);
+            $events = $events->concat($this->bookingBlockers($staffProfiles, $start, $end, $audience));
         } else {
-            $resources->prepend([
-                'id' => 'requests',
-                'name' => __('Pending requests'),
-                'subtitle' => __('Unassigned demand'),
-            ]);
-
             $query = $this->appointmentsInRange(Appointment::query(), $start, $end)
                 ->with(['customerProfile.user', 'service', 'staffProfile.user', 'preferredStaffProfile.user'])
+                ->whereNotNull('staff_profile_id')
                 ->when($filters['service_id'] ?? null, fn (Builder $query, int $id) => $query->where('service_id', $id))
                 ->when($filters['status'] ?? null, fn (Builder $query, string $status) => $query->where('status', $status))
-                ->when($filters['staff_profile_id'] ?? null, fn (Builder $query, int $id) => $query->where(function (Builder $query) use ($id): void {
-                    $query->where('staff_profile_id', $id)->orWhere('preferred_staff_profile_id', $id);
-                }));
+                ->when($filters['staff_profile_id'] ?? null, fn (Builder $query, int $id) => $query->where('staff_profile_id', $id));
 
             $availability = $staffProfiles->flatMap(
                 fn (StaffProfile $staff) => $this->effectiveAvailabilityEvents($staff, $start, $end),
             );
             $events = $availability->concat(
-                $query->get()->map(fn (Appointment $appointment) => $this->appointmentEvent($appointment, 'admin')),
+                $query->get()->map(fn (Appointment $appointment) => $this->appointmentEvent($appointment, $audience)),
             );
         }
 
@@ -102,24 +95,16 @@ class AppointmentCalendar
 
     private function appointmentsInRange(Builder $query, Carbon $start, Carbon $end): Builder
     {
-        return $query->where(function (Builder $query) use ($start, $end): void {
-            $query->where(function (Builder $query) use ($start, $end): void {
-                $query->where('status', Appointment::STATUS_PENDING)
-                    ->where('requested_start_at', '>=', $start)
-                    ->where('requested_start_at', '<', $end);
-            })->orWhere(function (Builder $query) use ($start, $end): void {
-                $query->where('status', '!=', Appointment::STATUS_PENDING)
-                    ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) >= ?', [$start])
-                    ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) < ?', [$end]);
-            });
-        });
+        return $query
+            ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) >= ?', [$start])
+            ->whereRaw('COALESCE(scheduled_start_at, requested_start_at) < ?', [$end]);
     }
 
     /**
      * @param  Collection<int, StaffProfile>  $staffProfiles
      * @return Collection<int, array<string, mixed>>
      */
-    private function availabilityEvents(Collection $staffProfiles, Carbon $start, Carbon $end): Collection
+    private function availabilityEvents(Collection $staffProfiles, Carbon $start, Carbon $end, string $audience = 'admin'): Collection
     {
         $events = collect();
 
@@ -129,7 +114,7 @@ class AppointmentCalendar
             foreach ($staffProfiles as $staff) {
                 foreach ($staff->weeklySchedules->where('day_of_week', $day->dayOfWeek)->where('is_available', true) as $schedule) {
                     $interval = $this->scheduleWindows->intervalForDate($day, (string) $schedule->start_time, (string) $schedule->end_time, (bool) $schedule->ends_next_day);
-                    $event = $this->availabilityEvent($staff, 'weekly_availability', $interval, __('Recurring availability'), false, $schedule->id);
+                    $event = $this->availabilityEvent($staff, 'weekly_availability', $interval, __('Recurring availability'), $audience !== 'admin', $schedule->id, null, $audience);
 
                     if ($event['ends_at'] > $business['start']->toIso8601String() && $event['starts_at'] < $business['end']->toIso8601String()) {
                         $events->push($event);
@@ -147,7 +132,7 @@ class AppointmentCalendar
                         ? __('One-off availability')
                         : __('Unavailable');
 
-                    $events->push($this->availabilityEvent($staff, $kind, $interval, $title, false, $exception->id, $exception->reason));
+                    $events->push($this->availabilityEvent($staff, $kind, $interval, $title, $audience !== 'admin', $exception->id, $exception->reason, $audience));
                 }
             }
         }
@@ -175,7 +160,7 @@ class AppointmentCalendar
      * @param  Collection<int, StaffProfile>  $staffProfiles
      * @return Collection<int, array<string, mixed>>
      */
-    private function bookingBlockers(Collection $staffProfiles, Carbon $start, Carbon $end): Collection
+    private function bookingBlockers(Collection $staffProfiles, Carbon $start, Carbon $end, string $audience = 'admin'): Collection
     {
         return Appointment::query()
             ->with(['service', 'customerProfile.user', 'staffProfile.user'])
@@ -184,8 +169,8 @@ class AppointmentCalendar
             ->where('scheduled_start_at', '<', $end)
             ->where('scheduled_end_at', '>', $start)
             ->get()
-            ->map(function (Appointment $appointment): array {
-                $event = $this->appointmentEvent($appointment, 'admin');
+            ->map(function (Appointment $appointment) use ($audience): array {
+                $event = $this->appointmentEvent($appointment, $audience);
                 $event['kind'] = 'booking_blocker';
                 $event['read_only'] = true;
 
@@ -205,12 +190,13 @@ class AppointmentCalendar
         bool $readOnly,
         int $sourceId,
         ?string $subtitle = null,
+        string $audience = 'admin',
     ): array {
-        $detailUrl = match ($kind) {
+        $detailUrl = $audience === 'admin' ? match ($kind) {
             'weekly_availability' => route('admin.staff.weekly-schedules.edit', [$staff, $sourceId]),
             'available_exception', 'unavailable_exception' => route('admin.staff.schedule-exceptions.edit', [$staff, $sourceId]),
             default => null,
-        };
+        } : null;
 
         return [
             'id' => $kind.'-'.$staff->id.'-'.$sourceId.'-'.$interval['start']->format('Ymd'),
@@ -233,9 +219,7 @@ class AppointmentCalendar
      */
     private function appointmentEvent(Appointment $appointment, string $audience): array
     {
-        $startsAt = $appointment->status === Appointment::STATUS_PENDING
-            ? $appointment->requested_start_at
-            : ($appointment->scheduled_start_at ?? $appointment->requested_start_at);
+        $startsAt = $appointment->scheduled_start_at ?? $appointment->requested_start_at;
         $endsAt = $appointment->scheduled_end_at
             ?? $startsAt?->copy()->addMinutes($appointment->service?->duration_minutes ?? 60);
         $customerName = $appointment->customerProfile?->user?->name;
@@ -245,18 +229,16 @@ class AppointmentCalendar
 
         return [
             'id' => 'appointment-'.$appointment->id,
-            'kind' => $appointment->status === Appointment::STATUS_PENDING ? 'request' : 'appointment',
+            'kind' => 'appointment',
             'appointment_id' => $appointment->id,
-            'resource_id' => $appointment->status === Appointment::STATUS_PENDING
-                ? 'requests'
-                : (string) ($appointment->staff_profile_id ?? 'requests'),
+            'resource_id' => (string) ($appointment->staff_profile_id ?? 'unassigned'),
             'staff_profile_id' => $appointment->staff_profile_id,
             'starts_at' => $startsAt?->toIso8601String(),
             'ends_at' => $endsAt?->toIso8601String(),
             'status' => $appointment->status,
             'title' => $audience === 'customer' ? $serviceName : ($customerName ?: $appointment->appointment_number),
             'subtitle' => $audience === 'customer'
-                ? ($staffName ?: __('Awaiting therapist assignment'))
+                ? ($staffName ?: __('No therapist assigned'))
                 : $serviceName,
             'appointment_number' => $appointment->appointment_number,
             'service_name' => $serviceName,

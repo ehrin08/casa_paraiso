@@ -17,12 +17,12 @@
     @php $customerNotesModal = 'admin-customer-notes-'.$customer->id; @endphp
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-4">
-            <x-metric-card label="Appointments" :value="$customer->appointments_count" meta="Booking records" tone="brown" />
-            <x-metric-card label="Transactions" :value="$customer->transactions_count" meta="Payment records" tone="green" />
-            <x-metric-card label="Feedback" :value="$customer->feedback_count" meta="Submitted reviews" tone="gold" />
-            <x-metric-card label="Promos" :value="$customer->promotion_suggestions_count" meta="RFM suggestions" tone="charcoal" />
-        </section>
+        <x-stat-strip :items="[
+            ['label' => __('Appointments'), 'value' => $customer->appointments_count, 'meta' => __('Booking records'), 'tone' => 'brown'],
+            ['label' => __('Transactions'), 'value' => $customer->transactions_count, 'meta' => __('Payment records'), 'tone' => 'green'],
+            ['label' => __('Feedback'), 'value' => $customer->feedback_count, 'meta' => __('Submitted reviews'), 'tone' => 'gold'],
+            ['label' => __('Promos'), 'value' => $customer->promotion_suggestions_count, 'meta' => __('RFM suggestions'), 'tone' => 'dark'],
+        ]" />
 
         <section class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
             <div class="space-y-6">

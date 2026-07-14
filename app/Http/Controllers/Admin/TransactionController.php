@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Concerns\HandlesIndexSorting;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\TransactionRequest;
+use App\Models\ApplicationSetting;
 use App\Models\Appointment;
 use App\Models\CustomerProfile;
 use App\Models\Service;
 use App\Models\Transaction;
-use App\Services\TransactionNumber;
+use App\Services\TransactionWorkflow;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class TransactionController extends Controller
@@ -51,12 +51,12 @@ class TransactionController extends Controller
             })
             ->orderBy($sorts[$sort], $direction)
             ->orderByDesc('transactions.created_at')
-            ->paginate(12)
+            ->paginate((int) config('casa.pagination.per_page', 15))
             ->withQueryString();
 
         $formData = $this->formData(new Transaction([
             'payment_status' => Transaction::PAYMENT_PAID,
-            'payment_method' => Transaction::METHOD_CASH,
+            'payment_method' => ApplicationSetting::current()->default_payment_method,
             'paid_at' => now(),
         ]));
 
@@ -79,7 +79,7 @@ class TransactionController extends Controller
     {
         $transaction = new Transaction([
             'payment_status' => Transaction::PAYMENT_PAID,
-            'payment_method' => Transaction::METHOD_CASH,
+            'payment_method' => ApplicationSetting::current()->default_payment_method,
             'paid_at' => now(),
         ]);
 
@@ -97,9 +97,9 @@ class TransactionController extends Controller
         return view('admin.transactions.create', $this->formData($transaction));
     }
 
-    public function store(TransactionRequest $request, TransactionNumber $numbers): RedirectResponse
+    public function store(TransactionRequest $request, TransactionWorkflow $workflow): RedirectResponse
     {
-        $transaction = $this->persistTransaction(new Transaction, $request, $numbers);
+        $transaction = $workflow->persist(new Transaction, $request->validated(), $request->user()->id);
 
         return redirect()
             ->route('admin.transactions.show', $transaction)
@@ -120,45 +120,13 @@ class TransactionController extends Controller
         return view('admin.transactions.edit', $this->formData($transaction));
     }
 
-    public function update(TransactionRequest $request, Transaction $transaction, TransactionNumber $numbers): RedirectResponse
+    public function update(TransactionRequest $request, Transaction $transaction, TransactionWorkflow $workflow): RedirectResponse
     {
-        $this->persistTransaction($transaction, $request, $numbers);
+        $workflow->persist($transaction, $request->validated(), $request->user()->id);
 
         return redirect()
             ->route('admin.transactions.show', $transaction)
             ->with('status', 'transaction-updated');
-    }
-
-    private function persistTransaction(Transaction $transaction, TransactionRequest $request, TransactionNumber $numbers): Transaction
-    {
-        $data = $request->validated();
-
-        if (! empty($data['appointment_id'])) {
-            $appointment = Appointment::query()->findOrFail($data['appointment_id']);
-            $data['customer_profile_id'] = $appointment->customer_profile_id;
-            $data['service_id'] = $appointment->service_id;
-        }
-
-        $paymentReceived = in_array($data['payment_status'], Transaction::PAYMENT_RECEIVED_STATUSES, true);
-        $attributes = [
-            'customer_profile_id' => $data['customer_profile_id'],
-            'appointment_id' => $data['appointment_id'] ?? null,
-            'service_id' => $data['service_id'] ?? null,
-            'amount' => $data['amount'],
-            'payment_status' => $data['payment_status'],
-            'payment_method' => $paymentReceived ? $data['payment_method'] : null,
-            'paid_at' => $paymentReceived ? Carbon::parse($data['paid_at']) : null,
-            'recorded_by' => $transaction->recorded_by ?: $request->user()->id,
-            'notes' => $data['notes'] ?? null,
-        ];
-
-        if (! $transaction->exists) {
-            return $numbers->create($attributes);
-        }
-
-        $transaction->update($attributes);
-
-        return $transaction;
     }
 
     /**

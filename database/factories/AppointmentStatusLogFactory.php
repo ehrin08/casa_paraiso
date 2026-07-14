@@ -17,7 +17,7 @@ class AppointmentStatusLogFactory extends Factory
         return [
             'appointment_id' => Appointment::factory(),
             'from_status' => null,
-            'to_status' => Appointment::STATUS_PENDING,
+            'to_status' => Appointment::STATUS_CONFIRMED,
             'changed_by' => User::factory()->staff(),
             'reason' => fake()->optional()->sentence(),
         ];

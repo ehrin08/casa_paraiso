@@ -4,7 +4,7 @@
 
 Define the MVP MariaDB/MySQL schema before Laravel migrations are scaffolded.
 
-This design supports customer login, staff scheduling, appointment requests, manual transactions, RFM promotion suggestions, feedback sentiment, and management reporting.
+This design supports customer login, therapist scheduling, immediately confirmed appointments, receptionist operations, manual transactions, therapist commissions, RFM promotion suggestions, feedback sentiment, and management reporting.
 
 ## Design Rules
 
@@ -19,13 +19,16 @@ This design supports customer login, staff scheduling, appointment requests, man
 
 ## Status Values
 
-- Appointment status: `pending`, `confirmed`, `completed`, `cancelled`, `no_show`
+- Appointment status: `confirmed`, `completed`, `cancelled`, `no_show`
 - Payment status: `unpaid`, `partial`, `paid`, `refunded`, `void`
 - Sentiment label: `positive`, `neutral`, `negative`
 - Promotion suggestion status: `suggested`, `reviewed`, `applied`, `dismissed`
 - Schedule exception type: `available`, `unavailable`
-- User role: `admin`, `staff`, `customer`
+- User role: `admin`, `receptionist`, `staff`, `customer`
 - User role also includes `super_admin`; this protected role is reserved for the configured Casa Paraiso owner email.
+- Staff type: `therapist`
+- Commission type: `earning`, `adjustment`
+- Commission status: `pending`, `paid`
 
 Use string columns for these status values in migrations and validate allowed values in Laravel form requests or model rules.
 
@@ -59,6 +62,7 @@ Relationships:
 
 - One user may have one staff profile.
 - One user may have one customer profile.
+- Receptionist users have neither staff nor customer profiles.
 - Admin users record transactions; staff may review records linked to their assigned appointments.
 
 ### `staff_profiles`
@@ -69,6 +73,7 @@ Key columns:
 
 - `id`
 - `user_id` unique foreign key to `users.id`
+- `staff_type` string default `therapist`
 - `position` nullable
 - `specialization` nullable
 - `bio` nullable
@@ -81,6 +86,7 @@ Indexes:
 
 - Unique index on `user_id`
 - Index on `is_bookable`
+- Index on `staff_type`
 
 Relationships:
 
@@ -243,7 +249,7 @@ Relationships:
 
 ### `appointments`
 
-Customer appointment requests and confirmed bookings.
+Customer appointments and confirmed bookings.
 
 Key columns:
 
@@ -279,7 +285,7 @@ Indexes:
 
 Rules:
 
-- New customer bookings start as `confirmed`; historical and admin-created requests may remain `pending`.
+- New customer and admin-created bookings start as `confirmed` and require an assigned eligible therapist and scheduled time.
 - A preferred therapist is a customer preference only; final assignment remains in `staff_profile_id`.
 - Customer booking locks eligible therapist rows, rechecks availability, assigns one therapist, and reserves capacity in one transaction.
 - An available preferred therapist is assigned first. Otherwise choose the therapist with the fewest future confirmed bookings, then the lowest profile ID.
@@ -363,6 +369,48 @@ Relationships:
 - Belongs to customer profile.
 - Optionally belongs to appointment and service.
 - Belongs to recorder user.
+
+### `therapist_commissions`
+
+Immutable paid payout history and pending commission reconciliation records.
+
+Key columns:
+
+- `staff_profile_id`, `appointment_id`, and `transaction_id` foreign keys
+- `primary_transaction_id` nullable unique foreign key populated only for primary earning rows
+- `adjusts_commission_id` nullable self-reference for adjustment rows
+- `commission_type`, `status`, `basis_amount`, `commission_rate`, and signed `commission_amount`
+- `earned_at`, nullable `paid_at`, nullable `paid_by`, and nullable `notes`
+
+Rules:
+
+- Create one primary earning per transaction only when the appointment is completed, has an assigned therapist, and the transaction is fully paid.
+- Snapshot the system rate on creation. Recalculations for that earning continue using its stored rate.
+- Pending earnings may be recalculated or reduced to zero. Paid rows never change.
+- Corrections after payout create or update one pending signed reconciliation adjustment; settled adjustments remain immutable.
+- Payout records document external settlement and do not transfer funds.
+
+### `application_settings`
+
+Singleton-style editable business defaults used by the Admin Settings workspace.
+
+Key columns:
+
+- `id`
+- `business_name`
+- `contact_email` nullable
+- `contact_phone` nullable
+- `business_address` nullable
+- `default_payment_method`
+- `updated_by` nullable foreign key to `users.id`
+- `created_at`, `updated_at`
+
+Rules:
+
+- The application uses the first row and writes the canonical row with `id = 1`.
+- Safe configuration defaults are used before the migration is applied, so public and payment forms remain available while saving is disabled.
+- The payment default only prefills forms and never marks a transaction paid or initiates a transfer.
+- Booking hours, intervals, timezone, commission rate, and security controls remain configuration-controlled.
 
 ## RFM Promotions
 
@@ -564,10 +612,12 @@ Use this order when creating Laravel migrations:
 9. `appointments`
 10. `appointment_status_logs`
 11. `transactions`
-12. `rfm_segments`
-13. `promotion_rules`
-14. `promotion_suggestions`
-15. `feedback`
+12. `therapist_commissions`
+13. `application_settings`
+14. `rfm_segments`
+15. `promotion_rules`
+16. `promotion_suggestions`
+17. `feedback`
 
 ## Acceptance Scenarios
 

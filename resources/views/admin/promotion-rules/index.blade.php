@@ -13,14 +13,12 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-3">
-            <x-metric-card label="Active" :value="$activeCount" meta="Eligible offers" tone="green" />
-            <x-metric-card label="Inactive" :value="$inactiveCount" meta="Paused offers" tone="gold" />
-            <x-metric-card label="Rules" :value="$rules->total()" meta="Configured offers" tone="brown" />
-        </section>
-
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Rule library') }}" title="{{ __('Segment offers') }}" :count="$rules->total()" :reset-url="route('admin.promotion-rules.index')">
+            <x-list-toolbar eyebrow="{{ __('Rule library') }}" title="{{ __('Segment offers') }}" :count="$rules->total()" :reset-url="route('admin.promotion-rules.index')" :active-filters="collect(request()->only(['q', 'rfm_segment_id', 'status']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
+                <x-slot name="meta">
+                    <span class="casa-filter-chip">{{ __(':count active', ['count' => $activeCount]) }}</span>
+                    <span class="casa-filter-chip">{{ __(':count inactive', ['count' => $inactiveCount]) }}</span>
+                </x-slot>
                 <form method="GET" action="{{ route('admin.promotion-rules.index') }}" class="casa-filter-grid sm:grid-cols-2 lg:min-w-[48rem] lg:grid-cols-[minmax(12rem,1fr)_auto_auto_auto]">
                     <input type="hidden" name="sort" value="{{ $sort }}">
                     <input type="hidden" name="direction" value="{{ $direction }}">

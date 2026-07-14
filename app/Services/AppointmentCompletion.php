@@ -13,6 +13,7 @@ class AppointmentCompletion
     public function __construct(
         private readonly AppointmentWorkflow $workflow,
         private readonly TransactionNumber $transactionNumbers,
+        private readonly TherapistCommissionSynchronizer $commissions,
     ) {}
 
     /** @param array<string, mixed> $payment */
@@ -47,6 +48,8 @@ class AppointmentCompletion
             ]);
 
             $this->workflow->changeStatus($locked, Appointment::STATUS_COMPLETED, $adminId, __('Service finished and transaction recorded'));
+
+            $this->commissions->synchronize($transaction);
 
             return $transaction;
         }, 3);

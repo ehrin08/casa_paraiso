@@ -15,6 +15,7 @@
         'specialization' => $staff->specialization ?: __('Spa therapist'),
         'service_ids' => $staff->services->pluck('id')->values()->all(),
     ])->values();
+    $bookingContext = $bookingContext ?? null;
 @endphp
 
 <form
@@ -33,8 +34,10 @@
         slotPreviewLimit: 2
     })"
     x-init="init()"
+    x-on:booking-date-selected.window="preselectDate($event.detail.date)"
 >
     @csrf
+    @if ($bookingContext)<input type="hidden" name="_booking_context" value="{{ $bookingContext }}">@endif
     <input type="hidden" name="service_id" x-bind:value="serviceId">
     <input type="hidden" name="requested_start_at" x-bind:value="selectedSlot">
 

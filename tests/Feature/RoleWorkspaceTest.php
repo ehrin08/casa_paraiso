@@ -60,6 +60,36 @@ class RoleWorkspaceTest extends TestCase
         }
     }
 
+    public function test_summary_metrics_use_the_compact_mobile_grid_contract(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $staff = User::factory()->staff()->create();
+
+        foreach ([
+            ['/admin/dashboard', 1],
+            ['/admin/transactions', 1],
+            ['/admin/promotions', 2],
+            ['/admin/feedback', 1],
+            ['/admin/reports', 1],
+        ] as [$path, $expectedGridCount]) {
+            $content = $this->actingAs($admin)->get($path)->assertOk()->getContent();
+
+            $this->assertSame($expectedGridCount, substr_count($content, 'data-metric-grid'));
+            $this->assertStringContainsString('data-metric-card', $content);
+            $this->assertStringContainsString('data-metric-meta', $content);
+            $this->assertStringContainsString('hidden text-sm font-semibold leading-5 text-casa-muted sm:block', $content);
+        }
+
+        $staffContent = $this->actingAs($staff)
+            ->get('/staff/dashboard')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertSame(1, substr_count($staffContent, 'data-metric-grid'));
+        $this->assertStringContainsString('data-metric-card', $staffContent);
+        $this->assertStringContainsString('data-metric-meta', $staffContent);
+    }
+
     public function test_customer_module_routes_are_available_only_to_customers(): void
     {
         $admin = User::factory()->admin()->create();
@@ -114,7 +144,7 @@ class RoleWorkspaceTest extends TestCase
         Appointment::factory()
             ->for($customerProfile)
             ->for($service)
-            ->create(['status' => Appointment::STATUS_PENDING]);
+            ->create(['status' => Appointment::STATUS_CONFIRMED]);
 
         $this->actingAs($admin)
             ->get('/admin/dashboard')
@@ -158,9 +188,11 @@ class RoleWorkspaceTest extends TestCase
             ->for($customerProfile)
             ->for($service)
             ->create([
-                'appointment_number' => 'APT-PENDING',
-                'status' => Appointment::STATUS_PENDING,
+                'appointment_number' => 'APT-UPCOMING',
+                'status' => Appointment::STATUS_CONFIRMED,
                 'requested_start_at' => now()->addDay()->setTime(14, 0),
+                'scheduled_start_at' => now()->addDay()->setTime(14, 0),
+                'scheduled_end_at' => now()->addDay()->setTime(15, 0),
             ]);
 
         Appointment::factory()
@@ -196,7 +228,7 @@ class RoleWorkspaceTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/dashboard')
             ->assertOk()
-            ->assertSee('APT-PENDING')
+            ->assertSee('APT-UPCOMING')
             ->assertSee('Hilot Massage')
             ->assertSee('PHP 1,200.00')
             ->assertSee('1 promotion review waiting');
@@ -226,8 +258,8 @@ class RoleWorkspaceTest extends TestCase
             ->for($customerProfile)
             ->for($service)
             ->create([
-                'appointment_number' => 'APT-PENDING-STAFF',
-                'status' => Appointment::STATUS_PENDING,
+                'appointment_number' => 'APT-CANCELLED-STAFF',
+                'status' => Appointment::STATUS_CANCELLED,
             ]);
 
         Appointment::factory()
@@ -248,7 +280,6 @@ class RoleWorkspaceTest extends TestCase
             ->assertSee('APT-STAFF')
             ->assertSee('Signature Body Care')
             ->assertSeeInOrder(['Assigned today', '1', 'Confirmed appointments'])
-            ->assertSeeInOrder(['Pending', '1', 'Requests needing action'])
             ->assertSeeInOrder(['Completed', '1', 'Services finished today']);
     }
 
@@ -262,8 +293,13 @@ class RoleWorkspaceTest extends TestCase
             ->for($customerProfile)
             ->for($service)
             ->create([
-                'appointment_number' => 'APT-CUSTOMER-PENDING',
-                'status' => Appointment::STATUS_PENDING,
+                'appointment_number' => 'APT-CUSTOMER-CANCELLED',
+                'staff_profile_id' => null,
+                'scheduled_start_at' => null,
+                'scheduled_end_at' => null,
+                'status' => Appointment::STATUS_CANCELLED,
+                'confirmed_at' => null,
+                'cancelled_at' => now(),
                 'requested_start_at' => now()->addDays(2)->setTime(14, 0),
             ]);
 
@@ -284,6 +320,8 @@ class RoleWorkspaceTest extends TestCase
                 'appointment_number' => 'APT-CUSTOMER-COMPLETE',
                 'status' => Appointment::STATUS_COMPLETED,
                 'requested_start_at' => now()->subDay()->setTime(14, 0),
+                'scheduled_start_at' => now()->subDay()->setTime(14, 0),
+                'scheduled_end_at' => now()->subDay()->setTime(15, 0),
                 'completed_at' => now()->subDay(),
             ]);
 
@@ -292,7 +330,7 @@ class RoleWorkspaceTest extends TestCase
             ->assertOk()
             ->assertSee('data-customer-appointment-calendar', false)
             ->assertSeeInOrder(['Upcoming', '1'])
-            ->assertSeeInOrder(['Pending', '1'])
+            ->assertSeeInOrder(['Cancelled', '1'])
             ->assertSeeInOrder(['Completed', '1']);
 
         $response = $this->actingAs($customer)->getJson(route('customer.appointments.calendar', [
@@ -301,7 +339,7 @@ class RoleWorkspaceTest extends TestCase
 
         $response->assertOk();
         $numbers = collect($response->json('events'))->pluck('appointment_number');
-        $this->assertTrue($numbers->contains('APT-CUSTOMER-PENDING'));
+        $this->assertTrue($numbers->contains('APT-CUSTOMER-CANCELLED'));
         $this->assertTrue($numbers->contains('APT-CUSTOMER-CONFIRMED'));
         $this->assertTrue($numbers->contains('APT-CUSTOMER-COMPLETE'));
         $this->assertTrue(collect($response->json('events'))->pluck('service_name')->contains('Tropical Wellness Massage'));

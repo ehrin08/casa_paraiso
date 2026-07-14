@@ -110,26 +110,6 @@ class AppointmentWorkflow
     }
 
     /**
-     * Persist a new pending request with collision-safe number allocation.
-     *
-     * @param  array<string, mixed>  $attributes
-     */
-    public function createPending(array $attributes, ?int $changedBy = null, ?string $reason = null): Appointment
-    {
-        return $this->withAppointmentNumberRetry(function (string $number) use ($attributes, $changedBy, $reason): Appointment {
-            return DB::transaction(function () use ($attributes, $changedBy, $reason, $number): Appointment {
-                $appointment = new Appointment;
-                $appointment->fill([
-                    ...$attributes,
-                    'appointment_number' => $number,
-                ]);
-
-                return $this->applyStatus($appointment, Appointment::STATUS_PENDING, $changedBy, $reason);
-            }, 3);
-        });
-    }
-
-    /**
      * Atomically assign and confirm a customer-selected slot.
      *
      * @param  array<string, mixed>  $attributes
@@ -333,15 +313,6 @@ class AppointmentWorkflow
         $fromStatus = $appointment->status;
         $now = now();
         $metadata = match ($status) {
-            Appointment::STATUS_PENDING => [
-                'staff_profile_id' => null,
-                'scheduled_start_at' => null,
-                'scheduled_end_at' => null,
-                'confirmed_at' => null,
-                'completed_at' => null,
-                'cancelled_at' => null,
-                'cancelled_by' => null,
-            ],
             Appointment::STATUS_CONFIRMED => [
                 'confirmed_at' => $appointment->confirmed_at ?? $now,
                 'completed_at' => null,
@@ -354,10 +325,6 @@ class AppointmentWorkflow
                 'cancelled_by' => null,
             ],
             Appointment::STATUS_CANCELLED => [
-                'staff_profile_id' => $fromStatus === Appointment::STATUS_PENDING ? null : $appointment->staff_profile_id,
-                'scheduled_start_at' => $fromStatus === Appointment::STATUS_PENDING ? null : $appointment->scheduled_start_at,
-                'scheduled_end_at' => $fromStatus === Appointment::STATUS_PENDING ? null : $appointment->scheduled_end_at,
-                'confirmed_at' => $fromStatus === Appointment::STATUS_PENDING ? null : $appointment->confirmed_at,
                 'completed_at' => null,
                 'cancelled_at' => $appointment->cancelled_at ?? $now,
                 'cancelled_by' => $appointment->cancelled_by ?? $changedBy,

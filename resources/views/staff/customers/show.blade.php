@@ -39,12 +39,14 @@
         </section>
 
         <aside class="space-y-4">
-            <x-metric-card label="Appointments" :value="$customer->appointments_count" meta="Known visits" tone="brown" />
-            <x-metric-card label="Feedback" :value="$customer->feedback_count" meta="Service reviews" tone="gold" />
+            <x-stat-strip :items="[
+                ['label' => __('Appointments'), 'value' => $customer->appointments_count, 'meta' => __('Known visits'), 'tone' => 'brown'],
+                ['label' => __('Feedback'), 'value' => $customer->feedback_count, 'meta' => __('Service reviews'), 'tone' => 'gold'],
+            ]" />
             <x-app-card>
                 <p class="casa-section-label">{{ __('Note') }}</p>
                 <p class="mt-3 text-sm leading-6 text-casa-muted">
-                    {{ __('Staff view is operational only. User account settings and internal admin controls stay in the admin workspace.') }}
+                    {{ __('Therapist view is operational only. User account settings and internal admin controls stay in the admin workspace.') }}
                 </p>
             </x-app-card>
         </aside>

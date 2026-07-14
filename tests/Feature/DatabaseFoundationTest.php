@@ -102,7 +102,7 @@ class DatabaseFoundationTest extends TestCase
             ->for($appointment)
             ->for($staffUser, 'changedBy')
             ->create([
-                'from_status' => Appointment::STATUS_PENDING,
+                'from_status' => null,
                 'to_status' => Appointment::STATUS_CONFIRMED,
             ]);
 
@@ -125,7 +125,7 @@ class DatabaseFoundationTest extends TestCase
                 'sentiment_label' => Feedback::SENTIMENT_POSITIVE,
             ]);
 
-        $this->assertSame(Appointment::STATUSES, ['pending', 'confirmed', 'completed', 'cancelled', 'no_show']);
+        $this->assertSame(Appointment::STATUSES, ['confirmed', 'completed', 'cancelled', 'no_show']);
         $this->assertSame(Transaction::PAYMENT_STATUSES, ['unpaid', 'partial', 'paid', 'refunded', 'void']);
         $this->assertSame(Feedback::SENTIMENT_LABELS, ['positive', 'neutral', 'negative']);
         $this->assertTrue($appointment->customerProfile->is($customerProfile));

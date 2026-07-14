@@ -10,14 +10,14 @@
     </x-slot>
 
     <div class="space-y-6">
-        <section class="grid gap-4 md:grid-cols-3">
+        <section class="casa-metric-grid grid gap-3 sm:gap-4 md:grid-cols-3" data-metric-grid>
             <x-metric-card label="Positive" :value="$summary['positive']" meta="Satisfied feedback" tone="green" />
             <x-metric-card label="Neutral" :value="$summary['neutral']" meta="Middle rating" tone="gold" />
             <x-metric-card label="Negative" :value="$summary['negative']" meta="Needs attention" tone="charcoal" />
         </section>
 
         <x-app-card>
-            <x-list-toolbar eyebrow="{{ __('Reviews') }}" title="{{ __('Customer feedback') }}" :count="$feedback->total()" :reset-url="route('admin.feedback.index')">
+            <x-list-toolbar eyebrow="{{ __('Reviews') }}" title="{{ __('Customer feedback') }}" :count="$feedback->total()" :reset-url="route('admin.feedback.index')" :active-filters="collect(request()->only(['q', 'sentiment_label']))->filter(fn ($value) => filled($value))->count()" :collapsible="true">
                 <form method="GET" action="{{ route('admin.feedback.index') }}" class="casa-filter-grid sm:grid-cols-[minmax(12rem,1fr)_auto_auto] lg:min-w-[42rem]">
                     <input type="hidden" name="sort" value="{{ $sort }}">
                     <input type="hidden" name="direction" value="{{ $direction }}">

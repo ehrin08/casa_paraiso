@@ -1,3 +1,17 @@
+# Casa Paraiso Spa Appointment and Management System
+
+## Project Orientation
+
+Start with [AGENTS.md](AGENTS.md) for mandatory project rules, then read the
+[project memory](docs/PROJECT_MEMORY.md) for the current implementation map,
+domain entry points, task-routing guidance, and durable known gaps.
+
+Authoritative planning documents are the [MVP scope](docs/MVP_SCOPE.md),
+[technology stack](docs/TECH_STACK.md), [database design](docs/DATABASE_DESIGN.md),
+[screen flow](docs/SCREEN_FLOW.md), [Docker workflow](docs/DOCKER_WORKFLOW.md),
+[implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md), and
+[brand/UI guide](docs/BRAND_UI_GUIDE.md).
+
  <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

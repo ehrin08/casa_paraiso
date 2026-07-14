@@ -73,8 +73,8 @@
 
     <aside class="space-y-4">
         <x-app-card data-modal-actions>
-            <p class="casa-section-label">{{ __('Staff payment rule') }}</p>
-            <p class="mt-3 text-sm leading-6 text-casa-muted">{{ __('Staff payment records must stay linked to one of your confirmed or completed appointments.') }}</p>
+            <p class="casa-section-label">{{ __('Therapist payment rule') }}</p>
+            <p class="mt-3 text-sm leading-6 text-casa-muted">{{ __('Therapist payment records must stay linked to one of your confirmed or completed appointments.') }}</p>
         </x-app-card>
         <x-app-card>
             <div class="flex flex-col gap-3">

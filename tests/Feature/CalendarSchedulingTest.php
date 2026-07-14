@@ -31,10 +31,14 @@ class CalendarSchedulingTest extends TestCase
         Appointment::factory()->for($firstProfile)->for($service)->create([
             'appointment_number' => 'APT-OWN-CALENDAR',
             'requested_start_at' => $start,
+            'scheduled_start_at' => $start,
+            'scheduled_end_at' => $start->copy()->addHour(),
         ]);
         Appointment::factory()->for($secondProfile)->for($service)->create([
             'appointment_number' => 'APT-OTHER-CALENDAR',
             'requested_start_at' => $start,
+            'scheduled_start_at' => $start,
+            'scheduled_end_at' => $start->copy()->addHour(),
         ]);
 
         $customerResponse = $this->actingAs($firstCustomer)->getJson(route('customer.appointments.calendar', [
@@ -137,42 +141,43 @@ class CalendarSchedulingTest extends TestCase
         $this->assertFalse(collect($response->json('dates.'.$start->toDateString()))->contains('time', '14:00'));
     }
 
-    public function test_staff_calendar_hides_unassigned_pending_requests(): void
+    public function test_operational_calendars_exclude_unassigned_cancelled_history(): void
     {
         $admin = User::factory()->admin()->create();
-        $firstUser = User::factory()->staff()->create();
-        $firstStaff = StaffProfile::factory()->for($firstUser)->create();
-        $secondUser = User::factory()->staff()->create();
-        $secondStaff = StaffProfile::factory()->for($secondUser)->create();
+        $staffUser = User::factory()->staff()->create();
+        $staff = StaffProfile::factory()->for($staffUser)->create();
         $customer = CustomerProfile::factory()->create();
         $service = Service::factory()->create(['is_active' => true]);
-        $firstStaff->services()->attach($service);
-        $secondStaff->services()->attach($service);
+        $staff->services()->attach($service);
         $start = now()->addDays(2)->setTime(14, 0, 0);
 
-        foreach ([
-            ['number' => 'APT-NO-PREFERENCE', 'preferred' => null],
-            ['number' => 'APT-PREFERS-FIRST', 'preferred' => $firstStaff->id],
-            ['number' => 'APT-PREFERS-SECOND', 'preferred' => $secondStaff->id],
-        ] as $requestData) {
-            Appointment::factory()->for($customer)->for($service)->create([
-                'appointment_number' => $requestData['number'],
-                'preferred_staff_profile_id' => $requestData['preferred'],
-                'requested_start_at' => $start,
-                'status' => Appointment::STATUS_PENDING,
-            ]);
-        }
+        Appointment::factory()->for($customer)->for($service)->create([
+            'appointment_number' => 'APT-UNASSIGNED-CANCELLED',
+            'staff_profile_id' => null,
+            'requested_start_at' => $start,
+            'scheduled_start_at' => null,
+            'scheduled_end_at' => null,
+            'status' => Appointment::STATUS_CANCELLED,
+            'confirmed_at' => null,
+            'cancelled_at' => now(),
+        ]);
+        Appointment::factory()->for($customer)->for($service)->for($staff, 'staffProfile')->create([
+            'appointment_number' => 'APT-ASSIGNED-CONFIRMED',
+            'requested_start_at' => $start,
+            'scheduled_start_at' => $start,
+            'scheduled_end_at' => $start->copy()->addHour(),
+            'status' => Appointment::STATUS_CONFIRMED,
+        ]);
 
         $range = [
             'start' => $start->copy()->startOfDay()->toDateString(),
             'end' => $start->copy()->addDay()->startOfDay()->toDateString(),
         ];
-        $staffResponse = $this->actingAs($firstUser)->getJson(route('staff.appointments.calendar', $range, false));
+        $staffResponse = $this->actingAs($staffUser)->getJson(route('staff.appointments.calendar', $range, false));
         $staffNumbers = collect($staffResponse->json('events'))->pluck('appointment_number')->filter();
 
-        $this->assertFalse($staffNumbers->contains('APT-NO-PREFERENCE'));
-        $this->assertFalse($staffNumbers->contains('APT-PREFERS-FIRST'));
-        $this->assertFalse($staffNumbers->contains('APT-PREFERS-SECOND'));
+        $this->assertTrue($staffNumbers->contains('APT-ASSIGNED-CONFIRMED'));
+        $this->assertFalse($staffNumbers->contains('APT-UNASSIGNED-CANCELLED'));
 
         $adminResponse = $this->actingAs($admin)->getJson(route('admin.appointments.calendar', [
             ...$range,
@@ -180,7 +185,8 @@ class CalendarSchedulingTest extends TestCase
         ], false));
         $adminNumbers = collect($adminResponse->json('events'))->pluck('appointment_number')->filter();
 
-        $this->assertTrue($adminNumbers->contains('APT-PREFERS-SECOND'));
+        $this->assertTrue($adminNumbers->contains('APT-ASSIGNED-CONFIRMED'));
+        $this->assertFalse($adminNumbers->contains('APT-UNASSIGNED-CANCELLED'));
     }
 
     public function test_availability_change_is_rolled_back_when_it_breaks_a_confirmed_booking(): void
@@ -319,7 +325,7 @@ class CalendarSchedulingTest extends TestCase
         ]);
     }
 
-    public function test_admin_calendar_creation_rejects_pending_missing_staff_and_overlap(): void
+    public function test_admin_calendar_creation_rejects_unsupported_status_missing_staff_and_overlap(): void
     {
         $admin = User::factory()->admin()->create();
         $customer = CustomerProfile::factory()->create();
@@ -350,7 +356,7 @@ class CalendarSchedulingTest extends TestCase
             ->from(route('admin.appointments.index', absolute: false))
             ->post(route('admin.appointments.calendar.store', absolute: false), [
                 ...$base,
-                'status' => Appointment::STATUS_PENDING,
+                'status' => 'pending',
             ])
             ->assertSessionHasErrors(['status', 'staff_profile_id']);
 

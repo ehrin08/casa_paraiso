@@ -12,8 +12,17 @@ class StaffProfile extends Model
     /** @use HasFactory<StaffProfileFactory> */
     use HasFactory, SoftDeletes;
 
+    public const TYPE_THERAPIST = 'therapist';
+
+    public const TYPES = [self::TYPE_THERAPIST];
+
+    protected $attributes = [
+        'staff_type' => self::TYPE_THERAPIST,
+    ];
+
     protected $fillable = [
         'user_id',
+        'staff_type',
         'position',
         'specialization',
         'bio',
@@ -24,6 +33,7 @@ class StaffProfile extends Model
     protected function casts(): array
     {
         return [
+            'staff_type' => 'string',
             'hire_date' => 'date',
             'is_bookable' => 'boolean',
         ];
@@ -62,5 +72,10 @@ class StaffProfile extends Model
     public function preferredAppointments()
     {
         return $this->hasMany(Appointment::class, 'preferred_staff_profile_id');
+    }
+
+    public function commissions()
+    {
+        return $this->hasMany(TherapistCommission::class);
     }
 }
